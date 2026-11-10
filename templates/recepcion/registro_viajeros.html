@@ -1,0 +1,138 @@
+{% extends 'base.html' %}
+{% block title %}Registro viajeros{% endblock %}
+{% block breadcrumb %}Recepcion / Registro viajeros{% endblock %}
+{% block content %}
+<style>
+  .rx-summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:16px;}
+  .rx-box{border:1px solid #334155;background:#111827;border-radius:8px;padding:12px;}
+  .rx-box span{display:block;color:#94a3b8;font-size:12px;}
+  .rx-box strong{font-size:22px;}
+  .rx-missing{color:#fca5a5;font-size:12px;}
+  .rx-ok{color:#86efac;font-size:12px;}
+</style>
+
+<div class="card">
+  <div class="card-header">
+    <h2><i class="fas fa-id-card"></i> Registro de viajeros</h2>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+      <a class="btn btn-info" href="{{ url_for('recepcion.exportar_registro_viajeros', estado=filtros.estado, desde=filtros.desde, hasta=filtros.hasta, q=filtros.q) }}"><i class="fas fa-file-csv"></i> Exportar CSV</a>
+      <a class="btn btn-secondary" href="{{ url_for('recepcion.reservas') }}"><i class="fas fa-calendar-check"></i> Reservas</a>
+    </div>
+  </div>
+
+  <div class="rx-summary">
+    {% for e in ['pendiente','preparado','enviado','aceptado','rechazado'] %}
+    <div class="rx-box"><span>{{ e }}</span><strong>{{ resumen.get(e, 0) }}</strong></div>
+    {% endfor %}
+  </div>
+
+  <div class="alert alert-info">
+    El numero de documento solo se marca como faltante desde {{ edad_min_documento }} anos. En menores por debajo de esa edad puede quedar vacio si no disponen de documento.
+  </div>
+
+  <div class="alert alert-info" style="display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap;">
+    <div>
+      <strong>Alerta diaria {{ alerta.hora }}</strong><br>
+      <small>Hasta {{ alerta.hasta }}: {{ alerta.completos }} completos, {{ alerta.incompletos }} incompletos y {{ alerta.reservas_sin_viajeros }} reservas sin viajeros.</small>
+    </div>
+    <div style="display:flex;gap:8px;align-items:end;flex-wrap:wrap;">
+      <form method="post" action="{{ url_for('recepcion.preparar_envio_registro_viajeros') }}" style="display:flex;gap:8px;align-items:end;flex-wrap:wrap;">
+        <div class="form-group" style="margin:0;">
+          <label class="form-label">Preparar hasta</label>
+          <input class="form-control" type="date" name="hasta" value="{{ alerta.hasta }}">
+        </div>
+        <button class="btn btn-warning" type="submit">Preparar envio de esta noche</button>
+      </form>
+      <form method="post" action="{{ url_for('recepcion.enviar_demo_registro_viajeros') }}" style="display:flex;gap:8px;align-items:end;flex-wrap:wrap;">
+        <input type="hidden" name="hasta" value="{{ alerta.hasta }}">
+        <div class="form-group" style="margin:0;min-width:220px;">
+          <label class="form-label">Destino demo</label>
+          <input class="form-control" type="email" name="destinatario" value="demo@nexoraia.studio">
+        </div>
+        <button class="btn btn-success" type="submit"><i class="fas fa-paper-plane"></i> Enviar demo</button>
+      </form>
+    </div>
+  </div>
+
+  {% if envios_demo %}
+  <div class="table-container" style="margin-bottom:16px;">
+    <table>
+      <thead><tr><th>Ultimos envios demo</th><th>Destino</th><th>Estado</th><th>Viajeros</th><th>Incidencias</th><th>Fecha</th></tr></thead>
+      <tbody>
+        {% for envio in envios_demo %}
+        <tr>
+          <td>{{ envio.fecha_objetivo }}</td>
+          <td>{{ envio.destinatario }}</td>
+          <td>{{ envio.estado }}{% if envio.error %}<br><small class="rx-missing">{{ envio.error }}</small>{% endif %}</td>
+          <td>{{ envio.enviados }}/{{ envio.total_viajeros }}</td>
+          <td>{{ envio.incompletos }} incompletos / {{ envio.reservas_sin_viajeros }} sin ficha</td>
+          <td>{{ envio.fecha_creacion }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% endif %}
+
+  <form method="get" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;align-items:end;margin-bottom:16px;">
+    <div class="form-group"><label class="form-label">Buscar</label><input class="form-control" name="q" value="{{ filtros.q }}" placeholder="Nombre, documento, reserva"></div>
+    <div class="form-group"><label class="form-label">Estado</label><select class="form-control" name="estado">
+      <option value="">Todos</option>
+      {% for e in ['pendiente','preparado','enviado','aceptado','rechazado'] %}
+      <option value="{{ e }}" {% if filtros.estado == e %}selected{% endif %}>{{ e }}</option>
+      {% endfor %}
+    </select></div>
+    <div class="form-group"><label class="form-label">Entrada desde</label><input class="form-control" type="date" name="desde" value="{{ filtros.desde }}"></div>
+    <div class="form-group"><label class="form-label">Entrada hasta</label><input class="form-control" type="date" name="hasta" value="{{ filtros.hasta }}"></div>
+    <button class="btn btn-primary" type="submit">Filtrar</button>
+  </form>
+
+  <form method="post" action="{{ url_for('recepcion.actualizar_registro_viajeros') }}">
+    <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:end;margin-bottom:12px;">
+      <div class="form-group" style="min-width:170px;"><label class="form-label">Cambiar seleccionados a</label><select class="form-control" name="estado">
+        {% for e in ['pendiente','preparado','enviado','aceptado','rechazado'] %}
+        <option value="{{ e }}">{{ e }}</option>
+        {% endfor %}
+      </select></div>
+      <div class="form-group" style="min-width:170px;"><label class="form-label">Fecha registro</label><input class="form-control" type="date" name="registro_viajeros_fecha"></div>
+      <button class="btn btn-success" type="submit">Actualizar seleccion</button>
+    </div>
+
+    <div class="table-container">
+      <table>
+        <thead><tr><th></th><th>Reserva</th><th>Entrada</th><th>Habitacion</th><th>Viajero</th><th>Documento</th><th>Nacionalidad</th><th>Estado</th><th>Faltantes</th><th>Acciones</th></tr></thead>
+        <tbody>
+          {% for item in viajeros %}
+          {% set v = item.row %}
+          <tr>
+            <td><input type="checkbox" name="viajero_ids" value="{{ v.id }}"></td>
+            <td><a href="{{ url_for('recepcion.reserva_detalle', id=v.reserva_id) }}">{{ v.codigo or ('#' ~ v.reserva_id) }}</a><br><small>{{ v.titular_nombre or '' }}</small></td>
+            <td>{{ v.fecha_entrada }}<br><small>{{ v.fecha_salida }}</small></td>
+            <td>{{ v.habitacion_numero or v.habitacion_nombre or '-' }}</td>
+            <td><strong>{{ v.nombre }} {{ v.apellidos or '' }}</strong>{% if v.es_titular %}<br><small>Titular</small>{% endif %}</td>
+            <td>
+              {% if v.numero_documento %}
+                {{ v.tipo_documento or '-' }} {{ v.numero_documento }}
+              {% elif not item.documento_obligatorio %}
+                <span class="rx-ok">No necesario</span><br><small>Menor de {{ edad_min_documento }} anos{% if item.edad is not none %} ({{ item.edad }}){% endif %}</small>
+              {% else %}
+                {{ v.tipo_documento or '-' }}
+              {% endif %}
+            </td>
+            <td>{{ v.nacionalidad or '-' }}</td>
+            <td>{{ v.registro_viajeros_estado or 'pendiente' }}{% if v.registro_viajeros_fecha %}<br><small>{{ v.registro_viajeros_fecha }}</small>{% endif %}</td>
+            <td>{% if item.faltantes %}<span class="rx-missing">{{ item.faltantes|join(', ') }}</span>{% else %}<span class="rx-ok">Completo</span>{% endif %}</td>
+            <td style="display:flex;gap:6px;flex-wrap:wrap;">
+              <a class="btn btn-sm btn-primary" href="{{ url_for('recepcion.viajero_form', id=v.id) }}">Editar</a>
+              <button class="btn btn-sm btn-secondary" type="submit" name="viajero_id" value="{{ v.id }}">Marcar</button>
+            </td>
+          </tr>
+          {% else %}
+          <tr><td colspan="10">No hay viajeros con estos filtros.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </form>
+</div>
+{% endblock %}

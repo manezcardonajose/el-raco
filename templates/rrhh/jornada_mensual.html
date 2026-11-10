@@ -1,0 +1,142 @@
+{% extends 'base.html' %}
+{% block title %}Jornada mensual{% endblock %}
+{% block breadcrumb %}RRHH / Jornada mensual{% endblock %}
+{% block content %}
+<style>
+  .summary-grid{display:grid;grid-template-columns:repeat(4,minmax(160px,1fr));gap:12px;margin-bottom:16px;}
+  .summary-box{border:1px solid #334155;background:#111827;border-radius:8px;padding:14px;}
+  .summary-box span{display:block;color:#94a3b8;font-size:12px;}
+  .summary-box strong{font-size:24px;}
+  .actions-bar{display:flex;gap:10px;flex-wrap:wrap;align-items:end;margin-bottom:16px;}
+  .actions-bar .form-group{margin:0;}
+  .filters-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;align-items:end;margin-bottom:16px;}
+  .filters-grid .wide{grid-column:span 2;}
+  .status-closed{color:#86efac;font-weight:800;}
+  .status-open{color:#fbbf24;font-weight:800;}
+  @media(max-width:850px){.summary-grid{grid-template-columns:1fr 1fr;}.actions-bar,.filters-grid{display:grid;grid-template-columns:1fr;}.filters-grid .wide{grid-column:1;}}
+</style>
+
+{% set total_horas = resumen|sum(attribute='horas_reales') %}
+{% set total_plan = resumen|sum(attribute='horas_planificadas') %}
+{% set total_pendientes = resumen|sum(attribute='correcciones_pendientes') %}
+
+<div class="card">
+  <div class="card-header">
+    <h2><i class="fas fa-file-alt"></i> Jornada mensual</h2>
+    <a class="btn btn-secondary" href="{{ url_for('rrhh.lista_fichajes') }}"><i class="fas fa-clock"></i> Fichajes</a>
+  </div>
+
+  <form method="get" class="filters-grid">
+    <div class="form-group">
+      <label class="form-label">Año</label>
+      <input class="form-control" type="number" name="anio" value="{{ anio }}">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Mes</label>
+      <input class="form-control" type="number" name="mes" min="1" max="12" value="{{ mes }}">
+    </div>
+    <div class="form-group wide">
+      <label class="form-label">Empleado</label>
+      <select class="form-control" name="empleado_id">
+        <option value="">Todos</option>
+        {% for e in empleados %}<option value="{{ e.id }}" {% if empleado_id|string == e.id|string %}selected{% endif %}>{{ e.nombre }} {{ e.apellidos or '' }}</option>{% endfor %}
+      </select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Centro</label>
+      <select class="form-control" name="centro_id">
+        <option value="">Todos</option>
+        {% for c in centros %}<option value="{{ c.id }}" {% if centro_id|string == c.id|string %}selected{% endif %}>{{ c.nombre }}</option>{% endfor %}
+      </select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Departamento</label>
+      <select class="form-control" name="departamento_id">
+        <option value="">Todos</option>
+        {% for d in departamentos %}<option value="{{ d.id }}" {% if departamento_id|string == d.id|string %}selected{% endif %}>{{ d.nombre }}</option>{% endfor %}
+      </select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Subdepartamento</label>
+      <select class="form-control" name="subdepartamento_id">
+        <option value="">Todos</option>
+        {% for sd in subdepartamentos %}<option value="{{ sd.id }}" {% if subdepartamento_id|string == sd.id|string %}selected{% endif %}>{{ sd.nombre }}</option>{% endfor %}
+      </select>
+    </div>
+    <button class="btn btn-primary" type="submit"><i class="fas fa-search"></i> Ver</button>
+    <a class="btn btn-info" href="{{ url_for('rrhh.informe_jornada_csv', anio=anio, mes=mes, empleado_id=empleado_id, centro_id=centro_id, departamento_id=departamento_id, subdepartamento_id=subdepartamento_id) }}"><i class="fas fa-download"></i> Resumen CSV</a>
+    <a class="btn btn-success" href="{{ url_for('rrhh.informe_jornada_oficial_csv', anio=anio, mes=mes, empleado_id=empleado_id, centro_id=centro_id, departamento_id=departamento_id, subdepartamento_id=subdepartamento_id) }}"><i class="fas fa-file-signature"></i> Oficial CSV</a>
+  </form>
+
+  <div class="summary-grid">
+    <div class="summary-box"><span>Periodo</span><strong>{{ inicio }}</strong><br><small>hasta {{ fin_visible }}</small></div>
+    <div class="summary-box"><span>Horas reales</span><strong>{{ "%.2f"|format(total_horas or 0) }}</strong></div>
+    <div class="summary-box"><span>Horas planificadas</span><strong>{{ "%.2f"|format(total_plan or 0) }}</strong></div>
+    <div class="summary-box"><span>Estado</span>
+      {% if cierre and cierre.estado == 'cerrado' %}
+        <strong class="status-closed">Cerrado</strong><br><small>{{ cierre.fecha_cierre }}</small>
+      {% else %}
+        <strong class="status-open">Abierto</strong>
+      {% endif %}
+    </div>
+  </div>
+
+  {% if cierre and cierre.hash_cierre %}
+    <div class="alert alert-info">Hash de cierre: <code>{{ cierre.hash_cierre }}</code></div>
+  {% endif %}
+  {% if total_pendientes %}
+    <div class="alert alert-warning">Hay {{ total_pendientes }} correccion(es) de fichaje pendientes. Resuelvelas antes de cerrar el mes.</div>
+  {% endif %}
+
+  {% if cierre and cierre.estado == 'cerrado' %}
+    <form method="post" action="{{ url_for('rrhh.reabrir_jornada_mensual') }}" class="actions-bar">
+      <input type="hidden" name="anio" value="{{ anio }}">
+      <input type="hidden" name="mes" value="{{ mes }}">
+      <div class="form-group" style="min-width:280px;">
+        <label class="form-label">Motivo reapertura</label>
+        <input class="form-control" name="observaciones" required>
+      </div>
+      <button class="btn btn-warning" type="submit"><i class="fas fa-lock-open"></i> Reabrir mes</button>
+    </form>
+  {% else %}
+    <form method="post" action="{{ url_for('rrhh.cerrar_jornada_mensual') }}" class="actions-bar">
+      <input type="hidden" name="anio" value="{{ anio }}">
+      <input type="hidden" name="mes" value="{{ mes }}">
+      <div class="form-group" style="min-width:280px;">
+        <label class="form-label">Observaciones cierre</label>
+        <input class="form-control" name="observaciones">
+      </div>
+      <button class="btn btn-success" type="submit" {% if total_pendientes %}disabled{% endif %}><i class="fas fa-lock"></i> Cerrar mes</button>
+    </form>
+  {% endif %}
+
+  <div class="table-container">
+    <table>
+      <thead>
+        <tr>
+          <th>Empleado</th><th>Departamento</th><th>Horas reales</th><th>Planificadas</th><th>Diferencia</th><th>Fichajes</th><th>Entradas</th><th>Salidas</th><th>Pausas</th><th>Correcciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in resumen %}
+        {% set e = r.empleado %}
+        <tr>
+          <td><strong>{{ e.nombre }} {{ e.apellidos or '' }}</strong></td>
+          <td>{{ e.departamento_nombre or '-' }}{% if e.subdepartamento_nombre %}<br><small>{{ e.subdepartamento_nombre }}</small>{% endif %}</td>
+          <td>{{ "%.2f"|format(r.horas_reales) }}</td>
+          <td>{{ "%.2f"|format(r.horas_planificadas) }}</td>
+          <td>{{ "%.2f"|format(r.diferencia) }}</td>
+          <td>{{ r.fichajes }}</td>
+          <td>{{ r.entradas }}</td>
+          <td>{{ r.salidas }}</td>
+          <td>{{ r.pausas }}</td>
+          <td>{% if r.correcciones_pendientes %}<span class="badge badge-warning">{{ r.correcciones_pendientes }} pendiente(s)</span>{% else %}-{% endif %}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="10">No hay empleados para el periodo.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

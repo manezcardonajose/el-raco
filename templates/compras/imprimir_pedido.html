@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Pedido {{ pedido.numero_pedido }}</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 30px;
+            font-size: 12px;
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 30px;
+        }
+        .empresa {
+            font-size: 16px;
+            font-weight: bold;
+            color: #ff6b00;
+        }
+        .proveedor {
+            text-align: right;
+        }
+        .titulo {
+            font-size: 20px;
+            font-weight: bold;
+            text-align: center;
+            margin: 20px 0;
+            color: #333;
+        }
+        .datos-pedido {
+            background: #f5f5f5;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        th {
+            background: #ff6b00;
+            color: white;
+            padding: 10px;
+            text-align: left;
+        }
+        td {
+            padding: 8px;
+            border-bottom: 1px solid #ddd;
+        }
+        .total {
+            font-size: 16px;
+            font-weight: bold;
+            text-align: right;
+            margin-top: 20px;
+            padding: 10px;
+            background: #f5f5f5;
+        }
+        .observaciones {
+            margin-top: 30px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .footer {
+            margin-top: 50px;
+            font-size: 10px;
+            color: #666;
+            text-align: center;
+        }
+        @media print {
+            .no-print { display: none; }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="empresa">
+            <strong>MI EMPRESA</strong><br>
+            CIF: 12345678A<br>
+            Direccin: Calle Principal, 1<br>
+            Tel: 123 456 789
+        </div>
+        <div class="proveedor">
+            <strong>PROVEEDOR</strong><br>
+            {{ pedido.proveedor_nombre }}<br>
+            {% if pedido.nif %}CIF: {{ pedido.nif }}<br>{% endif %}
+            {% if pedido.email %}{{ pedido.email }}<br>{% endif %}
+            {% if pedido.telefono %}{{ pedido.telefono }}{% endif %}
+        </div>
+    </div>
+    
+    <div class="titulo">
+        PEDIDO Nº {{ pedido.numero_pedido }}
+    </div>
+    
+    <div class="datos-pedido">
+        <div><strong>Fecha pedido:</strong> {{ pedido.fecha_pedido }}</div>
+        <div><strong>Fecha entrega:</strong> {{ pedido.fecha_entrega or 'No especificada' }}</div>
+        <div><strong>Estado:</strong> {{ pedido.estado|upper }}</div>
+    </div>
+    
+    <table>
+        <thead>
+            <tr>
+                <th>Cdigo</th>
+                <th>Ref. proveedor</th>
+                <th>Producto</th>
+                <th>Cantidad</th>
+                <th>Unidad</th>
+                <th>Precio</th>
+                <th>Total</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% set total = 0 %}
+            {% for l in lineas %}
+            <tr>
+                <td>{{ l.codigo or '---' }}</td>
+                <td>{{ l.referencia_proveedor or '---' }}</td>
+                <td>{{ l.nombre }}</td>
+                <td>{{ l.cantidad_solicitada }}</td>
+                <td>{{ l.unidad }}</td>
+                <td>{{ "%.2f"|format(l.precio_unitario) }} </td>
+                <td>{{ "%.2f"|format(l.cantidad_solicitada * l.precio_unitario) }} </td>
+            </tr>
+            {% set total = total + (l.cantidad_solicitada * l.precio_unitario) %}
+            {% endfor %}
+        </tbody>
+    </table>
+    
+    <div class="total">
+        TOTAL PEDIDO: {{ "%.2f"|format(total) }} 
+    </div>
+    
+    {% if pedido.observaciones %}
+    <div class="observaciones">
+        <strong>Observaciones:</strong><br>
+        {{ pedido.observaciones }}
+    </div>
+    {% endif %}
+    
+    <div class="footer no-print">
+        <button onclick="window.print()">️ Imprimir</button>
+        <button onclick="window.close()"> Cerrar</button>
+    </div>
+</body>
+</html>
+
+
+

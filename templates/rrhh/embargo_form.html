@@ -1,0 +1,64 @@
+{% extends 'base.html' %}
+{% block title %}Editar embargo{% endblock %}
+{% block breadcrumb %}RRHH / Embargos / Editar{% endblock %}
+{% block content %}
+<div class="card">
+  <div class="card-header">
+    <h2><i class="fas fa-balance-scale"></i> Editar embargo</h2>
+  </div>
+  <form method="post">
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;">
+      <div class="form-group">
+        <label class="form-label">Empleado</label>
+        <select name="empleado_id" class="form-control" required>
+          {% for e in empleados %}
+          <option value="{{ e.id }}" {% if embargo.empleado_id == e.id %}selected{% endif %}>{{ e.nombre }} {{ e.apellidos or '' }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      {% for field,label,type in [
+        ('organismo','Organismo','text'),
+        ('numero_expediente','Expediente','text'),
+        ('fecha_inicio','Inicio','date'),
+        ('fecha_fin','Fin','date'),
+        ('importe_total','Importe total','number'),
+        ('saldo_pendiente','Saldo pendiente','number'),
+        ('cuota_mensual','Cuota mensual','number'),
+        ('porcentaje_nomina','% nomina','number'),
+        ('prioridad','Prioridad','number')
+      ] %}
+      <div class="form-group">
+        <label class="form-label">{{ label }}</label>
+        <input class="form-control" type="{{ type }}" {% if type == 'number' %}step="0.01"{% endif %} name="{{ field }}" value="{{ embargo[field] if field in embargo.keys() else '' }}">
+      </div>
+      {% endfor %}
+      <div class="form-group">
+        <label class="form-label">Tipo</label>
+        <select class="form-control" name="tipo">
+          {% for t in ['embargo','retencion_judicial','anticipo','regularizacion'] %}
+          <option value="{{ t }}" {% if embargo.tipo == t %}selected{% endif %}>{{ t|replace('_',' ') }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Estado</label>
+        <select class="form-control" name="estado">
+          {% for s in ['activo','pausado','finalizado','anulado'] %}
+          <option value="{{ s }}" {% if embargo.estado == s %}selected{% endif %}>{{ s }}</option>
+          {% endfor %}
+        </select>
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Observaciones</label>
+      <textarea class="form-control" name="observaciones" rows="3">{{ embargo.observaciones or '' }}</textarea>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Motivo del cambio</label>
+      <input class="form-control" name="motivo_cambio" required>
+    </div>
+    <button class="btn btn-success" type="submit">Guardar</button>
+    <a class="btn btn-secondary" href="{{ url_for('rrhh.lista_embargos_rrhh') }}">Volver</a>
+  </form>
+</div>
+{% endblock %}

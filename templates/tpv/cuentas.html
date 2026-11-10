@@ -1,0 +1,73 @@
+{% extends 'base.html' %}
+{% block title %}Cuentas TPV{% endblock %}
+{% block breadcrumb %}TPV / Cuentas{% endblock %}
+{% block content %}
+<style>
+  .tpv-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
+  .tpv-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;align-items:end;}
+  .tpv-note{color:#94a3b8;font-size:12px;line-height:1.35;}
+  .tpv-pill{display:inline-block;border:1px solid #475569;border-radius:4px;background:#0f172a;padding:2px 6px;font-size:12px;}
+</style>
+
+<div class="card">
+  <div class="card-header">
+    <h2><i class="fas fa-receipt"></i> Cuentas TPV</h2>
+    <div class="tpv-actions">
+      {% if terminal %}
+      <a class="btn btn-primary" href="{{ url_for('tpv.terminal', terminal_id=terminal.id) }}"><i class="fas fa-arrow-left"></i> Volver terminal</a>
+      {% endif %}
+      <a class="btn btn-secondary" href="{{ url_for('tpv.dashboard') }}"><i class="fas fa-cash-register"></i> TPV</a>
+      <a class="btn btn-secondary" href="{{ url_for('tpv.arranque') }}"><i class="fas fa-power-off"></i> Terminal</a>
+    </div>
+  </div>
+  <form method="get" class="tpv-grid">
+    <input type="hidden" name="terminal_id" value="{{ terminal_id }}">
+    <div class="form-group"><label class="form-label">Estado</label><select class="form-control" name="estado">
+      <option value="">Todos</option>
+      {% for key,label in estados.items() %}<option value="{{ key }}" {% if estado == key %}selected{% endif %}>{{ label }}</option>{% endfor %}
+    </select></div>
+    <div class="form-group"><label class="form-label">Punto de venta</label><select class="form-control" name="punto_venta_id">
+      <option value="">Todos</option>
+      {% for p in puntos %}<option value="{{ p.id }}" {% if punto_venta_id|string == p.id|string %}selected{% endif %}>{{ p.nombre }}</option>{% endfor %}
+    </select></div>
+    <button class="btn btn-primary" type="submit"><i class="fas fa-search"></i> Ver</button>
+  </form>
+</div>
+
+<div class="card">
+  <div class="table-container">
+    <table>
+      <thead><tr><th>Cuenta</th><th>Punto</th><th>Mesa/ref.</th><th>Cliente</th><th>Total</th><th>Estado</th><th>Comandas</th><th>Acciones</th></tr></thead>
+      <tbody>
+        {% for c in cuentas %}
+        <tr>
+          <td><strong>{{ c.numero }}</strong><div class="tpv-note">{{ c.fecha_apertura }}</div></td>
+          <td>{{ c.punto_nombre or '-' }}</td>
+          <td>{{ c.mesa_nombre or c.habitacion or c.modo_servicio or '-' }}</td>
+          <td>{{ c.cliente or '-' }}</td>
+          <td><strong>{{ '%.2f'|format(c.total or 0) }} EUR</strong></td>
+          <td><span class="tpv-pill">{{ estados.get(c.estado, c.estado) }}</span></td>
+          <td>{{ c.comandas or 0 }}</td>
+          <td>
+            <div class="tpv-actions">
+              <a class="btn btn-sm btn-primary" href="{{ url_for('tpv.cuenta_detalle', cuenta_id=c.id, terminal_id=terminal_id) }}">Ver / cobrar</a>
+              {% if c.estado == 'abierta' %}
+              <form method="post">
+                <input type="hidden" name="terminal_id" value="{{ terminal_id }}">
+                <input type="hidden" name="cuenta_id" value="{{ c.id }}">
+                <input type="hidden" name="accion" value="cobrar">
+                <input type="hidden" name="forma_pago" value="efectivo">
+                <button class="btn btn-sm btn-success" type="submit">Cobrar efectivo</button>
+              </form>
+              {% endif %}
+            </div>
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="8">No hay cuentas con estos filtros.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

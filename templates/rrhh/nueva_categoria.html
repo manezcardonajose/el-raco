@@ -1,0 +1,14 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container py-4"><h1 class="h3 mb-3">Nueva categoría laboral</h1>
+<form method="post" class="card card-body shadow-sm">
+  <div class="row g-3">
+    <div class="col-md-6"><label class="form-label">Nombre *</label><input name="nombre" required class="form-control"></div>
+    <div class="col-md-6"><label class="form-label">Convenio</label><input name="convenio" class="form-control"></div>
+    <div class="col-md-6"><label class="form-label">Grupo profesional</label><input name="grupo_profesional" class="form-control"></div>
+    <div class="col-md-6"><label class="form-label">Salario base</label><input name="salario_base" type="number" step="0.01" class="form-control"></div>
+    <div class="col-12"><label class="form-label">Descripción</label><textarea name="descripcion" class="form-control"></textarea></div>
+  </div>
+  <div class="mt-4"><button class="btn btn-primary">Crear</button> <a href="{{ url_for('rrhh.lista_categorias') }}" class="btn btn-outline-secondary">Cancelar</a></div>
+</form></div>
+{% endblock %}

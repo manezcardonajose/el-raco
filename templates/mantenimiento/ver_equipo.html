@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;">
+        <div>
+            <h2 style="color:#ff6b00;margin:0;">{{ equipo.nombre }}</h2>
+            <small>{{ equipo.codigo or ('EQ-' ~ equipo.id) }} · {{ equipo.tipo }}</small>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <a href="{{ url_for('mantenimiento.editar_equipo', equipo_id=equipo.id) }}" class="btn btn-primary">Editar</a>
+            <a href="{{ url_for('mantenimiento.lista_equipos') }}" class="btn btn-secondary">Volver</a>
+        </div>
+    </div>
+
+    <div style="background:#3a3f44;padding:20px;border-radius:8px;margin:20px 0;">
+        <div style="display:grid;grid-template-columns:repeat(3,minmax(180px,1fr));gap:15px;">
+            <div><strong>Familia:</strong> {{ equipo.familia or '-' }}</div>
+            <div><strong>Clase:</strong> {{ equipo.clase_activo or '-' }}</div>
+            <div><strong>Criticidad:</strong> {{ equipo.criticidad or 'media' }}</div>
+            <div><strong>Marca:</strong> {{ equipo.marca or '-' }}</div>
+            <div><strong>Modelo:</strong> {{ equipo.modelo or '-' }}</div>
+            <div><strong>Serie:</strong> {{ equipo.numero_serie or '-' }}</div>
+            <div><strong>Ubicacion:</strong> {{ equipo.ubicacion or '-' }}</div>
+            <div><strong>Departamento:</strong> {{ equipo.departamento_nombre or '-' }}</div>
+            <div><strong>Subdepartamento:</strong> {{ equipo.subdepartamento_nombre or '-' }}</div>
+            <div><strong>Punto venta:</strong> {{ equipo.punto_venta_nombre or '-' }}</div>
+            <div><strong>Proveedor:</strong> {{ equipo.proveedor_nombre or '-' }}</div>
+            <div><strong>APPCC:</strong> {{ 'Si' if equipo.requiere_appcc else 'No' }}</div>
+            <div>
+                <strong>Equipo APPCC:</strong>
+                {% if equipo.equipo_appcc_nombre %}
+                    {{ equipo.equipo_appcc_nombre }}
+                    {% if equipo.appcc_rango_min is not none and equipo.appcc_rango_max is not none %}
+                        ({{ equipo.appcc_rango_min }} / {{ equipo.appcc_rango_max }} C)
+                    {% endif %}
+                {% else %}
+                    -
+                {% endif %}
+            </div>
+            <div>
+                <strong>Almacen vinculado:</strong>
+                {% if equipo.almacen_nombre %}
+                    {{ equipo.almacen_nombre }} · {{ equipo.almacen_tipo or '-' }}
+                {% else %}
+                    -
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:repeat(4,minmax(140px,1fr));gap:12px;margin-bottom:20px;">
+        <div class="card" style="margin:0;"><small>Intervenciones</small><h3>{{ historial|length }}</h3></div>
+        <div class="card" style="margin:0;"><small>Horas</small><h3>{{ total_horas|round(2) }}</h3></div>
+        <div class="card" style="margin:0;"><small>Coste OT</small><h3>{{ "%.2f"|format(coste_total_ordenes) }}</h3></div>
+        <div class="card" style="margin:0;"><small>Repuestos</small><h3>{{ "%.2f"|format(coste_total_repuestos) }}</h3></div>
+    </div>
+
+    <h3>Ordenes de trabajo</h3>
+    <table style="width:100%;">
+        <thead>
+            <tr>
+                <th>Orden</th>
+                <th>Fecha</th>
+                <th>Tipo</th>
+                <th>Descripcion</th>
+                <th>Estado</th>
+                <th>Tecnico</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for h in historial %}
+            <tr>
+                <td><a href="{{ url_for('mantenimiento.ver_orden', orden_id=h.id) }}">{{ h.numero_orden }}</a></td>
+                <td>{{ h.fecha_apertura[:10] if h.fecha_apertura else '-' }}</td>
+                <td>{{ h.tipo }}</td>
+                <td>{{ h.descripcion[:80] }}{% if h.descripcion|length > 80 %}...{% endif %}</td>
+                <td>{{ h.estado }}</td>
+                <td>{{ h.tecnico_asignado or '-' }}</td>
+            </tr>
+            {% else %}
+            <tr><td colspan="6" style="text-align:center;">Sin ordenes registradas.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <h3 style="margin-top:24px;">Preventivos</h3>
+    <table style="width:100%;">
+        <thead><tr><th>Tarea</th><th>Frecuencia</th><th>Ultima</th><th>Proxima</th><th>Responsable</th></tr></thead>
+        <tbody>
+            {% for p in preventivos %}
+            <tr>
+                <td>{{ p.tarea }}</td>
+                <td>{{ p.frecuencia }}</td>
+                <td>{{ p.ultima_ejecucion or '-' }}</td>
+                <td>{{ p.proxima_ejecucion or '-' }}</td>
+                <td>{{ p.responsable or '-' }}</td>
+            </tr>
+            {% else %}
+            <tr><td colspan="5" style="text-align:center;">Sin preventivos.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

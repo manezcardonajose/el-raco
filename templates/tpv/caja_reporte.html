@@ -1,0 +1,91 @@
+{% extends 'base.html' %}
+{% block title %}Informe {{ modo }} TPV{% endblock %}
+{% block breadcrumb %}TPV / Caja / Informe {{ modo }}{% endblock %}
+{% block content %}
+<style>
+  .report-head{display:flex;justify-content:space-between;gap:16px;align-items:flex-start;margin-bottom:14px;}
+  .report-mark{font-size:56px;font-weight:800;line-height:1;border:2px solid #334155;border-radius:8px;padding:14px 20px;}
+  .report-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;margin:12px 0;}
+  .report-box{border:1px solid #334155;border-radius:8px;background:#111827;padding:12px;}
+  .report-box span{display:block;color:#94a3b8;font-size:12px;}
+  .report-box strong{display:block;font-size:24px;margin-top:4px;}
+  .report-table{width:100%;border-collapse:collapse;margin-top:10px;}
+  .report-table th,.report-table td{border-bottom:1px solid #263244;padding:8px;text-align:left;}
+  .report-table th{color:#94a3b8;font-size:12px;text-transform:uppercase;}
+  @media print{
+    .sidebar,.topbar,.btn,.breadcrumb{display:none!important;}
+    .main-content{margin:0!important;padding:0!important;}
+    .card{border:0!important;box-shadow:none!important;}
+  }
+</style>
+
+<div class="card">
+  <div class="report-head">
+    <div>
+      <h2>Informe {{ modo }} - {{ caja.punto_nombre or caja.terminal_nombre or 'TPV' }}</h2>
+      <p class="tpv-note">Apertura {{ caja.fecha_apertura }}{% if caja.fecha_cierre %} · Cierre {{ caja.fecha_cierre }}{% endif %}</p>
+      <p class="tpv-note">Usuario apertura {{ caja.usuario_apertura or '-' }} · Usuario cierre {{ caja.usuario_cierre or '-' }}</p>
+    </div>
+    <div class="report-mark">{{ modo }}</div>
+  </div>
+  <div class="tpv-actions">
+    <a class="btn btn-primary" href="{{ url_for('tpv.caja_terminal', terminal_id=caja.terminal_id) }}"><i class="fas fa-arrow-left"></i> Caja</a>
+    <button class="btn btn-secondary" type="button" onclick="window.print()"><i class="fas fa-print"></i> Imprimir</button>
+  </div>
+
+  <div class="report-grid">
+    <div class="report-box"><span>Total vendido</span><strong>{{ '%.2f'|format(resumen.total or 0) }} EUR</strong></div>
+    <div class="report-box"><span>Efectivo ventas</span><strong>{{ '%.2f'|format(resumen.efectivo or 0) }} EUR</strong></div>
+    <div class="report-box"><span>Tarjeta</span><strong>{{ '%.2f'|format(resumen.tarjeta or 0) }} EUR</strong></div>
+    <div class="report-box"><span>Cargos habitacion</span><strong>{{ '%.2f'|format(resumen.cargo_habitacion or 0) }} EUR</strong></div>
+    <div class="report-box"><span>Consumo empleados</span><strong>{{ '%.2f'|format(resumen.consumo_empleado or 0) }} EUR</strong></div>
+    <div class="report-box"><span>Invitaciones</span><strong>{{ '%.2f'|format(resumen.invitacion or 0) }} EUR</strong></div>
+    <div class="report-box"><span>Retiradas</span><strong>{{ '%.2f'|format(resumen.retiradas or 0) }} EUR</strong></div>
+    <div class="report-box"><span>Efectivo teorico</span><strong>{{ '%.2f'|format((caja.saldo_inicial or 0) + (resumen.efectivo or 0) + (resumen.entradas or 0) - (resumen.retiradas or 0)) }} EUR</strong></div>
+    <div class="report-box"><span>Contado</span><strong>{{ '%.2f'|format(caja.efectivo_contado or arqueo_cierre.total or 0) }} EUR</strong></div>
+    <div class="report-box"><span>Diferencia</span><strong>{{ '%.2f'|format(caja.diferencia or 0) }} EUR</strong></div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header"><h2><i class="fas fa-exchange-alt"></i> Movimientos de caja</h2></div>
+  <table class="report-table">
+    <thead><tr><th>Fecha</th><th>Tipo</th><th>Importe</th><th>Destino</th><th>Usuario</th><th>Motivo</th></tr></thead>
+    <tbody>
+      {% for m in movimientos %}
+      <tr><td>{{ m.fecha }}</td><td>{{ m.tipo|replace('_', ' ') }}</td><td>{{ '%.2f'|format(m.importe or 0) }}</td><td>{{ m.destino or '-' }}</td><td>{{ m.usuario or '-' }}</td><td>{{ m.motivo or '-' }}</td></tr>
+      {% else %}
+      <tr><td colspan="6">Sin movimientos.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<div class="card">
+  <div class="card-header"><h2><i class="fas fa-utensils"></i> Articulos vendidos</h2></div>
+  <table class="report-table">
+    <thead><tr><th>Articulo</th><th>Cantidad</th><th>Total</th></tr></thead>
+    <tbody>
+      {% for item in ventas_articulos %}
+      <tr><td>{{ item.nombre }}</td><td>{{ '%.2f'|format(item.cantidad or 0) }}</td><td>{{ '%.2f'|format(item.total or 0) }} EUR</td></tr>
+      {% else %}
+      <tr><td colspan="3">Sin articulos cobrados en esta caja.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<div class="card">
+  <div class="card-header"><h2><i class="fas fa-boxes"></i> Consumo previsto de stock</h2></div>
+  <table class="report-table">
+    <thead><tr><th>Producto / ingrediente</th><th>Cantidad prevista</th><th>Unidad</th></tr></thead>
+    <tbody>
+      {% for item in consumo_stock %}
+      <tr><td>{{ item.producto_nombre or ('Producto ' ~ item.producto_id) }}</td><td>{{ '%.3f'|format(item.cantidad or 0) }}</td><td>{{ item.unidad or '' }}</td></tr>
+      {% else %}
+      <tr><td colspan="3">Sin productos vinculados a stock en esta caja.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

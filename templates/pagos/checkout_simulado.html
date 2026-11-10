@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Pago simulado</title>
+  <style>
+    body{font-family:Arial,sans-serif;background:#f3f6fb;margin:0;display:grid;place-items:center;min-height:100vh;color:#0f172a}
+    .box{width:min(460px,calc(100vw - 32px));background:#fff;border:1px solid #cbd5e1;border-radius:8px;padding:24px;box-shadow:0 16px 40px rgba(15,23,42,.12)}
+    h1{margin:0 0 8px;color:#ff6b00}
+    .amount{font-size:34px;font-weight:800;margin:16px 0}
+    button{border:0;border-radius:6px;padding:12px 16px;font-weight:700;cursor:pointer}
+    .ok{background:#16a34a;color:#fff}.ko{background:#dc2626;color:#fff}.cancel{background:#64748b;color:#fff}
+    form{display:flex;gap:8px;flex-wrap:wrap}
+  </style>
+</head>
+<body>
+  <main class="box">
+    <h1>Pago simulado</h1>
+    <p>{{ operacion.descripcion }}</p>
+    <div class="amount">{{ "%.2f"|format(operacion.importe or 0) }} {{ operacion.moneda or 'EUR' }}</div>
+    <p><strong>Referencia:</strong> {{ operacion.referencia_interna }}</p>
+    <form method="post">
+      <button class="ok" name="estado" value="confirmado">Confirmar</button>
+      <button class="ko" name="estado" value="fallido">Fallar</button>
+      <button class="cancel" name="estado" value="cancelado">Cancelar</button>
+    </form>
+  </main>
+</body>
+</html>

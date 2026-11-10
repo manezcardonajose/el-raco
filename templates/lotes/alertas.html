@@ -1,0 +1,235 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header">
+        <h2><i class="fas fa-bell"></i> Alertas APPCC de descongelado</h2>
+        <div>
+            <a href="{{ url_for('appcc.appcc_dashboard') }}" class="btn btn-primary">
+                <i class="fas fa-temperature-high"></i> APPCC
+            </a>
+            <a href="{{ url_for('lotes.lista_lotes') }}" class="btn btn-secondary">
+                <i class="fas fa-boxes"></i> Ver lotes
+            </a>
+        </div>
+    </div>
+
+    {% if alertas %}
+    <div style="margin-bottom: 30px;">
+        <h3 style="color: #ffc107;">Alertas programadas proximas</h3>
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Producto</th>
+                        <th>Lote</th>
+                        <th>Proveedor</th>
+                        <th>Fecha alerta</th>
+                        <th>Produccin</th>
+                        <th>Horas restantes</th>
+                        <th>Estado</th>
+                        <th>Accion</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for a in alertas %}
+                    <tr>
+                        <td><strong>{{ a.producto_nombre }}</strong></td>
+                        <td>{{ a.codigo_lote }}</td>
+                        <td>{{ a.proveedor_nombre or '---' }}</td>
+                        <td>{{ a.fecha_alerta[:16] }}</td>
+                        <td>{{ a.fecha_produccion or '---' }}</td>
+                        <td>
+                            {% if a.horas_restantes %}
+                            {% if a.horas_restantes < 0 %}
+                            <span style="color: #dc3545;">ATRASADO</span>
+                            {% elif a.horas_restantes < 24 %}
+                            <span style="color: #ffc107;">{{ a.horas_restantes|int }}h</span>
+                            {% else %}
+                            {{ a.horas_restantes|int }}h
+                            {% endif %}
+                            {% else %}
+                            ---
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if not a.enviada %}
+                            <span class="badge badge-warning">Pendiente</span>
+                            {% else %}
+                            <span class="badge badge-success">Enviada</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if a.estado_descongelado != 'en_curso' %}
+                            <form method="POST" action="{{ url_for('lotes.iniciar_descongelado', lote_id=a.lote_id) }}" class="thaw-form">
+                                <input type="hidden" name="alerta_id" value="{{ a.id }}">
+                                <input type="hidden" name="next" value="{{ request.path }}">
+                                <input type="number" step="0.001" min="0.001" max="{{ a.cantidad_actual or 0 }}" name="cantidad" value="{{ a.cantidad_sugerida or a.cantidad_actual or 0 }}" title="Cantidad prevista">
+                                <input type="number" step="0.1" name="temperatura" placeholder="Temp C" required title="Temperatura de salida">
+                                <input type="text" name="ubicacion_destino" value="Camara de descongelacion" title="Destino">
+                                <button type="submit" class="btn btn-sm btn-success">
+                                    Sacar
+                                </button>
+                            </form>
+                            {% endif %}
+                            <a href="{{ url_for('lotes.control_descongelado', lote_id=a.lote_id) }}" class="btn btn-sm btn-primary">
+                                Control
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+
+    {% if pendientes %}
+    <div>
+        <h3 style="color: #17a2b8;">Lotes sensibles pendientes de programar</h3>
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Producto</th>
+                        <th>Lote</th>
+                        <th>Stock</th>
+                        <th>Tiempo descongelado</th>
+                        <th>Accion</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for p in pendientes %}
+                    <tr>
+                        <td><strong>{{ p.producto_nombre }}</strong></td>
+                        <td>{{ p.codigo_lote }}</td>
+                        <td>{{ p.cantidad_actual }}</td>
+                        <td>{{ p.tiempo_descongelado_horas or 72 }} horas</td>
+                        <td>
+                            {% if p.estado_descongelado != 'en_curso' %}
+                            <form method="POST" action="{{ url_for('lotes.iniciar_descongelado', lote_id=p.id) }}" class="thaw-form">
+                                <input type="hidden" name="next" value="{{ request.path }}">
+                                <input type="number" step="0.001" min="0.001" max="{{ p.cantidad_actual or 0 }}" name="cantidad" value="{{ p.cantidad_actual or 0 }}" title="Cantidad">
+                                <input type="number" step="0.1" name="temperatura" placeholder="Temp C" required title="Temperatura de salida">
+                                <input type="text" name="ubicacion_destino" value="Camara de descongelacion" title="Destino">
+                                <button type="submit" class="btn btn-sm btn-success">
+                                    Sacar
+                                </button>
+                            </form>
+                            {% endif %}
+                            <a href="{{ url_for('lotes.control_descongelado', lote_id=p.id) }}" class="btn btn-sm btn-primary">
+                                Control
+                            </a>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="5" style="text-align: center;">No hay productos pendientes</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+
+    {% if necesidades_sin_lote %}
+    <div style="margin-top: 30px;">
+        <h3 style="color: #fd7e14;">Necesidades de menús sin lote pendiente</h3>
+        <p class="text-muted" style="margin-top:-6px;">
+            Del {{ fecha_desde }} al {{ fecha_hasta }}. Estos productos están en recetas/menús, pero no tienen lote congelado pendiente para sacar ahora.
+        </p>
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Producto</th>
+                        <th>Necesario</th>
+                        <th>Servicio</th>
+                        <th>Situación</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in necesidades_sin_lote[:80] %}
+                    <tr>
+                        <td><strong>{{ item.producto }}</strong></td>
+                        <td>{{ '%.3f'|format(item.cantidad or 0) }} {{ item.unidad }}</td>
+                        <td>{{ item.desde }}{% if item.hasta and item.hasta != item.desde %} a {{ item.hasta }}{% endif %}</td>
+                        <td>
+                            {% if item.stock_apto and item.stock_apto > 0 %}
+                                <span class="badge badge-success">Ya apto/controlado: {{ '%.3f'|format(item.stock_apto) }} {{ item.unidad }}</span>
+                            {% else %}
+                                <span class="badge badge-warning">Sin lote pendiente con stock</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+
+    {% if not alertas and not pendientes %}
+    <div style="text-align: center; padding: 40px;">
+        <p style="color: #999;">No hay alertas programadas ni lotes sensibles pendientes para sacar del congelador.</p>
+    </div>
+    {% endif %}
+</div>
+
+<style>
+    .badge-warning {
+        background: #ffc107;
+        color: black;
+        padding: 4px 8px;
+        border-radius: 12px;
+    }
+
+    .badge-success {
+        background: #28a745;
+        color: white;
+        padding: 4px 8px;
+        border-radius: 12px;
+    }
+
+    .btn-sm {
+        padding: 4px 8px;
+        font-size: 12px;
+    }
+
+    .thaw-form {
+        display: grid;
+        grid-template-columns: 82px 72px minmax(150px, 1fr) auto;
+        gap: 5px;
+        align-items: center;
+        margin-bottom: 6px;
+        max-width: 430px;
+    }
+
+    .thaw-form input {
+        min-width: 0;
+        padding: 5px 6px;
+        border-radius: 4px;
+        border: 1px solid rgba(255,255,255,.18);
+        background: #121820;
+        color: #fff;
+    }
+
+    @media (max-width: 760px) {
+        .thaw-form {
+            grid-template-columns: 1fr 1fr;
+        }
+    }
+</style>
+
+<script>
+function programarAlertas() {
+    // Esta funcin se puede implementar despus con una llamada AJAX
+    alert('Funcin en desarrollo - Se generarn alertas al planificar produccin');
+}
+</script>
+{% endblock %}
+
+
+
+

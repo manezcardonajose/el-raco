@@ -1,0 +1,75 @@
+{% extends 'base.html' %}
+{% block content %}
+<style>
+    .rrhh-page{padding:18px;}.rrhh-card{background:#222932;border:1px solid #314257;border-radius:8px;padding:18px;margin-bottom:18px}.rrhh-card h3{color:#ff6b00}.form-label{color:#b8c2cc;font-weight:600}.form-control,.form-select{background:#17212b;color:#fff;border:1px solid #34485d;min-height:38px}.hint{font-size:.82rem;color:#8d9aa6;margin-top:4px;}
+</style>
+<div class="rrhh-page">
+    <div class="rrhh-card">
+        <h3><i class="fas fa-edit"></i> Editar ausencia, baja o permiso</h3>
+        <form method="post" enctype="multipart/form-data">
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <label class="form-label">Trabajador</label>
+                    <select name="empleado_id" class="form-select" required>
+                        {% for e in empleados %}
+                            <option value="{{ e.id }}" {% if registro and registro.empleado_id == e.id %}selected{% endif %}>{{ e.nombre }} {{ e.apellidos or '' }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Tipo</label>
+                    <select name="tipo" class="form-select" required>
+                        {% for valor, nombre in tipos_ausencia %}
+                            <option value="{{ valor }}" {% if registro and registro.tipo == valor %}selected{% endif %}>{{ nombre }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Estado</label>
+                    <select name="estado" class="form-select">
+                        {% for estado in ['solicitada','aprobada','rechazada','cancelada'] %}
+                            <option value="{{ estado }}" {% if registro and registro.estado == estado %}selected{% endif %}>{{ estado|capitalize }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3"><label class="form-label">Inicio</label><input type="date" name="fecha_inicio" class="form-control" value="{{ registro.fecha_inicio if registro else '' }}" required></div>
+                <div class="col-md-3"><label class="form-label">Fin</label><input type="date" name="fecha_fin" class="form-control" value="{{ registro.fecha_fin if registro else '' }}" required></div>
+                <div class="col-md-3">
+                    <label class="form-label">Origen</label>
+                    <select name="origen" class="form-select">
+                        {% for valor,nombre in [('manual_rrhh','Manual RRHH'),('email','Recibido por email'),('escaneado','Escaneado'),('foto','Foto móvil'),('empleado','Solicitud empleado')] %}
+                            <option value="{{ valor }}" {% if registro and registro.origen == valor %}selected{% endif %}>{{ nombre }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Documento existente</label>
+                    <select name="documento_id" class="form-select">
+                        <option value="">Sin documento</option>
+                        {% for d in documentos %}
+                            <option value="{{ d.id }}" {% if registro and registro.documento_id == d.id %}selected{% endif %}>{{ d.nombre or d.tipo_documento }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Subir nuevo justificante</label>
+                    <input type="file" name="archivo_documento" class="form-control" accept=".pdf,.png,.jpg,.jpeg,.webp,.heic,.tif,.tiff">
+                    <div class="hint">Si subes uno nuevo, se asociará a este registro.</div>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Motivo del cambio</label>
+                    <input type="text" name="motivo_cambio" class="form-control" placeholder="Corrección, nuevo parte, cambio de fechas...">
+                </div>
+                <div class="col-12">
+                    <label class="form-label">Observaciones</label>
+                    <textarea name="observaciones" class="form-control" rows="3">{{ registro.observaciones if registro else '' }}</textarea>
+                </div>
+            </div>
+            <div class="mt-3">
+                <button class="btn btn-success"><i class="fas fa-save"></i> Guardar cambios</button>
+                <a href="{{ url_for('rrhh.vacaciones') }}" class="btn btn-secondary">Volver</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

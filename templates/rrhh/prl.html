@@ -1,0 +1,210 @@
+{% extends 'base.html' %}
+{% block title %}PRL operativa{% endblock %}
+{% block breadcrumb %}RRHH / PRL operativa{% endblock %}
+{% block content %}
+<div class="card">
+  <div class="card-header">
+    <h2><i class="fas fa-hard-hat"></i> PRL operativa</h2>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+      <form method="post" style="margin:0;">
+        <input type="hidden" name="tipo" value="asignar_formaciones">
+        <button class="btn btn-success"><i class="fas fa-user-check"></i> Asignar formaciones</button>
+      </form>
+      <a class="btn btn-secondary" href="{{ url_for('rrhh.panel_rrhh') }}"><i class="fas fa-arrow-left"></i> Volver a RRHH</a>
+    </div>
+  </div>
+  <p class="muted">Prevencion conectada con OPS: riesgos por puesto, formacion, incidentes, acciones y evidencias.</p>
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;">
+    <div class="card"><h3>{{ resumen.riesgos.total or 0 }}</h3><p>Riesgos activos</p></div>
+    <div class="card"><h3>{{ resumen.riesgos.altos or 0 }}</h3><p>Altos/criticos</p></div>
+    <div class="card"><h3>{{ resumen.formaciones.total or 0 }}</h3><p>Formaciones</p></div>
+    <div class="card"><h3>{{ prl_formacion_total.pendientes or 0 }}</h3><p>Formacion pendiente</p></div>
+    <div class="card"><h3>{{ carnet_resumen.alertas or 0 }}</h3><p>Alertas manipulador</p></div>
+    <div class="card"><h3>{{ resumen.acciones.pendientes or 0 }}</h3><p>Acciones pendientes</p></div>
+    <div class="card"><h3>{{ resumen.incidentes.abiertos or 0 }}</h3><p>Incidentes abiertos</p></div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header"><h2><i class="fas fa-utensils"></i> Riesgo alimentario y carnet manipulador</h2></div>
+  <p class="muted">Controla trabajadores de cocina, sala, bar y buffet que manipulan alimentos o bebidas con riesgo alimentario.</p>
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin-bottom:14px;">
+    <div class="card"><h3>{{ carnet_resumen.requieren or 0 }}</h3><p>Requieren carnet</p></div>
+    <div class="card"><h3>{{ carnet_resumen.ok or 0 }}</h3><p>Vigentes</p></div>
+    <div class="card"><h3>{{ carnet_resumen.sin_carnet or 0 }}</h3><p>Sin carnet/dato</p></div>
+    <div class="card"><h3>{{ carnet_resumen.caducados or 0 }}</h3><p>Caducados</p></div>
+    <div class="card"><h3>{{ carnet_resumen.caducan or 0 }}</h3><p>Caducan pronto</p></div>
+  </div>
+  <div class="table-container">
+    <table>
+      <thead><tr><th>Empleado</th><th>Departamento</th><th>Rol</th><th>Estado</th><th>Caducidad</th><th>Motivo</th></tr></thead>
+      <tbody>
+      {% for row in carnet_alertas %}
+      <tr>
+        <td><strong>{{ row.empleado_nombre }}</strong></td>
+        <td>{{ row.departamento_nombre }}<br><small>{{ row.subdepartamento_nombre }}</small></td>
+        <td>{{ row.rol }}</td>
+        <td><span class="badge {{ 'badge-danger' if row.estado in ['sin_carnet','caducado','fecha_invalida','sin_caducidad'] else 'badge-warning' }}">{{ row.estado }}</span></td>
+        <td>{{ row.fecha_caducidad_carnet }}</td>
+        <td>{{ row.motivo }}</td>
+      </tr>
+      {% else %}
+      <tr><td colspan="6">Sin alertas de carnet manipulador.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header"><h2><i class="fas fa-user-shield"></i> Formacion asignada a empleados</h2></div>
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-bottom:14px;">
+    <div class="card"><h3>{{ prl_formacion_total.total or 0 }}</h3><p>Asignaciones</p></div>
+    <div class="card"><h3>{{ prl_formacion_total.pendientes or 0 }}</h3><p>Pendientes</p></div>
+    <div class="card"><h3>{{ prl_formacion_total.realizadas or 0 }}</h3><p>Realizadas</p></div>
+  </div>
+  {% if prl_pendientes_departamento %}
+  <div class="table-container" style="margin-bottom:16px;">
+    <table>
+      <thead><tr><th>Departamento</th><th>Total</th><th>Pendientes</th><th>Realizadas</th></tr></thead>
+      <tbody>
+      {% for row in prl_pendientes_departamento %}
+      <tr><td>{{ row.departamento }}</td><td>{{ row.total }}</td><td><span class="badge {{ 'badge-danger' if row.pendientes else 'badge-success' }}">{{ row.pendientes or 0 }}</span></td><td>{{ row.realizadas or 0 }}</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% endif %}
+  <div class="table-container">
+    <table>
+      <thead><tr><th>Empleado</th><th>Departamento</th><th>Formacion</th><th>Area</th><th>Estado</th><th>Asignada</th></tr></thead>
+      <tbody>
+      {% for row in formacion_empleados %}
+      <tr><td>{{ row.empleado_nombre }}</td><td>{{ row.departamento_nombre or '-' }}</td><td><strong>{{ row.codigo }}</strong><br>{{ row.titulo }}</td><td>{{ row.area }}</td><td><span class="badge badge-warning">{{ row.estado }}</span></td><td>{{ row.fecha_asignacion }}</td></tr>
+      {% else %}
+      <tr><td colspan="6">No hay formacion pendiente asignada.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header"><h2><i class="fas fa-triangle-exclamation"></i> Mapa de riesgos</h2></div>
+  <div class="table-container">
+    <table>
+      <thead><tr><th>Codigo</th><th>Area</th><th>Puesto</th><th>Riesgo</th><th>Nivel</th><th>Medidas</th><th>EPI</th><th>Formacion</th></tr></thead>
+      <tbody>
+      {% for r in riesgos %}
+      <tr>
+        <td><strong>{{ r.codigo }}</strong><br><small>{{ r.categoria }}</small></td>
+        <td>{{ r.area }}</td>
+        <td>{{ r.puesto or '-' }}</td>
+        <td>{{ r.riesgo }}</td>
+        <td><span class="badge {{ 'badge-danger' if r.nivel == 'critico' else 'badge-warning' if r.nivel == 'alto' else 'badge-info' }}">{{ r.nivel }}</span><br><small>P{{ r.probabilidad }} x S{{ r.severidad }}</small></td>
+        <td>{{ r.medidas }}</td>
+        <td>{{ r.epis }}</td>
+        <td>{{ r.formacion_requerida }}</td>
+      </tr>
+      {% else %}
+      <tr><td colspan="8">Sin riesgos PRL.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header"><h2><i class="fas fa-person-chalkboard"></i> Formacion obligatoria</h2></div>
+  <div class="table-container">
+    <table>
+      <thead><tr><th>Codigo</th><th>Titulo</th><th>Area</th><th>Duracion</th><th>Periodicidad</th><th>Contenido</th><th>Evaluacion</th><th>Material</th></tr></thead>
+      <tbody>
+      {% for f in formaciones %}
+      <tr>
+        <td><strong>{{ f.codigo }}</strong></td>
+        <td>{{ f.titulo }}</td>
+        <td>{{ f.area }}</td>
+        <td>{{ f.duracion_minutos }} min</td>
+        <td>{{ f.periodicidad }}</td>
+        <td>{{ f.contenido }}</td>
+        <td>{{ f.evaluacion }}</td>
+        <td>{% if materiales.get(f.codigo) %}<a class="btn btn-sm btn-primary" href="{{ url_for('rrhh.prl_material_formacion', codigo=f.codigo) }}" target="_blank"><i class="fas fa-file-alt"></i> Material</a>{% else %}<span class="muted">Pendiente</span>{% endif %}</td>
+      </tr>
+      {% else %}
+      <tr><td colspan="8">Sin formaciones PRL.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(360px,1fr));gap:16px;">
+  <div class="card">
+    <div class="card-header"><h2><i class="fas fa-list-check"></i> Nueva accion PRL</h2></div>
+    <form method="post">
+      <input type="hidden" name="tipo" value="accion">
+      <div class="form-group"><label class="form-label">Riesgo relacionado</label><select name="riesgo_id" class="form-control"><option value="">General</option>{% for r in riesgos %}<option value="{{ r.id }}">{{ r.codigo }} - {{ r.riesgo }}</option>{% endfor %}</select></div>
+      <div class="form-group"><label class="form-label">Titulo</label><input name="titulo" class="form-control" required></div>
+      <div class="form-group"><label class="form-label">Descripcion</label><textarea name="descripcion" class="form-control" rows="3"></textarea></div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;">
+        <div class="form-group"><label class="form-label">Prioridad</label><select name="prioridad" class="form-control"><option value="media">Media</option><option value="alta">Alta</option><option value="critica">Critica</option><option value="baja">Baja</option></select></div>
+        <div class="form-group"><label class="form-label">Responsable</label><input name="responsable" class="form-control"></div>
+        <div class="form-group"><label class="form-label">Fecha limite</label><input type="date" name="fecha_limite" class="form-control"></div>
+      </div>
+      <button class="btn btn-success"><i class="fas fa-save"></i> Guardar accion</button>
+    </form>
+  </div>
+
+  <div class="card">
+    <div class="card-header"><h2><i class="fas fa-briefcase-medical"></i> Incidente o casi accidente</h2></div>
+    <form method="post">
+      <input type="hidden" name="tipo" value="incidente">
+      <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px;">
+        <div class="form-group"><label class="form-label">Fecha</label><input type="date" name="fecha" class="form-control"></div>
+        <div class="form-group"><label class="form-label">Empleado</label><select name="empleado_id" class="form-control"><option value="">Sin empleado</option>{% for e in empleados %}<option value="{{ e.id }}">{{ e.nombre }}</option>{% endfor %}</select></div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;">
+        <div class="form-group"><label class="form-label">Area</label><input name="area" class="form-control"></div>
+        <div class="form-group"><label class="form-label">Tipo</label><input name="incidente_tipo" class="form-control" placeholder="caida, corte, quemadura..."></div>
+        <div class="form-group"><label class="form-label">Gravedad</label><select name="gravedad" class="form-control"><option value="leve">Leve</option><option value="media">Media</option><option value="grave">Grave</option></select></div>
+      </div>
+      <div class="form-group"><label class="form-label">Descripcion</label><textarea name="descripcion" class="form-control" rows="3" required></textarea></div>
+      <div class="form-group"><label class="form-label">Lesion / dano</label><input name="lesion" class="form-control"></div>
+      <div class="form-group"><label class="form-label">Causa probable</label><input name="causa_probable" class="form-control"></div>
+      <div class="form-group"><label class="form-label">Accion correctiva</label><input name="accion_correctiva" class="form-control"></div>
+      <button class="btn btn-success"><i class="fas fa-save"></i> Registrar incidente</button>
+    </form>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header"><h2><i class="fas fa-tasks"></i> Acciones e incidentes</h2></div>
+  <h3>Acciones PRL</h3>
+  <div class="table-container">
+    <table>
+      <thead><tr><th>Prioridad</th><th>Estado</th><th>Accion</th><th>Riesgo</th><th>Responsable</th><th>Fecha limite</th></tr></thead>
+      <tbody>
+      {% for a in acciones %}
+      <tr><td><span class="badge {{ 'badge-danger' if a.prioridad in ['critica','alta'] else 'badge-info' }}">{{ a.prioridad }}</span></td><td>{{ a.estado }}</td><td><strong>{{ a.titulo }}</strong><br><small>{{ a.descripcion or '' }}</small></td><td>{{ a.riesgo_codigo or '-' }}<br><small>{{ a.riesgo_nombre or '' }}</small></td><td>{{ a.responsable or '-' }}</td><td>{{ a.fecha_limite or '-' }}</td></tr>
+      {% else %}
+      <tr><td colspan="6">Sin acciones PRL pendientes.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <h3 style="margin-top:20px;">Incidentes y casi accidentes</h3>
+  <div class="table-container">
+    <table>
+      <thead><tr><th>Fecha</th><th>Empleado</th><th>Area</th><th>Tipo</th><th>Gravedad</th><th>Descripcion</th><th>Estado</th></tr></thead>
+      <tbody>
+      {% for i in incidentes %}
+      <tr><td>{{ i.fecha }}</td><td>{{ i.empleado_nombre or '-' }}</td><td>{{ i.area or '-' }}</td><td>{{ i.tipo or '-' }}</td><td><span class="badge {{ 'badge-danger' if i.gravedad == 'grave' else 'badge-warning' if i.gravedad == 'media' else 'badge-info' }}">{{ i.gravedad }}</span></td><td>{{ i.descripcion }}<br><small>{{ i.accion_correctiva or '' }}</small></td><td>{{ i.estado }}</td></tr>
+      {% else %}
+      <tr><td colspan="7">Sin incidentes registrados.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

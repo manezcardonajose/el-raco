@@ -1,0 +1,200 @@
+{% extends "base.html" %}
+{% block title %}Auditoria de permisos{% endblock %}
+{% block breadcrumb %}Administracion / Auditoria de permisos{% endblock %}
+{% block content %}
+<style>
+  .audit-grid { display:grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap:12px; }
+  .audit-card { border:1px solid #334155; border-radius:8px; padding:14px; background:#111827; }
+  .audit-card h3 { margin:0 0 8px; color:#ff6b00; }
+  .audit-meta { color:#94a3b8; font-size:12px; margin-bottom:10px; }
+  .audit-summary { display:grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap:10px; margin-top:12px; }
+  .audit-summary div { border:1px solid #334155; border-radius:8px; padding:12px; background:#0f172a; }
+  .audit-summary strong { display:block; font-size:24px; color:#fff; }
+  .audit-summary span { color:#94a3b8; font-size:12px; }
+  .audit-warning { border-left:4px solid #f59e0b; background:#1f2937; padding:12px; border-radius:8px; margin:12px 0; }
+  .module-line { display:flex; justify-content:space-between; gap:8px; align-items:flex-start; border-top:1px solid #263442; padding:8px 0; }
+  .module-line:first-of-type { border-top:0; }
+  .module-line strong { color:#e5eef9; font-size:13px; }
+  .module-line small { color:#94a3b8; display:block; margin-top:2px; }
+  .ok { color:#22c55e; font-weight:800; }
+  .ko { color:#ef4444; font-weight:800; }
+  .user-flags { display:flex; flex-wrap:wrap; gap:4px; }
+  .audit-table table { table-layout:auto; min-width:900px; }
+</style>
+
+<div class="card">
+  <div class="card-header">
+    <h2><i class="fas fa-user-shield"></i> Auditoria de permisos</h2>
+    <div style="display:flex; gap:8px; flex-wrap:wrap;">
+      <a class="btn btn-secondary" href="{{ url_for('auth.listar_usuarios') }}"><i class="fas fa-users"></i> Usuarios</a>
+      <a class="btn btn-secondary" href="{{ url_for('rrhh.lista_roles') }}"><i class="fas fa-key"></i> Roles</a>
+    </div>
+  </div>
+  <p style="color:#cbd5e1; max-width:1000px;">
+    Esta vista separa duplicados reales de roles antiguos o ambiguos. Asi podemos dejar claro que Hotel 1 no herede usuarios,
+    permisos o roles mal asignados de otro centro.
+  </p>
+  <div class="audit-summary">
+    <div><strong>{{ resumen.roles }}</strong><span>roles</span></div>
+    <div><strong>{{ resumen.permisos }}</strong><span>permisos</span></div>
+    <div><strong>{{ resumen.usuarios }}</strong><span>usuarios</span></div>
+    <div><strong>{{ resumen.duplicados }}</strong><span>duplicados reales</span></div>
+    <div><strong>{{ resumen.legacy }}</strong><span>roles legacy</span></div>
+    <div><strong>{{ resumen.sin_usuarios }}</strong><span>roles sin usuarios</span></div>
+  </div>
+</div>
+
+<div class="card audit-table">
+  <div class="card-header">
+    <h2><i class="fas fa-stethoscope"></i> Diagnostico de roles</h2>
+    {% if roles_legacy %}
+    <form method="post" action="{{ url_for('auth.normalizar_roles_legacy') }}" onsubmit="return confirm('Se moveran los usuarios de roles antiguos migrables a su rol correcto. No se borran roles.');">
+      <button class="btn btn-warning" type="submit"><i class="fas fa-broom"></i> Normalizar usuarios legacy</button>
+    </form>
+    {% endif %}
+  </div>
+
+  {% if duplicados_roles %}
+  <div class="audit-warning">
+    <strong>Duplicados reales detectados</strong>
+    <p>Hay roles que normalizados tienen la misma clave. Estos si conviene revisarlos uno a uno.</p>
+  </div>
+  <div class="table-container">
+    <table>
+      <thead><tr><th>Clave</th><th>Roles</th></tr></thead>
+      <tbody>
+        {% for grupo in duplicados_roles %}
+        <tr>
+          <td>{{ grupo.clave }}</td>
+          <td>
+            {% for rol in grupo.roles %}
+              <span class="badge badge-warning">{{ rol.nombre }} · {{ rol.usuarios }} usuarios · {{ rol.permisos }} permisos</span>
+            {% endfor %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <p><span class="badge badge-success">OK</span> No hay duplicados exactos de roles por clave normalizada.</p>
+  {% endif %}
+
+  {% if roles_legacy %}
+  <div class="table-container">
+    <table>
+      <thead>
+        <tr>
+          <th>Rol legacy/confuso</th>
+          <th>Usuarios</th>
+          <th>Permisos</th>
+          <th>Rol recomendado</th>
+          <th>Motivo</th>
+          <th>Accion</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for rol in roles_legacy %}
+        <tr>
+          <td><strong>{{ rol.nombre }}</strong></td>
+          <td>{{ rol.usuarios }}</td>
+          <td>{{ rol.permisos }}</td>
+          <td><span class="badge badge-info">{{ rol.sugerido }}</span></td>
+          <td>{{ rol.motivo }}</td>
+          <td>
+            {% if rol.migrable %}
+              <span class="badge badge-warning">migrable</span>
+            {% else %}
+              <span class="badge badge-secondary">revisar manual</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% endif %}
+
+  {% if roles_sin_permisos %}
+  <div class="audit-warning">
+    <strong>Roles sin permisos efectivos</strong>
+    {% for rol in roles_sin_permisos %}
+      <span class="badge badge-danger">{{ rol.nombre }} · {{ rol.usuarios }} usuarios</span>
+    {% endfor %}
+  </div>
+  {% endif %}
+</div>
+
+<div class="card">
+  <div class="card-header"><h2><i class="fas fa-table"></i> Matriz por rol</h2></div>
+  <div class="audit-grid">
+    {% for item in matriz %}
+    <div class="audit-card">
+      <h3>{{ item.rol.nombre }}</h3>
+      <div class="audit-meta">
+        {{ item.permisos_total }} permisos efectivos
+        {% if item.es_global %}<span class="badge badge-success">Global</span>{% endif %}
+      </div>
+      {% for modulo in item.modulos %}
+      <div class="module-line">
+        <div>
+          <strong>{{ modulo.modulo }}</strong>
+          <small>{{ modulo.grupo }} - {{ modulo.alcance }}</small>
+          {% if modulo.concedidos %}
+          <small>{{ modulo.concedidos|join(', ') }}</small>
+          {% endif %}
+        </div>
+        <span class="{{ 'ok' if modulo.permitido else 'ko' }}">{{ 'SI' if modulo.permitido else 'NO' }}</span>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <p>No hay roles creados.</p>
+    {% endfor %}
+  </div>
+</div>
+
+<div class="card audit-table">
+  <div class="card-header"><h2><i class="fas fa-users"></i> Usuarios y excepciones</h2></div>
+  <div class="table-container">
+    <table>
+      <thead>
+        <tr>
+          <th>Usuario</th>
+          <th>Email</th>
+          <th>Centro</th>
+          <th>Empleado vinculado</th>
+          <th>Rol</th>
+          <th>Ambito</th>
+          <th>Excepciones directas</th>
+          <th>Estado</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for u in usuarios %}
+        <tr>
+          <td><strong>{{ u.nombre }}</strong></td>
+          <td>{{ u.email }}</td>
+          <td>{{ u.centro_nombre }}</td>
+          <td>{{ u.empleado_nombre or '-' }}</td>
+          <td>{{ u.rol_nombre or '-' }}</td>
+          <td>{% if u.es_global %}<span class="badge badge-success">Global</span>{% else %}<span class="badge badge-secondary">Departamento</span>{% endif %}</td>
+          <td>
+            <div class="user-flags">
+              {% if u.puede_ver_precios %}<span class="badge badge-info">Ver precios</span>{% endif %}
+              {% if u.puede_modificar_precios %}<span class="badge badge-warning">Editar precios</span>{% endif %}
+              {% if u.puede_validar_recepcion %}<span class="badge badge-info">Facturacion recepcion</span>{% endif %}
+              {% if u.puede_validar_economicamente %}<span class="badge badge-warning">Validacion economica</span>{% endif %}
+              {% if not u.puede_ver_precios and not u.puede_modificar_precios and not u.puede_validar_recepcion and not u.puede_validar_economicamente %}-{% endif %}
+            </div>
+          </td>
+          <td>{% if u.activo %}<span class="badge badge-success">Activo</span>{% else %}<span class="badge badge-danger">Inactivo</span>{% endif %}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="8">No hay usuarios.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

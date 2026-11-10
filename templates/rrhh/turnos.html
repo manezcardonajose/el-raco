@@ -1,0 +1,22 @@
+{% extends 'base.html' %}
+{% block title %}Turnos RRHH{% endblock %}
+{% block breadcrumb %}RRHH / Turnos{% endblock %}
+{% block content %}
+<div class="card">
+    <div class="card-header"><h2><i class="fas fa-calendar-alt"></i> Turnos RRHH</h2><a href="{{ url_for('rrhh.lista_prenomina') }}" class="btn btn-secondary">Volver a pre-nómina</a></div>
+    {% if puede_editar %}
+    <form method="post" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap:12px; margin-bottom:20px;">
+        <div class="form-group"><label class="form-label">Empleado</label><select name="empleado_id" class="form-control" required>{% for e in empleados %}<option value="{{ e.id }}">{{ e.nombre }} {{ e.apellidos or '' }}</option>{% endfor %}</select></div>
+        <div class="form-group"><label class="form-label">Fecha</label><input type="date" name="fecha" class="form-control" required></div>
+        <div class="form-group"><label class="form-label">Inicio</label><input type="time" name="hora_inicio" class="form-control" required></div>
+        <div class="form-group"><label class="form-label">Fin</label><input type="time" name="hora_fin" class="form-control" required></div>
+        <div class="form-group"><label class="form-label">Tipo</label><select name="tipo" class="form-control"><option value="normal">Normal</option><option value="nocturno">Nocturno</option><option value="festivo">Festivo</option><option value="festivo_nocturno">Festivo nocturno</option></select></div>
+        <div class="form-group"><label class="form-label">Departamento</label><select name="departamento_id" class="form-control"><option value="">Según empleado</option>{% for d in departamentos %}<option value="{{ d.id }}">{{ d.nombre }}</option>{% endfor %}</select></div>
+        <div class="form-group" style="grid-column:1/-1;"><label class="form-label">Observaciones</label><input type="text" name="observaciones" class="form-control"></div>
+        <button class="btn btn-success" type="submit"><i class="fas fa-save"></i> Guardar turno</button>
+    </form>
+    {% endif %}
+    {% include 'rrhh/_herramientas_tabla.html' %}
+<div class="table-container"><table><thead><tr><th>Fecha</th><th>Empleado</th><th>Departamento</th><th>Inicio</th><th>Fin</th><th>Tipo</th><th>Estado</th><th>Acciones</th></tr></thead><tbody>{% for t in turnos %}<tr><td>{{ t.fecha }}</td><td>{{ t.empleado_nombre }}</td><td>{{ t.departamento_nombre or '-' }}</td><td>{{ t.hora_inicio }}</td><td>{{ t.hora_fin }}</td><td><span class="badge badge-info">{{ t.tipo }}</span></td><td>{{ t.estado or 'activo' }}</td><td>{% if puede_editar %}<a class="btn btn-sm btn-primary" href="{{ url_for('rrhh.editar_turno_rrhh', id=t.id) }}">Editar</a> <form method="post" action="{{ url_for('rrhh.anular_turno_rrhh', id=t.id) }}" style="display:inline" onsubmit="return confirm('¿Anular turno?')"><button class="btn btn-sm btn-warning">Anular</button></form>{% endif %}</td></tr>{% else %}<tr><td colspan="8">No hay turnos registrados.</td></tr>{% endfor %}</tbody></table></div>
+</div>
+{% endblock %}

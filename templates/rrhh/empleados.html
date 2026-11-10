@@ -1,0 +1,62 @@
+{% extends 'base.html' %}
+{% block title %}Personal{% endblock %}
+{% block breadcrumb %}RRHH / Personal{% endblock %}
+{% block content %}
+<div class="card">
+  <div class="card-header">
+    <h2><i class="fas fa-user"></i> Personal</h2>
+    {% if puede_editar %}
+      <a class="btn btn-success" href="{{ url_for('rrhh.nuevo_empleado') }}"><i class="fas fa-plus"></i> Nuevo empleado</a>
+    {% endif %}
+  </div>
+  {% include 'rrhh/_herramientas_tabla.html' %}
+  <div class="table-container">
+    <table>
+      <thead>
+        <tr>
+          <th>Nombre</th>
+          <th>NIF</th>
+          <th>Nro SS</th>
+          <th>Categoria</th>
+          <th>Departamento</th>
+          <th>Telefono</th>
+          <th>IRPF / 145</th>
+          <th>Acceso</th>
+          <th>PRL</th>
+          <th>Estado</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for e in empleados %}
+        <tr>
+          <td>{{ e.nombre }} {{ e.apellidos or '' }}</td>
+          <td>{{ e.nif or '-' }}</td>
+          <td>{{ e.numero_seguridad_social or '-' }}</td>
+          <td>{{ e.categoria_nombre or '-' }}</td>
+          <td>{{ e.departamento_nombre or '-' }}</td>
+          <td>{{ e.telefono or '-' }}</td>
+          <td>
+            {{ '%.2f'|format(e.irpf_pct or 0) }}%
+            {% if e.modelo145_fecha_actualizacion %}<br><small>145: {{ e.modelo145_fecha_actualizacion }}</small>{% endif %}
+          </td>
+          <td>
+            {% if e.usuario_nombre %}
+              <span class="badge badge-info">{{ e.usuario_codigo_acceso or e.usuario_nombre }}</span>
+              {% if not e.usuario_activo %}<br><span class="badge badge-warning">Inactivo</span>{% endif %}
+            {% else %}
+              <span class="badge badge-secondary">Sin acceso</span>
+            {% endif %}
+          </td>
+          <td>{% if e.prl_realizada %}<span class="badge badge-success">Si</span>{% else %}<span class="badge badge-warning">Pendiente</span>{% endif %}</td>
+          <td>{% if e.activo %}<span class="badge badge-success">Activo</span>{% else %}<span class="badge badge-secondary">Baja</span>{% endif %}</td>
+          <td>{% if puede_editar %}<a class="btn btn-sm btn-primary" href="{{ url_for('rrhh.editar_empleado', id=e.id) }}">Editar</a>{% endif %}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="11">No hay empleados creados.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

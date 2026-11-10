@@ -1,0 +1,293 @@
+{% extends "base.html" %}
+
+{% block content %}
+<style>
+    .gen-page { max-width: 1500px; margin: 0 auto; }
+    .gen-grid { display: grid; grid-template-columns: 430px 1fr; gap: 14px; align-items: start; }
+    .gen-panel { border: 1px solid #2c3e50; background: #1e252b; border-radius: 8px; padding: 14px; }
+    .gen-panel h3 { color: #ff6b00; margin: 0 0 12px; }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .idea-card { border: 1px solid #34495e; background: #111827; border-radius: 8px; padding: 12px; margin-bottom: 10px; }
+    .idea-card h4 { margin: 0 0 6px; color: #fff; }
+    .muted { color: #9ca3af; font-size: 12px; }
+    .tag { display: inline-block; border: 1px solid #34495e; border-radius: 999px; padding: 3px 8px; margin: 2px; font-size: 12px; color: #d1d5db; }
+    .alert-list { margin: 0; padding-left: 18px; }
+    .score-grid { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 6px; margin-top: 8px; }
+    .score-box { border: 1px solid #34495e; border-radius: 6px; padding: 6px; text-align: center; }
+    .score-box span { display: block; color: #9ca3af; font-size: 10px; }
+    .score-box strong { color: #fff; font-size: 15px; }
+    .quick-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-top: 10px; }
+    .concept-box { border: 1px solid #ff6b00; border-radius: 8px; padding: 12px; background: #111827; margin-bottom: 12px; }
+    .compare-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin: 10px 0; }
+    .compare-box { border: 1px solid #34495e; border-radius: 8px; padding: 10px; background: #0b1220; }
+    .compare-box h5 { margin: 0 0 8px; color: #fff; font-size: 14px; }
+    .compare-box ul { margin: 0; padding-left: 18px; }
+    .proposal-actions { border-left: 3px solid #ff6b00; background: #0b1220; padding: 10px 12px; margin-top: 10px; }
+    @media (max-width: 1000px) {
+        .gen-grid, .form-row, .score-grid, .quick-actions, .compare-grid { grid-template-columns: 1fr; }
+    }
+</style>
+
+<div class="gen-page">
+    <div class="card">
+        <div class="card-header">
+            <h2><i class="fas fa-wand-magic-sparkles"></i> Generador culinario IA</h2>
+            <a href="{{ url_for('recetas.biblioteca_recetas') }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Volver
+            </a>
+        </div>
+
+        <div class="gen-grid">
+            <aside class="gen-panel">
+                <h3>Contexto de trabajo</h3>
+                <p class="muted">Memoria privada: {{ memoria_total }} ideas{% if memoria_actualizada %} - {{ memoria_actualizada }}{% endif %}</p>
+                <form method="post">
+                    <label>Modo de propuesta</label>
+                    <select name="modo">
+                        <option value="mejorar_receta" {% if formulario.modo == 'mejorar_receta' %}selected{% endif %}>Mejorar receta existente</option>
+                        <option value="menu" {% if formulario.modo == 'menu' %}selected{% endif %}>Menu diario</option>
+                        <option value="buffet" {% if formulario.modo == 'buffet' %}selected{% endif %}>Menu buffet</option>
+                        <option value="carta" {% if formulario.modo == 'carta' %}selected{% endif %}>Carta tematica</option>
+                        <option value="banquete" {% if formulario.modo == 'banquete' %}selected{% endif %}>Banquete / evento</option>
+                        <option value="receta" {% if formulario.modo == 'receta' %}selected{% endif %}>Receta suelta</option>
+                        <option value="stock" {% if formulario.modo == 'stock' %}selected{% endif %}>Aprovechamiento de stock</option>
+                    </select>
+
+                    <label>Receta correcta a mejorar</label>
+                    <select name="receta_id">
+                        <option value="">Seleccionar receta...</option>
+                        {% for receta in recetas_selector %}
+                        <option value="{{ receta.id }}" {% if formulario.receta_id|string == receta.id|string %}selected{% endif %}>
+                            {{ receta.nombre }}{% if receta.categoria %} - {{ receta.categoria }}{% endif %}
+                        </option>
+                        {% endfor %}
+                    </select>
+
+                    <label>Tipo de establecimiento</label>
+                    <input name="contexto" value="{{ formulario.contexto }}" placeholder="balneario, antiguo monasterio, resort familiar...">
+
+                    <label>Concepto o tema</label>
+                    <input name="concepto" value="{{ formulario.concepto }}" placeholder="cocina monacal, mediterranea, asiatica, italiana...">
+
+                    <div class="form-row">
+                        <div>
+                            <label>Servicio</label>
+                            <input name="servicio" value="{{ formulario.servicio }}" placeholder="buffet cena, carta, banquete...">
+                        </div>
+                        <div>
+                            <label>Temporada</label>
+                            <input name="temporada" value="{{ formulario.temporada }}" placeholder="invierno, verano, navidad...">
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div>
+                            <label>Objetivo</label>
+                            <input name="objetivo" value="{{ formulario.objetivo }}" placeholder="economico, elegante, saludable...">
+                        </div>
+                        <div>
+                            <label>Pax</label>
+                            <input name="pax" value="{{ formulario.pax }}" placeholder="80">
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div>
+                            <label>Cliente objetivo</label>
+                            <input name="cliente" value="{{ formulario.cliente }}" placeholder="senior, familiar, lujo, deportistas...">
+                        </div>
+                        <div>
+                            <label>Precio objetivo / pax</label>
+                            <input name="precio_objetivo" value="{{ formulario.precio_objetivo }}" placeholder="12 EUR coste, 35 EUR venta...">
+                        </div>
+                    </div>
+
+                    <label>Restricciones</label>
+                    <input name="restricciones" value="{{ formulario.restricciones }}" placeholder="sin fritos, bajo en sal, sin cerdo...">
+
+                    <label>Stock a aprovechar</label>
+                    <input name="stock" value="{{ formulario.stock }}" placeholder="calabacin, merluza, pollo, arroz, nata...">
+
+                    <button class="btn btn-success" type="submit" style="width:100%; margin-top:12px;">
+                        <i class="fas fa-brain"></i> Generar propuesta
+                    </button>
+                    <div class="quick-actions">
+                        <button class="btn btn-warning" type="submit" name="refinado" value="economico">Mas economico</button>
+                        <button class="btn btn-info" type="submit" name="refinado" value="elegante">Mas elegante</button>
+                        <button class="btn btn-primary" type="submit" name="refinado" value="buffet">Adaptar buffet</button>
+                        <button class="btn btn-secondary" type="submit" name="refinado" value="carta">Adaptar carta</button>
+                    </div>
+                </form>
+            </aside>
+
+            <section class="gen-panel">
+                <h3>Propuesta</h3>
+                {% if mejora_receta %}
+                <p class="muted">
+                    Comparacion sobre receta existente. La receta no se cambia desde aqui; queda como propuesta para que el jefe decida.
+                </p>
+                <div class="concept-box">
+                    <strong>{{ mejora_receta.receta.nombre }}</strong>
+                    <p>{{ mejora_receta.receta.descripcion or 'Sin elaboracion escrita en ficha.' }}</p>
+                    <div>
+                        <span class="tag">{{ mejora_receta.receta.categoria or 'sin categoria' }}</span>
+                        <span class="tag">alergenos actuales: {{ mejora_receta.receta.alergenos or 'sin declarar' }}</span>
+                        <span class="tag">{{ mejora_receta.receta.ingredientes|length }} ingredientes actuales</span>
+                    </div>
+                </div>
+
+                {% if mejora_receta.comparaciones %}
+                    {% for item in mejora_receta.comparaciones %}
+                    <article class="idea-card">
+                        <h4>Propuesta comparada: {{ item.fuente_nombre }}</h4>
+                        <div class="muted">
+                            Fuente privada: {{ item.fuente }}{% if item.paginas %} - pag. {{ item.paginas }}{% endif %}
+                            <span class="tag">encaje {{ item.score }}</span>
+                        </div>
+                        <div class="compare-grid">
+                            <div class="compare-box">
+                                <h5>Receta actual</h5>
+                                <ul>
+                                    {% for ing in item.ingredientes_actuales[:10] %}
+                                    <li>{{ ing }}</li>
+                                    {% else %}
+                                    <li>Sin ingredientes registrados.</li>
+                                    {% endfor %}
+                                </ul>
+                            </div>
+                            <div class="compare-box">
+                                <h5>Referencia encontrada</h5>
+                                <ul>
+                                    {% for ing in item.ingredientes_fuente[:10] %}
+                                    <li>{{ ing }}</li>
+                                    {% else %}
+                                    <li>La fuente no trae ingredientes claros.</li>
+                                    {% endfor %}
+                                </ul>
+                            </div>
+                        </div>
+
+                        <div class="compare-grid">
+                            <div class="compare-box">
+                                <h5>Diferencias utiles</h5>
+                                <ul>
+                                    {% if item.coincidencias %}<li>Coinciden: {{ item.coincidencias|join(', ') }}</li>{% endif %}
+                                    {% if item.posibles_altas %}<li>Posibles mejoras/altas: {{ item.posibles_altas|join(', ') }}</li>{% endif %}
+                                    {% if item.revisar_actuales %}<li>Actuales no vistos en fuente: {{ item.revisar_actuales|join(', ') }}</li>{% endif %}
+                                    {% if not item.coincidencias and not item.posibles_altas and not item.revisar_actuales %}<li>No hay diferencia clara de ingredientes.</li>{% endif %}
+                                </ul>
+                            </div>
+                            <div class="compare-box">
+                                <h5>Alergenos</h5>
+                                <ul>
+                                    <li>Actual: {{ item.alergenos_actuales }}</li>
+                                    <li>Fuente: {{ item.alergenos_fuente }}</li>
+                                </ul>
+                            </div>
+                        </div>
+
+                        {% if item.elaboracion_propuesta %}
+                        <div class="compare-box">
+                            <h5>Elaboracion propuesta para revisar</h5>
+                            <ul>
+                                {% for paso in item.elaboracion_propuesta %}
+                                <li>{{ paso }}</li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                        {% endif %}
+
+                        <div class="proposal-actions">
+                            <strong>Decision propuesta</strong>
+                            <ul>
+                                {% for accion in item.acciones %}
+                                <li>{{ accion }}</li>
+                                {% endfor %}
+                            </ul>
+                            <a class="btn btn-primary" href="{{ url_for('recetas.editar_receta', receta_id=item.receta_id) }}">
+                                <i class="fas fa-edit"></i> Abrir receta para cambiar
+                            </a>
+                        </div>
+                    </article>
+                    {% endfor %}
+                {% else %}
+                    <p class="muted">No he encontrado una referencia limpia para comparar. Prueba con objetivo, stock o contexto mas concreto.</p>
+                {% endif %}
+                {% set modulo = 'recetas_generador_culinario' %}
+                {% set origen = 'recetas/generador_culinario' %}
+                {% set referencia_id = mejora_receta.receta.id %}
+                {% set contenido = 'Mejora de receta: ' ~ mejora_receta.receta.nombre ~ '\nComparaciones generadas: ' ~ (mejora_receta.comparaciones|length) %}
+                {% include "asistente/_reporte_contenido_ia.html" %}
+                {% elif propuesta %}
+                <p class="muted">
+                    Revisadas {{ propuesta.candidatos_revisados }} ideas internas - usadas {{ propuesta.candidatos_usados }}.
+                </p>
+                <div class="concept-box">
+                    <strong>Concepto gastronomico</strong>
+                    <p>{{ propuesta.concepto_gastronomico }}</p>
+                    <div>
+                        <span class="tag">{{ propuesta.modo }}</span>
+                        {% if propuesta.cliente %}<span class="tag">{{ propuesta.cliente }}</span>{% endif %}
+                        {% if propuesta.precio_objetivo %}<span class="tag">{{ propuesta.precio_objetivo }}</span>{% endif %}
+                        {% if propuesta.stock %}<span class="tag">stock indicado</span>{% endif %}
+                    </div>
+                </div>
+
+                {% for pase, items in propuesta.pases.items() %}
+                <h3>{{ pase|capitalize }}</h3>
+                {% if items %}
+                    {% for item in items %}
+                    <article class="idea-card">
+                        <h4>{{ item.nombre }}</h4>
+                        <div class="muted">
+                            Fuente interna: {{ item.fuente }}{% if item.paginas %} - pag. {{ item.paginas }}{% endif %}
+                        </div>
+                        <div style="margin-top:6px;">
+                            <span class="tag">ranking {{ item.ranking.total }}</span>
+                            <span class="tag">coste {{ item.coste }}</span>
+                            <span class="tag">dificultad {{ item.dificultad }}</span>
+                            <span class="tag">alergenos: {{ item.alergenos }}</span>
+                            <span class="tag">calidad {{ item.calidad_memoria }}</span>
+                        </div>
+                        <div class="score-grid">
+                            <div class="score-box"><span>encaje</span><strong>{{ item.ranking.encaje }}</strong></div>
+                            <div class="score-box"><span>coste</span><strong>{{ item.ranking.coste }}</strong></div>
+                            <div class="score-box"><span>present.</span><strong>{{ item.ranking.presentacion }}</strong></div>
+                            <div class="score-box"><span>prod.</span><strong>{{ item.ranking.produccion }}</strong></div>
+                            <div class="score-box"><span>APPCC</span><strong>{{ item.ranking.appcc }}</strong></div>
+                            <div class="score-box"><span>stock</span><strong>{{ item.ranking.stock }}</strong></div>
+                        </div>
+                        <p>
+                            {% for motivo in item.motivos %}
+                            {{ motivo }}{% if not loop.last %}. {% endif %}
+                            {% endfor %}
+                        </p>
+                        {% if item.ingredientes %}
+                        <div class="muted">Base: {{ item.ingredientes|join(', ') }}</div>
+                        {% endif %}
+                    </article>
+                    {% endfor %}
+                {% else %}
+                    <p class="muted">Sin propuesta clara para este pase.</p>
+                {% endif %}
+                {% endfor %}
+
+                <h3>Control antes de publicar</h3>
+                <ul class="alert-list">
+                    {% for alerta in propuesta.alertas %}
+                    <li>{{ alerta }}</li>
+                    {% endfor %}
+                </ul>
+                {% set modulo = 'recetas_generador_culinario' %}
+                {% set origen = 'recetas/generador_culinario' %}
+                {% set referencia_id = propuesta.modo %}
+                {% set contenido = 'Concepto gastronomico: ' ~ propuesta.concepto_gastronomico ~ '\nAlertas: ' ~ (propuesta.alertas|join('; ')) %}
+                {% include "asistente/_reporte_contenido_ia.html" %}
+                {% else %}
+                <p class="muted">Para mejorar recetas, elige "Mejorar receta existente", selecciona una receta y genera una comparacion. La IA usara la memoria privada sin modificar nada sola.</p>
+                {% endif %}
+            </section>
+        </div>
+    </div>
+</div>
+{% endblock %}

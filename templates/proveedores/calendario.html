@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header">
+        <h2><i class="fas fa-calendar-alt"></i> Calendario: {{ proveedor.nombre }}</h2>
+        <div>
+            <a href="{{ url_for('proveedores.listar_reglas', proveedor_id=proveedor.id) }}" class="btn btn-info">
+                <i class="fas fa-list"></i> Ver reglas
+            </a>
+            <a href="{{ url_for('proveedores.nueva_regla', proveedor_id=proveedor.id) }}" class="btn btn-success">
+                <i class="fas fa-plus"></i> Nueva regla
+            </a>
+            <a href="{{ url_for('proveedores.proveedores') }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Volver
+            </a>
+        </div>
+    </div>
+
+    <!-- Selector de mes -->
+    <div style="margin-bottom: 20px;">
+        <form method="GET" style="display: flex; gap: 10px; align-items: center;">
+            <select name="mes" class="form-control" style="width: auto;">
+                {% for i in range(12) %}
+                <option value="{{ i+1 }}" {% if mes == i+1 %}selected{% endif %}>{{ meses[i] }}</option>
+                {% endfor %}
+            </select>
+            <select name="año" class="form-control" style="width: auto;">
+                {% for a in [2023, 2024, 2025, 2026] %}
+                <option value="{{ a }}" {% if año == a %}selected{% endif %}>{{ a }}</option>
+                {% endfor %}
+            </select>
+            <button type="submit" class="btn btn-primary">Ver mes</button>
+        </form>
+    </div>
+
+    <!-- Calendario -->
+    <div style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; text-align: center;">
+        <div style="background: #1c1f23; padding: 10px; font-weight: bold;">Lun</div>
+        <div style="background: #1c1f23; padding: 10px; font-weight: bold;">Mar</div>
+        <div style="background: #1c1f23; padding: 10px; font-weight: bold;">Mié</div>
+        <div style="background: #1c1f23; padding: 10px; font-weight: bold;">Jue</div>
+        <div style="background: #1c1f23; padding: 10px; font-weight: bold;">Vie</div>
+        <div style="background: #1c1f23; padding: 10px; font-weight: bold;">Sáb</div>
+        <div style="background: #1c1f23; padding: 10px; font-weight: bold;">Dom</div>
+
+        {% for dia in dias %}
+        <div style="background: #2b2f33; padding: 10px; min-height: 80px; border-radius: 4px;">
+            <div style="font-weight: bold; margin-bottom: 5px;">{{ dia.dia }}</div>
+            <div style="display: flex; flex-direction: column; gap: 3px; font-size: 10px;">
+                {% if dia.marcado.pedido %}
+                <span style="color: #28a745;"><i class="fas fa-box"></i> Pedido</span>
+                {% endif %}
+                {% if dia.marcado.entrega %}
+                <span style="color: #ffc107;"><i class="fas fa-truck"></i> Entrega</span>
+                {% endif %}
+                {% if dia.marcado.visita %}
+                <span style="color: #17a2b8;"><i class="fas fa-user-friends"></i> Visita</span>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Leyenda -->
+    <div style="margin-top: 20px; display: flex; gap: 20px; justify-content: center;">
+        <span><i class="fas fa-box" style="color: #28a745;"></i> Día de pedido</span>
+        <span><i class="fas fa-truck" style="color: #ffc107;"></i> Día de entrega</span>
+        <span><i class="fas fa-user-friends" style="color: #17a2b8;"></i> Visita comercial</span>
+    </div>
+</div>
+{% endblock %}

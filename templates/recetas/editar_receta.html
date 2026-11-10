@@ -1,0 +1,141 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="card">
+    <div class="card-header">
+        <h2><i class="fas fa-edit"></i> Editar receta: {{ receta.nombre }}</h2>
+        <a href="{{ url_for('recetas.recetas') }}" class="btn btn-secondary">Volver</a>
+    </div>
+    <form method="POST">
+        <div class="form-group">
+            <label class="form-label">Nombre</label>
+            <input type="text" name="nombre" value="{{ receta.nombre }}" required class="form-control">
+        </div>
+        <div class="form-group">
+            <label class="form-label">Categoria</label>
+            <input type="text" name="categoria" value="{{ receta.categoria or '' }}" class="form-control">
+        </div>
+        <div class="form-group">
+            <label class="form-label">Tiempo preparacion (min)</label>
+            <input type="number" name="tiempo_preparacion" value="{{ receta.tiempo_preparacion or '' }}" class="form-control">
+        </div>
+        <div class="form-group">
+            <label class="form-label">Alergenos</label>
+            <input type="text" name="alergenos" value="{{ receta.alergenos or '' }}" class="form-control">
+        </div>
+
+        <div class="card" style="margin:14px 0;padding:14px;">
+            <h3 style="margin-top:0;">Nombres para tarjeta buffet</h3>
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:10px;">
+                <div class="form-group">
+                    <label class="form-label">Ingles</label>
+                    <input type="text" name="nombre_en" value="{{ receta.nombre_en or '' }}" class="form-control">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Frances</label>
+                    <input type="text" name="nombre_fr" value="{{ receta.nombre_fr or '' }}" class="form-control">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Aleman</label>
+                    <input type="text" name="nombre_de" value="{{ receta.nombre_de or '' }}" class="form-control">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Italiano</label>
+                    <input type="text" name="nombre_it" value="{{ receta.nombre_it or '' }}" class="form-control">
+                </div>
+            </div>
+        </div>
+
+        <h3>Ingredientes actuales</h3>
+        <div id="ingredientes-container">
+            {% for ing in ingredientes %}
+            <div class="ingrediente-fila" style="display:flex;gap:10px;margin-bottom:10px;">
+                <select name="ingrediente_id[]" class="form-control" style="flex:2;">
+                    <option value="">Seleccionar...</option>
+                    {% for p in productos %}
+                    <option value="{{ p.id }}" {% if p.id == ing.producto_id %}selected{% endif %}>
+                        {{ p.nombre }}{% if p.alergenos %} - Alergenos: {{ p.alergenos }}{% endif %}
+                    </option>
+                    {% endfor %}
+                </select>
+                <input type="text" name="cantidad[]" value="{{ ing.cantidad }}" class="form-control" style="flex:1;" placeholder="Cantidad">
+                <button type="button" class="btn btn-danger btn-sm" onclick="this.closest('.ingrediente-fila').remove()"><i class="fas fa-trash"></i></button>
+            </div>
+            {% endfor %}
+        </div>
+        <button type="button" class="btn btn-primary btn-sm" onclick="anadirIngrediente()"><i class="fas fa-plus"></i> Anadir ingrediente existente</button>
+
+        <h3 style="margin-top:30px;">Nuevo ingrediente o producto elaborado</h3>
+        <div class="alert alert-info">
+            Si es un producto de 5a gama, selecciona "5a gama". Si no pones cantidad, se guardara con cantidad 1 para que no se pierda el ingrediente.
+        </div>
+        <div id="nuevos-ingredientes-container">
+            <div class="nuevo-ingrediente-fila" style="display:grid;grid-template-columns:2fr 120px 110px 160px 2fr auto;gap:10px;margin-bottom:10px;align-items:end;">
+                <div class="form-group">
+                    <label class="form-label">Nombre</label>
+                    <input type="text" name="nuevo_ingrediente_nombre[]" class="form-control" placeholder="Ej: Agnolotti relleno de setas y pinones">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Cantidad</label>
+                    <input type="text" name="nuevo_ingrediente_cantidad[]" class="form-control" placeholder="1">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Unidad</label>
+                    <input type="text" name="nuevo_ingrediente_unidad[]" class="form-control" value="kg">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Tipo producto</label>
+                    <select name="nuevo_ingrediente_tipo_producto[]" class="form-control">
+                        <option value="">Normal</option>
+                        <option value="5_gama">5a gama</option>
+                        <option value="elaborado">Elaborado propio</option>
+                        <option value="materia_prima">Materia prima</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Alergenos del producto</label>
+                    <input type="text" name="nuevo_ingrediente_alergenos[]" class="form-control" placeholder="Ej: Gluten, Huevo">
+                </div>
+                <button type="button" class="btn btn-danger btn-sm" onclick="this.closest('.nuevo-ingrediente-fila').remove()"><i class="fas fa-trash"></i></button>
+            </div>
+        </div>
+        <button type="button" class="btn btn-primary btn-sm" onclick="anadirNuevoIngrediente()"><i class="fas fa-plus"></i> Anadir otro producto nuevo</button>
+
+        <div style="margin-top:20px;">
+            <button type="submit" class="btn btn-success"><i class="fas fa-save"></i> Guardar cambios</button>
+        </div>
+    </form>
+</div>
+
+<script>
+function anadirIngrediente() {
+    const container = document.getElementById('ingredientes-container');
+    const div = document.createElement('div');
+    div.className = 'ingrediente-fila';
+    div.style.display = 'flex';
+    div.style.gap = '10px';
+    div.style.marginBottom = '10px';
+    div.innerHTML = `
+        <select name="ingrediente_id[]" class="form-control" style="flex:2;">
+            <option value="">Seleccionar...</option>
+            {% for p in productos %}
+            <option value="{{ p.id }}">{{ p.nombre }}{% if p.alergenos %} - Alergenos: {{ p.alergenos }}{% endif %}</option>
+            {% endfor %}
+        </select>
+        <input type="text" name="cantidad[]" class="form-control" style="flex:1;" placeholder="Cantidad">
+        <button type="button" class="btn btn-danger btn-sm" onclick="this.closest('.ingrediente-fila').remove()"><i class="fas fa-trash"></i></button>
+    `;
+    container.appendChild(div);
+}
+
+function anadirNuevoIngrediente() {
+    const container = document.getElementById('nuevos-ingredientes-container');
+    const base = container.querySelector('.nuevo-ingrediente-fila');
+    const div = base.cloneNode(true);
+    div.querySelectorAll('input').forEach(input => {
+        input.value = input.name.includes('unidad') ? 'kg' : '';
+    });
+    div.querySelectorAll('select').forEach(select => select.value = '');
+    container.appendChild(div);
+}
+</script>
+{% endblock %}

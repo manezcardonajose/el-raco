@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="card">
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+        <h2 style="color: #ff6b00;"> MANTENIMIENTO PREVENTIVO</h2>
+        <a href="/mantenimiento/preventivo/nuevo" class="btn btn-success"> Nueva tarea</a>
+    </div>
+    
+    <table style="width: 100%; margin-top: 20px;">
+        <thead>
+            <tr>
+                <th>Equipo</th>
+                <th>Tarea</th>
+                <th>Frecuencia</th>
+                <th>Responsable</th>
+                <th>ltima ejecucin</th>
+                <th>Prxima ejecucin</th>
+                <th>Acciones</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for t in tareas %}
+            <tr>
+                <td><strong>{{ t.equipo_nombre }}</strong></td>
+                <td>{{ t.tarea }}</td>
+                <td>{{ t.frecuencia }}</td>
+                <td>{{ t.responsable or '---' }}</td>
+                <td>{{ t.ultima_ejecucion or '---' }}</td>
+                <td>
+                    {% if t.proxima_ejecucion %}
+                        <strong>{{ t.proxima_ejecucion }}</strong>
+                    {% else %}
+                        Pendiente
+                    {% endif %}
+                </td>
+                <td>
+                    <form method="POST" action="{{ url_for('mantenimiento.generar_ot_preventivo', tarea_id=t.id) }}" style="display:inline;">
+                        <button type="submit" class="btn-small btn-primary">Generar OT</button>
+                    </form>
+                    <form method="POST" action="/mantenimiento/preventivo/{{ t.id }}/completar" style="display:inline;">
+                        <button type="submit" class="btn-small btn-success" onclick="return confirm('Completar sin crear OT?')">Completar rapido</button>
+                    </form>
+                </td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="7" style="text-align: center; padding: 40px;">
+                    No hay tareas preventivas programadas
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<style>
+    .btn-small {
+        padding: 3px 8px;
+        border-radius: 3px;
+        font-size: 12px;
+        border: none;
+        cursor: pointer;
+    }
+    .btn-success { background: #28a745; color: white; }
+    .btn-primary { background: #007bff; color: white; }
+</style>
+{% endblock %}
+
+
+

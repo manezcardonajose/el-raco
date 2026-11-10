@@ -1,0 +1,106 @@
+{% extends 'base.html' %}
+{% block title %}Equipamiento habitacion{% endblock %}
+{% block breadcrumb %}Pisos / Habitaciones / Equipamiento{% endblock %}
+{% block content %}
+<style>
+  .eq-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:14px;}
+  .eq-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
+  .eq-section{border-top:1px solid #334155;margin-top:18px;padding-top:16px;}
+  .eq-checks{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;margin-top:8px;}
+  .eq-check{display:flex;gap:8px;align-items:center;border:1px solid #334155;border-radius:6px;background:#111827;padding:10px;}
+  .eq-note{color:#94a3b8;font-size:12px;line-height:1.35;}
+  @media(max-width:700px){.eq-actions .btn{width:100%;}.eq-grid{grid-template-columns:1fr;}}
+</style>
+
+<div class="card">
+  <div class="card-header">
+    <h2><i class="fas fa-bed"></i> Equipamiento {{ habitacion.numero or habitacion.nombre or ('#' ~ habitacion.id) }}</h2>
+    <div class="eq-actions">
+      <a class="btn btn-secondary" href="{{ url_for('pisos.habitaciones', fecha=fecha) }}"><i class="fas fa-arrow-left"></i> Habitaciones</a>
+      <a class="btn btn-secondary" href="{{ url_for('recepcion.habitacion_form', id=habitacion.id) }}"><i class="fas fa-cog"></i> Datos base</a>
+      <a class="btn btn-secondary" href="{{ url_for('pisos.trazabilidad', entidad='habitacion_equipamiento', q=habitacion.numero or habitacion.nombre or habitacion.id) }}"><i class="fas fa-history"></i> Trazabilidad</a>
+    </div>
+  </div>
+
+  <div class="eq-note" style="margin-bottom:14px;">
+    {% if habitacion.bloque %}Bloque {{ habitacion.bloque }} &middot; {% endif %}
+    {% if habitacion.planta|string == '0' %}PB{% elif habitacion.planta %}Planta {{ habitacion.planta }}{% endif %}
+    {% if habitacion.tipo_nombre %} &middot; {{ habitacion.tipo_nombre }}{% elif habitacion.tipo %} &middot; {{ habitacion.tipo }}{% endif %}
+    {% if habitacion.capacidad %} &middot; {{ habitacion.capacidad }} pax{% endif %}
+  </div>
+
+  <form method="post">
+    <input type="hidden" name="fecha" value="{{ fecha }}">
+
+    <h3 style="color:#ff6b00;margin:0 0 12px;">Camas y preparacion</h3>
+    <div class="eq-grid">
+      <div class="form-group">
+        <label class="form-label">Tipo de cama principal</label>
+        <select class="form-control" name="tipo_cama">
+          {% set cama_actual = equipamiento.tipo_cama if equipamiento else '' %}
+          {% for key,label in tipos_cama.items() %}
+          <option value="{{ key }}" {% if cama_actual == key %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="form-group"><label class="form-label">Camas matrimonio</label><input class="form-control" type="number" min="0" name="camas_matrimonio" value="{{ equipamiento.camas_matrimonio if equipamiento else 0 }}"></div>
+      <div class="form-group"><label class="form-label">Camas individuales</label><input class="form-control" type="number" min="0" name="camas_individuales" value="{{ equipamiento.camas_individuales if equipamiento else 0 }}"></div>
+      <div class="form-group"><label class="form-label">Supletorias maximas</label><input class="form-control" type="number" min="0" name="supletorias_max" value="{{ equipamiento.supletorias_max if equipamiento else 0 }}"></div>
+    </div>
+    <div class="eq-checks">
+      <label class="eq-check"><input type="checkbox" name="camas_juntas" value="1" {% if equipamiento and equipamiento.camas_juntas %}checked{% endif %}> Camas juntas</label>
+      <label class="eq-check"><input type="checkbox" name="sofa_cama" value="1" {% if equipamiento and equipamiento.sofa_cama %}checked{% endif %}> Sofa cama</label>
+      <label class="eq-check"><input type="checkbox" name="supletoria_posible" value="1" {% if equipamiento and equipamiento.supletoria_posible %}checked{% endif %}> Admite cama supletoria</label>
+      <label class="eq-check"><input type="checkbox" name="cuna_posible" value="1" {% if equipamiento and equipamiento.cuna_posible %}checked{% endif %}> Admite cuna</label>
+    </div>
+
+    <div class="eq-section">
+      <h3 style="color:#ff6b00;margin:0 0 12px;">Equipamiento fijo</h3>
+      <div class="eq-grid">
+        <div class="form-group">
+          <label class="form-label">Aire acondicionado</label>
+          <select class="form-control" name="aire_tipo">
+            {% set aire_actual = equipamiento.aire_tipo if equipamiento else '' %}
+            {% for key,label in tipos_aire.items() %}
+            <option value="{{ key }}" {% if aire_actual == key %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="form-group"><label class="form-label">Mesas</label><input class="form-control" type="number" min="0" name="mesas" value="{{ equipamiento.mesas if equipamiento else 0 }}"></div>
+        <div class="form-group"><label class="form-label">Sillas</label><input class="form-control" type="number" min="0" name="sillas" value="{{ equipamiento.sillas if equipamiento else 0 }}"></div>
+        <div class="form-group"><label class="form-label">Mesillas</label><input class="form-control" type="number" min="0" name="mesillas" value="{{ equipamiento.mesillas if equipamiento else 0 }}"></div>
+        <div class="form-group"><label class="form-label">Tumbonas</label><input class="form-control" type="number" min="0" name="tumbonas" value="{{ equipamiento.tumbonas if equipamiento else 0 }}"></div>
+      </div>
+      <div class="eq-checks">
+        <label class="eq-check"><input type="checkbox" name="tv" value="1" {% if not equipamiento or equipamiento.tv %}checked{% endif %}> Television</label>
+        <label class="eq-check"><input type="checkbox" name="minibar" value="1" {% if equipamiento and equipamiento.minibar %}checked{% endif %}> Mueble bar / minibar</label>
+        <label class="eq-check"><input type="checkbox" name="armario" value="1" {% if not equipamiento or equipamiento.armario %}checked{% endif %}> Armario</label>
+        <label class="eq-check"><input type="checkbox" name="tendedero" value="1" {% if equipamiento and equipamiento.tendedero %}checked{% endif %}> Tendedero</label>
+        <label class="eq-check"><input type="checkbox" name="caja_fuerte" value="1" {% if equipamiento and equipamiento.caja_fuerte %}checked{% endif %}> Caja fuerte</label>
+        <label class="eq-check"><input type="checkbox" name="terraza" value="1" {% if equipamiento and equipamiento.terraza %}checked{% endif %}> Terraza / balcon</label>
+      </div>
+    </div>
+
+    <div class="eq-section">
+      <h3 style="color:#ff6b00;margin:0 0 12px;">Inventario adicional</h3>
+      <div class="form-group">
+        <label class="form-label">Otros elementos</label>
+        <textarea class="form-control" name="inventario_extra" rows="4" placeholder="Ej.: perchas 8; vasos 2; secador 1; mando TV 1; papelera 1">{{ equipamiento.inventario_extra if equipamiento else '' }}</textarea>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Observaciones de revision</label>
+        <textarea class="form-control" name="observaciones" rows="3">{{ equipamiento.observaciones if equipamiento else '' }}</textarea>
+      </div>
+      <div class="eq-grid">
+        <div class="form-group"><label class="form-label">Revisado por</label><input class="form-control" name="revisado_por" value="{{ equipamiento.revisado_por if equipamiento and equipamiento.revisado_por else '' }}"></div>
+        <div class="form-group"><label class="form-label">Ultima revision</label><input class="form-control" value="{{ equipamiento.revisado_at if equipamiento and equipamiento.revisado_at else 'Sin revision' }}" readonly></div>
+      </div>
+    </div>
+
+    <div class="eq-actions" style="margin-top:18px;">
+      <button class="btn btn-success" type="submit"><i class="fas fa-save"></i> Guardar equipamiento</button>
+      <a class="btn btn-secondary" href="{{ url_for('pisos.habitaciones', fecha=fecha) }}">Volver</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

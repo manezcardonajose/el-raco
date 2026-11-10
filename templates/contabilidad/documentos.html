@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% block breadcrumb %}Contabilidad / Documentos{% endblock %}
+{% block content %}
+
+<div class="card">
+    <div class="card-header">
+        <div>
+            <h2><i class="fas fa-file-invoice-dollar"></i> Documentos economicos</h2>
+            <div style="font-size:13px;opacity:.8;">Facturas, albaranes, tickets, impuestos, nominas y comisiones.</div>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <a href="{{ url_for('contabilidad.dashboard') }}" class="btn btn-secondary">Panel</a>
+            <a href="{{ url_for('contabilidad.nuevo_documento') }}" class="btn btn-success"><i class="fas fa-plus"></i> Nuevo</a>
+        </div>
+    </div>
+
+    <form method="GET" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;align-items:end;margin-bottom:16px;">
+        <div>
+            <label style="font-size:12px;opacity:.75;">Tipo</label>
+            <select name="tipo" class="form-control">
+                <option value="">Todos</option>
+                {% for value, label in tipos %}
+                <option value="{{ value }}" {% if filtros.tipo == value %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div>
+            <label style="font-size:12px;opacity:.75;">Estado</label>
+            <select name="estado" class="form-control">
+                <option value="">Todos</option>
+                {% for value, label in estados %}
+                <option value="{{ value }}" {% if filtros.estado == value %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div>
+            <label style="font-size:12px;opacity:.75;">Buscar</label>
+            <input class="form-control" name="buscar" value="{{ filtros.buscar or '' }}" placeholder="Numero, tercero, texto">
+        </div>
+        <div style="display:flex;gap:8px;">
+            <button class="btn btn-primary">Filtrar</button>
+            <a class="btn btn-secondary" href="{{ url_for('contabilidad.documentos') }}">Limpiar</a>
+        </div>
+    </form>
+
+    <div class="table-container">
+        <table class="table table-hover">
+            <thead>
+                <tr>
+                    <th>Fecha</th>
+                    <th>Tipo</th>
+                    <th>Numero</th>
+                    <th>Tercero</th>
+                    <th>Cuenta</th>
+                    <th style="text-align:right;">Total</th>
+                    <th style="text-align:right;">Pendiente</th>
+                    <th>Estado</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for d in documentos %}
+                <tr>
+                    <td>{{ d.fecha_documento|fecha_es }}</td>
+                    <td>{{ d.tipo }}</td>
+                    <td>{{ d.numero or '-' }}</td>
+                    <td>{{ d.tercero_nombre or '-' }}</td>
+                    <td>{{ d.cuenta_contable or d.codigo_contable or '-' }}</td>
+                    <td style="text-align:right;">{{ d.total|euros }}</td>
+                    <td style="text-align:right;">{{ d.pendiente|euros }}</td>
+                    <td><span class="badge {% if d.estado == 'pagado' %}badge-success{% elif d.estado == 'vencido' %}badge-danger{% else %}badge-warning{% endif %}">{{ d.estado }}</span></td>
+                    <td><a class="btn btn-sm btn-info" href="{{ url_for('contabilidad.ver_documento', documento_id=d.id) }}">Ver</a></td>
+                </tr>
+                {% else %}
+                <tr><td colspan="9" style="text-align:center;padding:24px;">No hay documentos con este filtro.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{% endblock %}

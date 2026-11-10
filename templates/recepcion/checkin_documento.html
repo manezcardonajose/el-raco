@@ -1,0 +1,192 @@
+{% extends 'base.html' %}
+{% block title %}Parte check-in {{ reserva.codigo or reserva.id }}{% endblock %}
+{% block breadcrumb %}Recepcion / Check-in{% endblock %}
+{% block content %}
+<style>
+  .rx-doc{max-width:980px;margin:0 auto;}
+  .rx-doc-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:16px 0;}
+  .rx-doc-box{border:1px solid #334155;background:#111827;border-radius:8px;padding:14px;}
+  .rx-letter-head{background:#fff;color:#111;border-radius:8px;padding:14px;margin-bottom:16px;}
+  .rx-legal{white-space:pre-wrap;line-height:1.55;background:#0f172a;border:1px solid #334155;border-radius:8px;padding:16px;}
+  .rx-sign{min-height:95px;border:1px dashed #64748b;border-radius:8px;margin-top:12px;background:#fff;display:flex;align-items:center;justify-content:center;}
+  .rx-sign img{max-width:100%;max-height:115px;display:block;}
+  .rx-pad{background:#fff;border:1px solid #64748b;border-radius:8px;width:100%;height:190px;touch-action:none;display:block;}
+  @media(max-width:800px){.rx-doc-grid{grid-template-columns:1fr;}}
+  @media print{
+    .sidebar,.topbar,.breadcrumb,.no-print,.card-header .btn,.card-header form{display:none!important;}
+    .main-content{margin:0!important;padding:0!important;background:#fff!important;color:#111!important;}
+    .card,.rx-doc-box,.rx-legal,.rx-letter-head{background:#fff!important;color:#111!important;border-color:#999!important;box-shadow:none!important;}
+    .rx-sign{border-color:#999!important;}
+    table{color:#111!important;}
+  }
+</style>
+
+<div class="card rx-doc">
+  <div class="card-header">
+    <h2><i class="fas fa-file-signature"></i> {{ texto.titulo }}</h2>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+      <form class="no-print" method="get" action="{{ url_for('recepcion.documento_checkin', id=reserva.id) }}">
+        <select class="form-control" name="idioma" onchange="this.form.submit()">
+          {% for codigo,nombre in idiomas_documento.items() %}
+          <option value="{{ codigo }}" {% if idioma == codigo %}selected{% endif %}>{{ nombre }}</option>
+          {% endfor %}
+        </select>
+      </form>
+      <button class="btn btn-info no-print" onclick="window.print()">Imprimir</button>
+      <a class="btn btn-secondary no-print" href="{{ url_for('recepcion.reserva_detalle', id=reserva.id) }}">Volver</a>
+    </div>
+  </div>
+
+  <div class="rx-letter-head">
+    {% include 'recepcion/_empresa_print_header.html' %}
+  </div>
+
+  <div class="rx-doc-grid">
+    <div class="rx-doc-box">
+      <h3 style="margin-top:0;">Reserva</h3>
+      <p><strong>Codigo:</strong> {{ reserva.codigo or ('#' ~ reserva.id) }}</p>
+      <p><strong>Titular:</strong> {{ reserva.titular_nombre or '-' }}</p>
+      <p><strong>Habitacion:</strong> {{ reserva.habitacion_numero or reserva.habitacion_nombre or '-' }}</p>
+      <p><strong>Fechas:</strong> {{ reserva.fecha_entrada }} / {{ reserva.fecha_salida }}</p>
+    </div>
+    <div class="rx-doc-box">
+      <h3 style="margin-top:0;">Documento</h3>
+      <p><strong>Idioma:</strong> {{ idiomas_documento.get(idioma, idioma) }}</p>
+      <p><strong>Version:</strong> {{ texto.version }}</p>
+      <p><strong>Estado:</strong> {{ documento.estado }}</p>
+      <p><strong>Firmado:</strong> {{ documento.firmado_at or '-' }}</p>
+    </div>
+  </div>
+
+  <div class="table-container">
+    <table>
+      <thead><tr><th>Viajero</th><th>Documento verificado</th><th>Nacionalidad</th><th>Nacimiento</th></tr></thead>
+      <tbody>
+        {% for v in viajeros %}
+        <tr>
+          <td>{{ v.nombre }} {{ v.apellidos or '' }}{% if v.es_titular %}<br><small>Titular</small>{% endif %}</td>
+          <td>{{ v.tipo_documento or '-' }} {{ v.numero_documento or '' }}</td>
+          <td>{{ v.nacionalidad or v.pais or '-' }}</td>
+          <td>{{ v.fecha_nacimiento or '-' }}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="4">No hay viajeros registrados para esta reserva.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <h3>Proteccion de datos / Data protection</h3>
+  <div class="rx-legal">{{ texto.contenido }}</div>
+
+  <div class="rx-doc-grid">
+    <div class="rx-doc-box">
+      <h3 style="margin-top:0;">Firma del cliente</h3>
+      <p><strong>Firmante:</strong> {{ documento.firmante_nombre or reserva.titular_nombre or '-' }}</p>
+      <div class="rx-sign">
+        {% if documento.firma_cliente_data %}
+        <img src="{{ documento.firma_cliente_data }}" alt="Firma cliente">
+        {% else %}
+        <span style="color:#64748b;">Firma pendiente</span>
+        {% endif %}
+      </div>
+    </div>
+    <div class="rx-doc-box no-print">
+      <h3 style="margin-top:0;">Firma en tablet</h3>
+      <form id="firmaForm" method="post" action="{{ url_for('recepcion.firmar_documento_checkin', id=documento.id) }}">
+        <div class="form-group">
+          <label class="form-label">Firmante</label>
+          <input class="form-control" name="firmante_nombre" value="{{ documento.firmante_nombre or reserva.titular_nombre or '' }}">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Firma</label>
+          <canvas id="firmaCanvas" class="rx-pad"></canvas>
+          <input type="hidden" name="firma_data" id="firmaData">
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;">
+            <button class="btn btn-sm btn-secondary" type="button" id="limpiarFirma">Limpiar</button>
+          </div>
+          <small style="color:#94a3b8;">Se guarda una imagen PNG de la firma, sin presion, velocidad ni datos biometricos avanzados.</small>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Observaciones</label>
+          <textarea class="form-control" name="observaciones" rows="3">{{ documento.observaciones or '' }}</textarea>
+        </div>
+        <button class="btn btn-success" type="submit">Guardar firma</button>
+      </form>
+    </div>
+  </div>
+</div>
+<script>
+(function(){
+  const canvas = document.getElementById('firmaCanvas');
+  const form = document.getElementById('firmaForm');
+  const firmaData = document.getElementById('firmaData');
+  const limpiar = document.getElementById('limpiarFirma');
+  if(!canvas || !form || !firmaData){ return; }
+  const ctx = canvas.getContext('2d');
+  let drawing = false;
+  let hasInk = false;
+
+  function resizeCanvas(){
+    const ratio = Math.max(window.devicePixelRatio || 1, 1);
+    const rect = canvas.getBoundingClientRect();
+    const image = hasInk ? canvas.toDataURL('image/png') : null;
+    canvas.width = Math.max(Math.floor(rect.width * ratio), 1);
+    canvas.height = Math.max(Math.floor(rect.height * ratio), 1);
+    ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.lineWidth = 2.2;
+    ctx.strokeStyle = '#111827';
+    if(image){
+      const img = new Image();
+      img.onload = function(){ ctx.drawImage(img, 0, 0, rect.width, rect.height); };
+      img.src = image;
+    }
+  }
+
+  function point(evt){
+    const rect = canvas.getBoundingClientRect();
+    return {x: evt.clientX - rect.left, y: evt.clientY - rect.top};
+  }
+
+  canvas.addEventListener('pointerdown', function(evt){
+    drawing = true;
+    hasInk = true;
+    canvas.setPointerCapture(evt.pointerId);
+    const p = point(evt);
+    ctx.beginPath();
+    ctx.moveTo(p.x, p.y);
+    evt.preventDefault();
+  });
+  canvas.addEventListener('pointermove', function(evt){
+    if(!drawing){ return; }
+    const p = point(evt);
+    ctx.lineTo(p.x, p.y);
+    ctx.stroke();
+    evt.preventDefault();
+  });
+  function stopDrawing(evt){
+    if(drawing){
+      drawing = false;
+      ctx.closePath();
+    }
+    if(evt){ evt.preventDefault(); }
+  }
+  canvas.addEventListener('pointerup', stopDrawing);
+  canvas.addEventListener('pointercancel', stopDrawing);
+  canvas.addEventListener('pointerleave', stopDrawing);
+  limpiar.addEventListener('click', function(){
+    const rect = canvas.getBoundingClientRect();
+    ctx.clearRect(0, 0, rect.width, rect.height);
+    hasInk = false;
+    firmaData.value = '';
+  });
+  form.addEventListener('submit', function(){
+    firmaData.value = hasInk ? canvas.toDataURL('image/png') : '';
+  });
+  window.addEventListener('resize', resizeCanvas);
+  resizeCanvas();
+})();
+</script>
+{% endblock %}

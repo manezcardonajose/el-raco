@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header">
+        <h2><i class="fas fa-tags"></i> Tipos de menú</h2>
+        <a href="{{ url_for('menus.nuevo_tipo_menu') }}" class="btn btn-success">
+            <i class="fas fa-plus"></i> Nuevo tipo
+        </a>
+    </div>
+
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>Nombre</th>
+                    <th>Punto de venta</th>
+                    <th>Menús fijos</th>
+                    <th>Menús diarios</th>
+                    <th>Estado</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for t in tipos %}
+                <tr>
+                    <td><strong>{{ t.nombre }}</strong></td>
+                    <td>{{ t.punto_venta_nombre or '---' }}</td>
+                    <td style="text-align: center;">{{ t.num_menus_fijos or 0 }}</td>
+                    <td style="text-align: center;">{{ t.num_menus_diarios or 0 }}</td>
+                    <td>
+                        {% if t.activo %}
+                            <span style="color: #28a745;">Activo</span>
+                        {% else %}
+                            <span style="color: #dc3545;">Inactivo</span>
+                        {% endif %}
+                    </td>
+                    <td style="text-align: center;">
+                        <a href="{{ url_for('menus.editar_tipo_menu', tipo_id=t.id) }}" class="btn btn-sm btn-primary" title="Editar">
+                            <i class="fas fa-edit"></i>
+                        </a>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="6" style="text-align: center; padding: 40px;">
+                        No hay tipos de menú creados.
+                        <a href="{{ url_for('menus.nuevo_tipo_menu') }}">Crea el primero</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

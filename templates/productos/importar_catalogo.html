@@ -1,0 +1,239 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="card">
+    <div class="card-header">
+        <h2><i class="fas fa-file-import"></i> Importar catalogo de productos</h2>
+        <div>
+            <a href="{{ url_for('productos.plantilla_importacion') }}" class="btn btn-info">
+                <i class="fas fa-file-excel"></i> Plantilla Excel
+            </a>
+            <a href="{{ url_for('productos.productos') }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Productos
+            </a>
+            <a href="{{ url_for('proveedores.proveedores') }}" class="btn btn-secondary">
+                <i class="fas fa-truck"></i> Proveedores
+            </a>
+        </div>
+    </div>
+
+    <div class="import-grid">
+        <section class="panel">
+            <h3>Archivo</h3>
+            <form method="POST" enctype="multipart/form-data">
+                <div class="form-group">
+                    <label class="form-label">Excel, CSV o PDF con tabla</label>
+                    <input type="file" name="archivo" class="form-control" accept=".xlsx,.xls,.xlsm,.csv,.tsv,.pdf" required>
+                </div>
+                <label class="checkline">
+                    <input type="checkbox" name="aplicar" value="1">
+                    <span>Aplicar cambios directamente</span>
+                </label>
+                <div class="actions">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-search"></i> Revisar / importar
+                    </button>
+                </div>
+            </form>
+        </section>
+
+        <section class="panel">
+            <h3>Columnas aceptadas</h3>
+            <div class="chips">
+                <span>codigo_producto</span>
+                <span>nombre_producto</span>
+                <span>familia</span>
+                <span>unidad</span>
+                <span>tipo_conservacion</span>
+                <span>precio_compra</span>
+                <span>stock_minimo</span>
+                <span>proveedor</span>
+                <span>nif_proveedor</span>
+                <span>codigo_proveedor</span>
+                <span>proveedor_principal</span>
+                <span>precio_venta</span>
+                <span>visible_venta</span>
+                <span>control_lote</span>
+                <span>control_caducidad</span>
+                <span>alergenos</span>
+                <span>alergenos_validado</span>
+            </div>
+        </section>
+    </div>
+
+    {% if resultado %}
+    <div class="panel">
+        <h3>Resumen</h3>
+        <div class="stats">
+            <div><span>Modo</span><strong>{{ resultado.resumen.modo }}</strong></div>
+            <div><span>Filas</span><strong>{{ resultado.resumen.filas_leidas }}</strong></div>
+            <div><span>Productos</span><strong>{{ resultado.resumen.productos_detectados }}</strong></div>
+            <div><span>Nuevos</span><strong>{{ resultado.resumen.productos_creados }}</strong></div>
+            <div><span>Actualizados</span><strong>{{ resultado.resumen.productos_actualizados }}</strong></div>
+            <div><span>Proveedores nuevos</span><strong>{{ resultado.resumen.proveedores_creados }}</strong></div>
+            <div><span>Relaciones</span><strong>{{ resultado.resumen.relaciones_creadas + resultado.resumen.relaciones_actualizadas }}</strong></div>
+            <div><span>Errores</span><strong>{{ resultado.resumen.errores }}</strong></div>
+        </div>
+    </div>
+
+    {% if resultado.errores %}
+    <div class="panel panel-danger">
+        <h3>Errores</h3>
+        <ul>
+            {% for error in resultado.errores %}
+            <li>{{ error }}</li>
+            {% endfor %}
+        </ul>
+    </div>
+    {% endif %}
+
+    {% if resultado.avisos %}
+    <div class="panel panel-warning">
+        <h3>Avisos</h3>
+        <ul>
+            {% for aviso in resultado.avisos %}
+            <li>{{ aviso }}</li>
+            {% endfor %}
+        </ul>
+    </div>
+    {% endif %}
+
+    <div class="panel">
+        <h3>Vista previa</h3>
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Fila</th>
+                        <th>Producto</th>
+                        <th>Codigo</th>
+                        <th>Familia</th>
+                        <th>Unidad</th>
+                        <th>Conservacion</th>
+                        <th>Alergenos</th>
+                        <th>Proveedor</th>
+                        <th>Precio</th>
+                        <th>Principal</th>
+                        <th>Accion</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in resultado.preview %}
+                    <tr>
+                        <td>{{ row.fila }}</td>
+                        <td><strong>{{ row.producto }}</strong></td>
+                        <td>{{ row.codigo or '---' }}</td>
+                        <td>{{ row.familia }}</td>
+                        <td>{{ row.unidad }}</td>
+                        <td>{{ row.conservacion }}</td>
+                        <td>
+                            {{ row.alergenos or '---' }}
+                            {% if row.alergenos and not row.alergenos_validado %}
+                            <br><small style="color:#ffc107;">Pendiente validar</small>
+                            {% endif %}
+                        </td>
+                        <td>{{ row.proveedor }}</td>
+                        <td>{{ "%.3f"|format(row.precio or 0) }}</td>
+                        <td>{{ row.principal or '' }}</td>
+                        <td>{{ row.accion_producto }} / {{ row.accion_relacion }}</td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="11" style="text-align:center;">No hay filas validas para mostrar</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% if resultado.total_preview > resultado.preview|length %}
+        <p class="muted">Mostrando {{ resultado.preview|length }} de {{ resultado.total_preview }} relaciones detectadas.</p>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+
+<style>
+    .import-grid {
+        display: grid;
+        grid-template-columns: minmax(280px, 0.9fr) minmax(320px, 1.1fr);
+        gap: 16px;
+        margin-bottom: 18px;
+    }
+    .panel {
+        border: 1px solid #2f3a46;
+        background: #20262d;
+        border-radius: 6px;
+        padding: 16px;
+        margin-bottom: 16px;
+    }
+    .panel h3 {
+        margin: 0 0 12px;
+        font-size: 18px;
+        color: #ff8a2a;
+    }
+    .panel-danger {
+        border-color: #dc3545;
+    }
+    .panel-warning {
+        border-color: #ffc107;
+    }
+    .form-group {
+        margin-bottom: 12px;
+    }
+    .form-label {
+        display: block;
+        margin-bottom: 6px;
+        font-weight: 600;
+    }
+    .checkline {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin: 12px 0;
+    }
+    .actions {
+        margin-top: 12px;
+    }
+    .chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+    .chips span {
+        border: 1px solid #3a4a5b;
+        background: #141a21;
+        color: #d9e4ef;
+        padding: 6px 8px;
+        border-radius: 4px;
+        font-size: 13px;
+    }
+    .stats {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+        gap: 10px;
+    }
+    .stats div {
+        border: 1px solid #334155;
+        background: #101722;
+        border-radius: 6px;
+        padding: 10px;
+    }
+    .stats span {
+        display: block;
+        color: #9fb1c5;
+        font-size: 12px;
+        margin-bottom: 6px;
+    }
+    .stats strong {
+        font-size: 20px;
+    }
+    .muted {
+        color: #9fb1c5;
+        font-size: 13px;
+    }
+    @media (max-width: 900px) {
+        .import-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+{% endblock %}

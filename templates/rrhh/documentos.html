@@ -1,0 +1,10 @@
+{% extends 'base.html' %}
+{% block title %}Documentación RRHH{% endblock %}
+{% block breadcrumb %}RRHH / Documentación{% endblock %}
+{% block content %}
+<div class="card"><div class="card-header"><h2><i class="fas fa-folder-open"></i> Documentación RRHH</h2>{% if puede_editar %}<a class="btn btn-success" href="{{ url_for('rrhh.nuevo_documento') }}"><i class="fas fa-plus"></i> Nuevo documento</a>{% endif %}</div>
+{% include 'rrhh/_herramientas_tabla.html' %}
+<div class="table-container"><table><thead><tr><th>Empleado</th><th>Tipo</th><th>Nombre</th><th>Fecha</th><th>Caducidad</th><th>Estado</th><th>Archivo</th><th>Acciones</th></tr></thead><tbody>
+{% for d in documentos %}<tr><td>{{ d.empleado_nombre }}</td><td>{{ d.tipo_documento }}</td><td>{{ d.nombre or '-' }}</td><td>{{ d.fecha_documento or '-' }}</td><td>{{ d.fecha_caducidad or '-' }}</td><td><span class="badge badge-info">{{ d.estado or 'vigente' }}</span></td><td>{{ d.archivo or '-' }}</td><td>{% if puede_editar %}<a class="btn btn-sm btn-primary" href="{{ url_for('rrhh.editar_documento', id=d.id) }}">Editar</a> <form method="post" action="{{ url_for('rrhh.anular_documento', id=d.id) }}" style="display:inline" onsubmit="return confirm('¿Anular documento?')"><button class="btn btn-sm btn-warning">Anular</button></form>{% endif %}</td></tr>{% else %}<tr><td colspan="8">No hay documentos registrados.</td></tr>{% endfor %}
+</tbody></table></div></div>
+{% endblock %}

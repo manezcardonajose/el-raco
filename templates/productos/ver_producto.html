@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="card">
+    <div class="card-header">
+        <h2><i class="fas fa-box"></i> {{ producto.nombre }}</h2>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <a href="{{ next_url or url_for('productos.productos') }}" class="btn btn-secondary">Volver</a>
+            <a href="{{ url_for('productos.editar_producto', producto_id=producto.id, next=next_url or url_for('productos.productos')) }}" class="btn btn-primary">Editar</a>
+        </div>
+    </div>
+    <div style="background:#1e252b;padding:20px;border-radius:8px;">
+        <p><strong>Codigo:</strong> {{ producto.codigo or '---' }}</p>
+        <p><strong>Stock:</strong> {{ producto.cantidad|numero_es }} {{ producto.unidad }}</p>
+        <p><strong>Precio:</strong> {{ producto.precio|euros }}</p>
+        <p><strong>Familia:</strong> {{ producto.familia or '---' }}</p>
+        <p>
+            <strong>Alergenos:</strong> {{ producto.alergenos or '---' }}
+            {% if producto.alergenos and not producto.alergenos_validado %}
+            <span class="badge badge-warning">Pendiente validar</span>
+            {% endif %}
+        </p>
+        <p><strong>Stock minimo:</strong> {{ producto.stock_minimo|numero_es }} {{ producto.unidad }}</p>
+        <p><strong>Ubicacion:</strong> {{ producto.ubicacion or '---' }}</p>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,116 @@
+{% extends 'base.html' %}
+{% block title %}Seleccion RRHH{% endblock %}
+{% block breadcrumb %}RRHH / Seleccion{% endblock %}
+{% block content %}
+<div class="card">
+  <div class="card-header">
+    <h2><i class="fas fa-user-check"></i> Seleccion de personal</h2>
+    <div style="display:flex; gap:8px; flex-wrap:wrap;">
+      <a class="btn btn-success" href="{{ url_for('rrhh.seleccion_nueva_oferta') }}"><i class="fas fa-plus"></i> Nueva oferta</a>
+      <a class="btn btn-primary" href="{{ url_for('rrhh.seleccion_nuevo_candidato') }}"><i class="fas fa-file-alt"></i> Nuevo candidato</a>
+    </div>
+  </div>
+  <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap:12px;">
+    {% for codigo, nombre in estados %}
+    <div class="card" style="margin:0;">
+      <small style="color:#94a3b8;">{{ nombre }}</small>
+      <h3 style="margin:6px 0 0;">{{ resumen_estados.get(codigo, 0) }}</h3>
+    </div>
+    {% endfor %}
+    <div class="card" style="margin:0;">
+      <small style="color:#94a3b8;">Emails vencidos</small>
+      <h3 style="margin:6px 0 0;">{{ emails_pendientes|length }}</h3>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header">
+    <h2><i class="fas fa-envelope"></i> Respuesta de descarte</h2>
+    <form method="post" action="{{ url_for('rrhh.seleccion_enviar_emails_descarte') }}" style="margin:0;">
+      <button class="btn btn-warning" type="submit" onclick="return confirm('Enviar ahora los emails de descarte vencidos?');">
+        <i class="fas fa-paper-plane"></i> Enviar pendientes
+      </button>
+    </form>
+  </div>
+  <form method="post" action="{{ url_for('rrhh.seleccion_configuracion') }}">
+    <div style="display:grid; grid-template-columns: 140px 1fr; gap:12px; align-items:end;">
+      <div class="form-group">
+        <label class="form-label">Dias espera</label>
+        <input class="form-control" type="number" min="0" name="dias_respuesta_descarte" value="{{ config.dias_respuesta_descarte or 7 }}">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Asunto</label>
+        <input class="form-control" name="asunto_descarte" value="{{ config.asunto_descarte or '' }}">
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Plantilla</label>
+      <textarea class="form-control" name="plantilla_descarte" rows="5">{{ config.plantilla_descarte or '' }}</textarea>
+      <small style="color:#94a3b8;">Puedes usar {nombre}, {oferta} y {empresa}. El envio queda registrado.</small>
+    </div>
+    <label style="display:flex; gap:8px; align-items:center; margin-bottom:12px;">
+      <input type="checkbox" name="envio_automatico" value="1" {% if config.envio_automatico %}checked{% endif %}>
+      Preparado para envio automatico programado cuando activemos tareas nocturnas
+    </label>
+    <button class="btn btn-success" type="submit">Guardar configuracion</button>
+  </form>
+</div>
+
+<div class="card">
+  <div class="card-header"><h2><i class="fas fa-briefcase"></i> Ofertas activas</h2></div>
+  <div class="table-container">
+    <table>
+      <thead>
+        <tr><th>Oferta</th><th>Departamento</th><th>Estado</th><th>Candidatos</th><th>Fechas</th><th>Acciones</th></tr>
+      </thead>
+      <tbody>
+        {% for oferta in ofertas %}
+        <tr>
+          <td><strong>{{ oferta.titulo }}</strong><br><small>{{ oferta.tipo_contrato or '-' }} / {{ oferta.jornada or '-' }}</small></td>
+          <td>{{ oferta.departamento_nombre or '-' }}{% if oferta.subdepartamento_nombre %}<br><small>{{ oferta.subdepartamento_nombre }}</small>{% endif %}</td>
+          <td><span class="badge badge-info">{{ oferta.estado or 'abierta' }}</span></td>
+          <td>{{ oferta.candidatos_total or 0 }}<br><small>{{ oferta.candidatos_interesantes or 0 }} interesantes</small></td>
+          <td>{{ oferta.fecha_inicio or '-' }}<br><small>{{ oferta.fecha_cierre or '-' }}</small></td>
+          <td>
+            <a class="btn btn-sm btn-primary" href="{{ url_for('rrhh.seleccion_oferta_detalle', oferta_id=oferta.id) }}">Ver</a>
+            <a class="btn btn-sm btn-success" href="{{ url_for('rrhh.seleccion_nuevo_candidato', oferta_id=oferta.id) }}">Candidato</a>
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="6">No hay ofertas creadas.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header"><h2><i class="fas fa-file-alt"></i> Ultimos candidatos</h2></div>
+  <div class="table-container">
+    <table>
+      <thead>
+        <tr><th>Candidato</th><th>Oferta</th><th>Estado</th><th>Puntuacion</th><th>Email descarte</th><th>Acciones</th></tr>
+      </thead>
+      <tbody>
+        {% for candidato in candidatos %}
+        <tr>
+          <td><strong>{{ candidato.nombre }} {{ candidato.apellidos or '' }}</strong><br><small>{{ candidato.email or '-' }} · {{ candidato.telefono or '-' }}</small></td>
+          <td>{{ candidato.oferta_titulo or '-' }}</td>
+          <td><span class="badge badge-info">{{ candidato.estado or 'recibido' }}</span></td>
+          <td>{{ '%.1f'|format(candidato.puntuacion_total or 0) }}%</td>
+          <td>
+            {% if candidato.descarte_email_enviado_at %}<span class="badge badge-success">Enviado</span>
+            {% elif candidato.descarte_email_programado %}<span class="badge badge-warning">{{ candidato.descarte_email_programado }}</span>
+            {% else %}-{% endif %}
+          </td>
+          <td><a class="btn btn-sm btn-primary" href="{{ url_for('rrhh.seleccion_candidato_detalle', candidato_id=candidato.id) }}">Ver</a></td>
+        </tr>
+        {% else %}
+        <tr><td colspan="6">No hay candidatos registrados.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

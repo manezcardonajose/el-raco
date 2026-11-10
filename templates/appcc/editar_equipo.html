@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header">
+        <h2><i class="fas fa-edit"></i> EDITAR EQUIPO</h2>
+        <a href="{{ url_for('appcc.lista_equipos') }}" class="btn btn-secondary">Volver</a>
+    </div>
+
+    <form method="POST">
+        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px;">
+            <div class="form-group">
+                <label class="form-label">Nombre *</label>
+                <input type="text" name="nombre" value="{{ equipo.nombre }}" required class="form-control">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Tipo</label>
+                <input type="text" name="tipo" value="{{ equipo.tipo or '' }}" class="form-control" placeholder="Ej: cmara, nevera, horno...">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Ubicacin</label>
+                <input type="text" name="ubicacion" value="{{ equipo.ubicacion or '' }}" class="form-control">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Departamento</label>
+                <select name="departamento_id" class="form-control">
+                    <option value="">-- Ninguno --</option>
+                    {% for d in departamentos %}
+                    <option value="{{ d.id }}" {% if d.id == equipo.departamento_id %}selected{% endif %}>{{ d.nombre }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Subdepartamento</label>
+                <select name="subdepartamento_id" class="form-control">
+                    <option value="">-- Ninguno --</option>
+                    {% for s in subdepartamentos %}
+                    <option value="{{ s.id }}" {% if s.id == equipo.subdepartamento_id %}selected{% endif %}>{{ s.nombre }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Punto de venta</label>
+                <select name="punto_venta_id" class="form-control">
+                    <option value="">-- Ninguno --</option>
+                    {% for p in puntos_venta %}
+                    <option value="{{ p.id }}" {% if p.id == equipo.punto_venta_id %}selected{% endif %}>{{ p.nombre }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Rango mnimo (°C)</label>
+                <input type="number" step="0.1" name="rango_min" value="{{ equipo.rango_min or '' }}" class="form-control">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Rango mximo (°C)</label>
+                <input type="number" step="0.1" name="rango_max" value="{{ equipo.rango_max or '' }}" class="form-control">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Responsable</label>
+                <input type="text" name="responsable" value="{{ equipo.responsable or '' }}" class="form-control">
+            </div>
+            <div class="form-group">
+                <label class="form-check">
+                    <input type="checkbox" name="activo" {% if equipo.activo %}checked{% endif %}> Activo
+                </label>
+            </div>
+        </div>
+
+        <div style="margin-top: 30px;">
+            <button type="submit" class="btn btn-success">
+                <i class="fas fa-save"></i> Guardar cambios
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+
+
+

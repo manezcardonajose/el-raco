@@ -1,0 +1,105 @@
+{% extends 'base.html' %}
+{% block title %}Trazabilidad pisos{% endblock %}
+{% block breadcrumb %}Pisos / Trazabilidad{% endblock %}
+{% block content %}
+<style>
+  .px-filters{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;align-items:end;margin-bottom:16px;}
+  .px-actions{display:flex;gap:6px;flex-wrap:wrap;align-items:center;}
+  .px-note{color:#94a3b8;font-size:12px;line-height:1.35;}
+  .px-pill{display:inline-block;border:1px solid #475569;border-radius:4px;padding:2px 6px;font-size:12px;background:#0f172a;}
+  .px-table td{vertical-align:top;}
+</style>
+
+<div class="card">
+  <div class="card-header">
+    <h2><i class="fas fa-history"></i> Trazabilidad pisos</h2>
+    <div class="px-actions">
+      <a class="btn btn-secondary" href="{{ url_for('pisos.dashboard', fecha=filtros.hasta) }}"><i class="fas fa-list"></i> Partes</a>
+      <a class="btn btn-secondary" href="{{ url_for('pisos.habitaciones', fecha=filtros.hasta) }}"><i class="fas fa-bed"></i> Habitaciones</a>
+      <a class="btn btn-secondary" href="{{ url_for('appcc.plan_limpieza') }}"><i class="fas fa-clipboard-check"></i> APPCC</a>
+    </div>
+  </div>
+
+  <form method="get" class="px-filters">
+    <div class="form-group">
+      <label class="form-label">Desde</label>
+      <input class="form-control" type="date" name="desde" value="{{ filtros.desde }}">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Hasta</label>
+      <input class="form-control" type="date" name="hasta" value="{{ filtros.hasta }}">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Entidad</label>
+      <select class="form-control" name="entidad">
+        {% for key, label in entidades.items() %}
+        <option value="{{ key }}" {% if filtros.entidad == key %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Buscar</label>
+      <input class="form-control" name="q" value="{{ filtros.q }}" placeholder="Habitacion, usuario, detalle">
+    </div>
+    <button class="btn btn-primary" type="submit"><i class="fas fa-search"></i> Ver</button>
+  </form>
+
+  <div class="table-container">
+    <table class="px-table">
+      <thead>
+        <tr>
+          <th>Fecha</th>
+          <th>Accion</th>
+          <th>Usuario</th>
+          <th>Habitacion / parte</th>
+          <th>Cambio</th>
+          <th>Detalle</th>
+          <th>Origen</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for t in trazas %}
+        <tr>
+          <td>{{ t.fecha }}</td>
+          <td>
+            <span class="px-pill">{{ t.entidad }}</span>
+            <div>{{ t.accion }}</div>
+          </td>
+          <td>
+            {{ t.usuario_nombre or '-' }}
+            {% if t.usuario_id %}<div class="px-note">ID {{ t.usuario_id }}</div>{% endif %}
+          </td>
+          <td>
+            {% if t.habitacion_numero or t.habitacion_nombre %}
+            <strong>{{ t.habitacion_numero or t.habitacion_nombre }}</strong>
+            {% endif %}
+            {% if t.entidad == 'parte' and t.entidad_id %}
+            <div class="px-note">Parte #{{ t.entidad_id }}</div>
+            {% if t.parte_tipo %}<div class="px-note">{{ t.parte_tipo }} &middot; {{ t.parte_estado or '' }}</div>{% endif %}
+            {% elif t.entidad_id %}
+            <div class="px-note">ID {{ t.entidad_id }}</div>
+            {% endif %}
+          </td>
+          <td>
+            {% if t.estado_anterior or t.estado_nuevo %}
+            <span class="px-pill">{{ t.estado_anterior or '-' }}</span>
+            <span class="px-note">a</span>
+            <span class="px-pill">{{ t.estado_nuevo or '-' }}</span>
+            {% else %}
+            <span class="px-note">Sin cambio de estado</span>
+            {% endif %}
+          </td>
+          <td>{{ t.detalle or '-' }}</td>
+          <td>
+            {{ t.ip or '-' }}
+            {% if t.user_agent %}<div class="px-note">{{ t.user_agent }}</div>{% endif %}
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="7">No hay trazabilidad para estos filtros.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

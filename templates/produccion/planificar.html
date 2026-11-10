@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="card">
+
+    <div class="card-header">
+        <h2><i class="fas fa-calendar-alt"></i> Planificar producción desde menús</h2>
+    </div>
+
+    <form method="POST" style="padding:15px;">
+
+        <label>Seleccionar fecha</label>
+        <input type="date" name="fecha" class="form-control" required>
+
+        <label style="margin-top:10px;">Pax previstos manual</label>
+        <input type="number" name="pax_previstos" class="form-control" min="0" step="1"
+               placeholder="Vacio = usar prevision de recepcion">
+
+        <div class="alert alert-info" style="margin-top:12px;">
+            Buffet: el sistema calcula raciones por seccion. Frios 10-15%, proteinas 25-30%,
+            veganos/guarniciones 15-20% y postres 15-20%. Las recetas base son de 4 raciones.
+        </div>
+
+        <label style="margin-top:10px;">Tipo de menú</label>
+        <select name="tipo_menu_id" class="form-control">
+            {% for t in tipos %}
+            <option value="{{ t.id }}">{{ t.nombre }}</option>
+            {% endfor %}
+        </select>
+
+        <label style="margin-top:10px;">Punto de venta</label>
+        <select name="punto_venta_id" class="form-control">
+            {% for p in puntos %}
+            <option value="{{ p.id }}">{{ p.nombre }}</option>
+            {% endfor %}
+        </select>
+
+        <button type="submit" class="btn btn-success" style="margin-top:15px;">
+            Generar producción
+        </button>
+
+    </form>
+
+</div>
+
+{% endblock %}

@@ -1,0 +1,32 @@
+{% extends 'base.html' %}
+{% block title %}{% if bloqueo %}Editar bloqueo{% else %}Nuevo bloqueo{% endif %}{% endblock %}
+{% block breadcrumb %}Recepcion / Bloqueos / {% if bloqueo %}Editar{% else %}Nuevo{% endif %}{% endblock %}
+{% block content %}
+<div class="card">
+  <div class="card-header"><h2><i class="fas fa-ban"></i> {% if bloqueo %}Editar bloqueo{% else %}Nuevo bloqueo{% endif %}</h2></div>
+  <form method="post">
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;">
+      <div class="form-group"><label class="form-label">Habitacion</label><select class="form-control" name="habitacion_id" required>
+        <option value="">Seleccionar</option>
+        {% for h in habitaciones %}
+        <option value="{{ h.id }}" {% if bloqueo and bloqueo.habitacion_id == h.id %}selected{% endif %}>{{ h.numero }}{% if h.bloque %} - {{ h.bloque }}{% endif %}{% if h.nombre %} - {{ h.nombre }}{% endif %}</option>
+        {% endfor %}
+      </select></div>
+      <div class="form-group"><label class="form-label">Desde</label><input class="form-control" type="date" name="fecha_inicio" required value="{{ bloqueo.fecha_inicio if bloqueo else '' }}"></div>
+      <div class="form-group"><label class="form-label">Hasta</label><input class="form-control" type="date" name="fecha_fin" required value="{{ bloqueo.fecha_fin if bloqueo else '' }}"></div>
+      <div class="form-group"><label class="form-label">Motivo</label><select class="form-control" name="motivo">
+        {% for m in ['mantenimiento','fuera_servicio','uso_interno','bloqueo'] %}
+        <option value="{{ m }}" {% if bloqueo and bloqueo.motivo == m %}selected{% endif %}>{{ m|replace('_',' ') }}</option>
+        {% endfor %}
+      </select></div>
+      <div class="form-group"><label class="form-label">Estado</label><select class="form-control" name="estado">
+        <option value="activo" {% if not bloqueo or bloqueo.estado == 'activo' %}selected{% endif %}>Activo</option>
+        <option value="anulado" {% if bloqueo and bloqueo.estado == 'anulado' %}selected{% endif %}>Anulado</option>
+      </select></div>
+    </div>
+    <div class="form-group"><label class="form-label">Descripcion</label><textarea class="form-control" name="descripcion" rows="3">{{ bloqueo.descripcion if bloqueo else '' }}</textarea></div>
+    <button class="btn btn-success" type="submit">Guardar</button>
+    <a class="btn btn-secondary" href="{{ url_for('recepcion.bloqueos') }}">Volver</a>
+  </form>
+</div>
+{% endblock %}

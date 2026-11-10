@@ -1,0 +1,380 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="card">
+    <div class="card-header" style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;">
+        <div>
+            <h2 style="margin:0;"><i class="fas fa-file-invoice"></i> Pedido {{ pedido.numero_pedido }}</h2>
+            <div style="margin-top:6px;">
+                <strong>Proveedor:</strong> {{ pedido.proveedor_nombre }}
+                <br><strong>Departamento:</strong> {{ pedido.departamento_nombre or '-' }}
+                {% if pedido.estado == 'borrador' %}
+                    <span class="badge bg-secondary">Borrador</span>
+                {% elif pedido.estado == 'pendiente_autorizacion' %}
+                    <span class="badge bg-warning text-dark">Pendiente autorizacion</span>
+                {% elif pedido.estado == 'rechazado' %}
+                    <span class="badge bg-danger">Rechazado</span>
+                {% elif pedido.estado == 'autorizado' %}
+                    <span class="badge bg-primary">Autorizado</span>
+                {% elif pedido.estado == 'enviado' %}
+                    <span class="badge bg-info text-dark">Enviado</span>
+                {% elif pedido.estado == 'recibido_parcial' %}
+                    <span class="badge bg-warning text-dark">Recibido parcial</span>
+                {% elif pedido.estado == 'recibido' %}
+                    <span class="badge bg-success">Recibido</span>
+                {% elif pedido.estado == 'cerrado' %}
+                    <span class="badge bg-dark">Cerrado</span>
+                {% elif pedido.estado == 'cancelado' %}
+                    <span class="badge bg-danger">Cancelado</span>
+                {% endif %}
+                {% if pedido.tipo_pedido == 'mantenimiento' %}
+                    <span class="badge bg-info text-dark">Mantenimiento</span>
+                {% endif %}
+            </div>
+        </div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;">
+            <a href="{{ url_for('compras.lista_pedidos') }}" class="btn btn-secondary">Volver</a>
+            <a href="{{ url_for('compras.imprimir_pedido', pedido_id=pedido.id) }}" class="btn btn-secondary">Imprimir pedido</a>
+
+            {% if acciones.puede_editar %}
+                <a href="{{ url_for('compras.editar_pedido', pedido_id=pedido.id) }}" class="btn btn-primary">Editar</a>
+            {% endif %}
+            {% if acciones.puede_solicitar %}
+                <form method="post" action="{{ url_for('compras.solicitar_autorizacion_pedido', pedido_id=pedido.id) }}" style="display:inline;">
+                    <button type="submit" class="btn btn-warning">Solicitar autorizacion</button>
+                </form>
+            {% endif %}
+            {% if acciones.puede_autorizar %}
+                <form method="post" action="{{ url_for('compras.autorizar_pedido', pedido_id=pedido.id) }}" style="display:inline;">
+                    <button type="submit" class="btn btn-primary" onclick="return confirm('Autorizar este pedido?')">Autorizar</button>
+                </form>
+            {% endif %}
+            {% if acciones.puede_rechazar %}
+                <form method="post" action="{{ url_for('compras.rechazar_pedido', pedido_id=pedido.id) }}" style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+                    <input type="text" name="motivo_rechazo" class="form-control" style="width:220px;" placeholder="Motivo de rechazo">
+                    <button type="submit" class="btn btn-danger" onclick="return confirm('Rechazar este pedido y devolverlo para corregir?')">Rechazar</button>
+                </form>
+            {% endif %}
+            {% if acciones.puede_enviar %}
+                <form method="post" action="{{ url_for('compras.enviar_pedido', pedido_id=pedido.id) }}" style="display:inline;">
+                    <button type="submit" class="btn btn-success" onclick="return confirm('Confirmas que ya lo enviaste por otro medio? Esta accion no envia un correo.')">Marcar enviado</button>
+                </form>
+            {% endif %}
+            {% if acciones.puede_enviar_email %}
+                <form method="post" action="{{ url_for('compras.enviar_pedido_por_email', pedido_id=pedido.id) }}" style="display:inline;">
+                    <button type="submit" class="btn btn-success" onclick="return confirm('Enviar este pedido por email al proveedor?')">Enviar email</button>
+                </form>
+            {% endif %}
+            {% if acciones.puede_recibir %}
+                <a href="{{ url_for('compras.recibir_pedido', numero_pedido=pedido.numero_pedido) }}" class="btn btn-success">
+                    {% if pedido.estado == 'recibido_parcial' %}Continuar recepcion{% else %}Recibir{% endif %}
+                </a>
+            {% endif %}
+            {% if pedido.estado in ['recibido', 'cerrado'] %}
+                <a href="{{ url_for('compras.hoja_conformidad', numero_pedido=pedido.numero_pedido) }}" class="btn btn-outline-primary" target="_blank">Conformidad</a>
+                <a href="{{ url_for('compras.hoja_incidencias_recepcion', numero_pedido=pedido.numero_pedido) }}" class="btn btn-outline-danger" target="_blank">Incidencias</a>
+            {% endif %}
+            {% if acciones.puede_cerrar %}
+                <form method="post" action="{{ url_for('compras.cerrar_pedido', pedido_id=pedido.id) }}" style="display:inline;">
+                    <button type="submit" class="btn btn-dark" onclick="return confirm('Cerrar este pedido?')">Cerrar pedido</button>
+                </form>
+            {% endif %}
+            {% if acciones.puede_cancelar %}
+                <form method="post" action="{{ url_for('compras.cancelar_pedido', pedido_id=pedido.id) }}" style="display:inline;">
+                    <button type="submit" class="btn btn-warning" onclick="return confirm('Cancelar este pedido?')">Cancelar</button>
+                </form>
+            {% endif %}
+            {% if acciones.puede_eliminar %}
+                <form method="post" action="{{ url_for('compras.eliminar_pedido', pedido_id=pedido.id) }}" style="display:inline;">
+                    <button type="submit" class="btn btn-danger" onclick="return confirm('Eliminar pedido?')">Eliminar</button>
+                </form>
+            {% endif %}
+        </div>
+    </div>
+
+    {% if mantenimiento_origen %}
+    <div class="alert alert-info" style="margin-top:16px;">
+        <strong>Pedido generado desde mantenimiento.</strong>
+        OT:
+        <a href="{{ url_for('mantenimiento.ver_orden', orden_id=mantenimiento_origen.orden_id) }}">
+            {{ mantenimiento_origen.numero_orden or ('OT ' ~ mantenimiento_origen.orden_id) }}
+        </a>
+        {% if mantenimiento_origen.repuesto_nombre %}
+            <br>Repuesto: {{ mantenimiento_origen.repuesto_codigo or '-' }} - {{ mantenimiento_origen.repuesto_nombre }}
+        {% endif %}
+        <br><small>Al recepcionar el pedido, el stock del producto queda en compras. Desde mantenimiento se puede actualizar el stock del repuesto vinculado.</small>
+    </div>
+    {% elif pedido.tipo_pedido == 'mantenimiento' %}
+    <div class="alert alert-info" style="margin-top:16px;">
+        <strong>Pedido de mantenimiento.</strong>
+        Este pedido procede de una necesidad tecnica o de repuesto.
+    </div>
+    {% endif %}
+
+    <div class="card" style="margin-bottom:16px;">
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;">
+            <div><strong>Fecha pedido:</strong><br>{{ pedido.fecha_pedido or '-' }}</div>
+            <div><strong>Fecha entrega:</strong><br>{{ pedido.fecha_entrega or '-' }}</div>
+            <div><strong>Email proveedor:</strong><br>{{ pedido.email or '-' }}</div>
+            <div><strong>Telefono:</strong><br>{{ pedido.telefono or '-' }}</div>
+            <div><strong>Solicitado por:</strong><br>{{ pedido.solicitado_por or '-' }}</div>
+            <div><strong>Autorizado por:</strong><br>{{ pedido.aprobado_por or '-' }}</div>
+            <div><strong>Enviado:</strong><br>{{ pedido.fecha_envio or '-' }}</div>
+        </div>
+        {% if pedido.estado == 'rechazado' and pedido.motivo_rechazo %}
+        <div class="alert alert-warning" style="margin-top:14px;">
+            <strong>Motivo de rechazo:</strong> {{ pedido.motivo_rechazo }}
+            {% if pedido.rechazado_por %}<br><small>Rechazado por {{ pedido.rechazado_por }} el {{ pedido.fecha_rechazo or '-' }}</small>{% endif %}
+        </div>
+        {% endif %}
+        {% if resumen_lineas and resumen_lineas.lineas_sin_precio %}
+        <div class="alert alert-info" style="margin-top:14px;">
+            Hay {{ resumen_lineas.lineas_sin_precio }} linea(s) sin precio de pedido. Se podran validar economicamente al recepcionar, pero conviene revisarlas antes de enviar.
+        </div>
+        {% endif %}
+        {% if pedido.observaciones %}
+        <div style="margin-top:14px;">
+            <strong>Observaciones:</strong><br>
+            {{ pedido.observaciones }}
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="card">
+        <h3>Lineas del pedido</h3>
+        {% if lineas %}
+        <div style="overflow-x:auto;">
+            <table class="table" style="width:100%;min-width:1100px;">
+                <thead>
+                    <tr>
+                        <th>Producto</th>
+                        <th>Unidad</th>
+                        <th>Pedida</th>
+                        <th>Recibida</th>
+                        <th>Pendiente</th>
+                        {% if ver_precios %}
+                        <th>Precio pedido</th>
+                        <th>Precio factura</th>
+                        <th>Diferencia</th>
+                        <th>Total pedido</th>
+                        <th>Total factura</th>
+                        {% endif %}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for l in lineas %}
+                    {% set pendiente = (l.cantidad_solicitada or 0) - (l.cantidad_recibida or 0) %}
+                    {% set precio_pedido = l.precio_unitario or 0 %}
+                    {% set precio_factura = l.ultimo_precio_recepcion %}
+                    {% set diferencia_precio = (precio_factura - precio_pedido) if precio_factura is not none else none %}
+                    <tr>
+                        <td>{{ l.nombre }}</td>
+                        <td>{{ l.unidad or '-' }}</td>
+                        <td>{{ '%.3f'|format(l.cantidad_solicitada or 0) }}</td>
+                        <td>{{ '%.3f'|format(l.cantidad_recibida or 0) }}</td>
+                        <td>
+                            {% if pendiente > 0 %}
+                                <span class="badge bg-warning text-dark">{{ '%.3f'|format(pendiente) }}</span>
+                            {% else %}
+                                <span class="badge bg-success">0.000</span>
+                            {% endif %}
+                        </td>
+                        {% if ver_precios %}
+                        <td>{{ '%.4f'|format(precio_pedido) }} EUR</td>
+                        <td>
+                            {% if precio_factura is not none %}
+                                {{ '%.4f'|format(precio_factura) }} EUR
+                            {% else %}
+                                <span class="badge bg-secondary">Sin validar</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if diferencia_precio is not none %}
+                                <span class="badge {{ 'bg-danger' if diferencia_precio > 0 else ('bg-success' if diferencia_precio < 0 else 'bg-secondary') }}">
+                                    {{ '%+.4f'|format(diferencia_precio) }} EUR
+                                </span>
+                            {% else %}
+                                -
+                            {% endif %}
+                        </td>
+                        <td>{{ '%.2f'|format((l.cantidad_solicitada or 0) * precio_pedido) }} EUR</td>
+                        <td>{{ '%.2f'|format(l.importe_recepcion_real or 0) }} EUR</td>
+                        {% endif %}
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <p>No hay lineas en este pedido.</p>
+        {% endif %}
+    </div>
+
+    <div class="card" style="margin-top:16px;">
+        <h3>Recepciones del pedido</h3>
+        {% if recepciones_pedido %}
+        <div style="overflow-x:auto;">
+            <table class="table" style="width:100%;min-width:980px;">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Fecha</th>
+                        <th>Albaran</th>
+                        <th>Lineas</th>
+                        <th>Importe</th>
+                        <th>Checks</th>
+                        <th>Documento</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for r in recepciones_pedido %}
+                    <tr>
+                        <td>{{ r.id }}</td>
+                        <td>{{ r.fecha_recepcion or '-' }}</td>
+                        <td>{{ r.numero_albaran or '-' }}</td>
+                        <td>
+                            {{ r.num_lineas or 0 }}
+                            {% if r.num_incidencias %}
+                            <span class="badge bg-danger">{{ r.num_incidencias }} incidencia(s)</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ '%.2f'|format(r.importe_recepcion or 0) }} EUR</td>
+                        <td>
+                            <span class="badge {{ 'bg-success' if r.validada_operativamente else 'bg-secondary' }}">Fisico</span>
+                            <span class="badge {{ 'bg-success' if r.stock_aplicado else 'bg-secondary' }}">Stock</span>
+                            <span class="badge {{ 'bg-success' if r.validada_economicamente else 'bg-secondary' }}">Economico</span>
+                        </td>
+                        <td>
+                            {% if r.documento_id %}
+                                <a href="{{ url_for('compras.ver_documento_compra', documento_id=r.documento_id) }}">{{ r.nombre_archivo or ('Documento ' ~ r.documento_id) }}</a>
+                            {% else %}
+                                -
+                            {% endif %}
+                        </td>
+                        <td style="display:flex;gap:6px;flex-wrap:wrap;">
+                            <a class="btn btn-sm btn-secondary" href="{{ url_for('compras.editar_recepcion', recepcion_id=r.id) }}">Editar</a>
+                            <a class="btn btn-sm btn-warning" href="{{ url_for('compras.pantalla_validacion_economica', id=r.id) }}">Precios</a>
+                            <a class="btn btn-sm btn-outline-primary" href="{{ url_for('compras.hoja_conformidad_recepcion_id', recepcion_id=r.id) }}" target="_blank">Conformidad</a>
+                            <a class="btn btn-sm btn-outline-danger" href="{{ url_for('compras.hoja_incidencias_recepcion_id', recepcion_id=r.id) }}" target="_blank">Incidencias</a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <p>No hay recepciones asociadas a este pedido.</p>
+        {% endif %}
+    </div>
+
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:16px;margin-top:16px;">
+        <div class="card" style="margin:0;">
+            <h3>Documentos</h3>
+            {% if documentos_pedido %}
+            <table class="table" style="width:100%;">
+                <thead>
+                    <tr>
+                        <th>Tipo</th>
+                        <th>Documento</th>
+                        <th>Fecha</th>
+                        <th>Estado</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for d in documentos_pedido %}
+                    <tr>
+                        <td>{{ d.tipo_documento or '-' }}</td>
+                        <td>
+                            <a href="{{ url_for('compras.ver_documento_compra', documento_id=d.id) }}">
+                                {{ d.nombre_archivo or d.numero_documento or ('Documento ' ~ d.id) }}
+                            </a>
+                            {% if d.numero_albaran %}<br><small>Albaran: {{ d.numero_albaran }}</small>{% endif %}
+                        </td>
+                        <td>{{ d.fecha_documento or d.fecha_subida or '-' }}</td>
+                        <td>
+                            {% if d.validado %}
+                                <span class="badge bg-success">Validado</span>
+                            {% elif d.procesado_ia %}
+                                <span class="badge bg-warning text-dark">OCR</span>
+                            {% else %}
+                                <span class="badge bg-secondary">Pendiente</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <p>No hay documentos asociados.</p>
+            {% endif %}
+        </div>
+
+        <div class="card" style="margin:0;">
+            <h3>Validaciones</h3>
+            {% if validaciones_pedido %}
+            <table class="table" style="width:100%;">
+                <thead>
+                    <tr>
+                        <th>Fecha</th>
+                        <th>Tipo</th>
+                        <th>Estado</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for v in validaciones_pedido %}
+                    <tr>
+                        <td>{{ v.fecha or '-' }}</td>
+                        <td>{{ v.tipo_validacion or '-' }}</td>
+                        <td>
+                            <span class="badge bg-success">{{ v.estado or '-' }}</span>
+                            {% if v.observaciones %}<br><small>{{ v.observaciones }}</small>{% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <p>No hay validaciones registradas.</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="card" style="margin-top:16px;">
+        <h3>Historial del pedido</h3>
+        {% if auditoria_pedido %}
+        <div style="overflow-x:auto;">
+            <table class="table" style="width:100%;min-width:900px;">
+                <thead>
+                    <tr>
+                        <th>Fecha</th>
+                        <th>Usuario</th>
+                        <th>Evento</th>
+                        <th>Estado</th>
+                        <th>Detalle</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for a in auditoria_pedido %}
+                    <tr>
+                        <td>{{ a.fecha or '-' }}</td>
+                        <td>{{ a.usuario or '-' }}</td>
+                        <td>{{ a.tipo or '-' }}</td>
+                        <td>
+                            {% if a.estado_anterior or a.estado_nuevo %}
+                                {{ a.estado_anterior or '-' }} -> {{ a.estado_nuevo or '-' }}
+                            {% else %}
+                                -
+                            {% endif %}
+                        </td>
+                        <td>{{ a.detalle or '-' }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <p>No hay historial registrado.</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

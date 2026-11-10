@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Informe de Pedidos</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 40px;
+            color: #333;
+        }
+
+        h1 {
+            color: #ff6b00;
+            border-bottom: 2px solid #ff6b00;
+            padding-bottom: 10px;
+        }
+
+        .fecha {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            font-size: 12px;
+        }
+
+        th {
+            background: #ff6b00;
+            color: white;
+            padding: 10px;
+            text-align: left;
+        }
+
+        td {
+            padding: 8px;
+            border-bottom: 1px solid #ddd;
+        }
+
+        tr:hover {
+            background: #f5f5f5;
+        }
+
+        .total {
+            margin-top: 20px;
+            text-align: right;
+            font-size: 16px;
+            font-weight: bold;
+        }
+
+        .resumen {
+            background: #f0f0f0;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+
+        .estado {
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: bold;
+            display: inline-block;
+        }
+
+        .estado-borrador {
+            background: #6c757d;
+            color: white;
+        }
+
+        .estado-enviado {
+            background: #007bff;
+            color: white;
+        }
+
+        .estado-recibido {
+            background: #28a745;
+            color: white;
+        }
+
+        .estado-cancelado {
+            background: #dc3545;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <h1> INFORME DE PEDIDOS</h1>
+    <div class="fecha">
+        Generado el: {{ fecha }}
+    </div>
+
+    <div class="resumen">
+        <strong>Total pedidos:</strong> {{ data|length }} |
+        <strong>Perodo:</strong> ltimos 100 pedidos
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Nº Pedido</th>
+                <th>Proveedor</th>
+                <th>Fecha</th>
+                <th>Estado</th>
+                <th>Lneas</th>
+                <th>Total</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for p in data %}
+            <tr>
+                <td><strong>{{ p.numero_pedido }}</strong></td>
+                <td>{{ p.proveedor }}</td>
+                <td>{{ p.fecha_pedido }}</td>
+                <td>
+                    {% if p.estado == 'borrador' %}
+                    <span class="estado estado-borrador">Borrador</span>
+                    {% elif p.estado == 'enviado' %}
+                    <span class="estado estado-enviado">Enviado</span>
+                    {% elif p.estado == 'recibido' %}
+                    <span class="estado estado-recibido">Recibido</span>
+                    {% elif p.estado == 'cancelado' %}
+                    <span class="estado estado-cancelado">Cancelado</span>
+                    {% else %}
+                    {{ p.estado }}
+                    {% endif %}
+                </td>
+                <td style="text-align: center;">{{ p.num_lineas or 0 }}</td>
+                <td style="text-align: right;">{{ "%.2f"|format(p.total or 0) }} </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <div class="total">
+        TOTAL: {{ "%.2f"|format(data|selectattr('total', '!=', none)|sum(attribute='total')) }} 
+    </div>
+
+    <div style="margin-top: 40px; font-size: 10px; color: #999; text-align: center;">
+        <p>Informe generado automáticamente por El Racó ERP</p>
+    </div>
+</body>
+</html>
+
+
+

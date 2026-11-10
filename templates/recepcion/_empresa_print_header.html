@@ -1,0 +1,18 @@
+<div style="display:flex;align-items:center;gap:14px;border-bottom:2px solid #111;padding-bottom:12px;margin-bottom:16px;">
+  {% if empresa_logo_url %}
+  <img src="{{ empresa_logo_url }}" alt="Anagrama" style="width:86px;max-height:70px;object-fit:contain;">
+  {% else %}
+  <div style="width:72px;height:72px;border:2px solid #111;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:24px;">
+    {{ (empresa.nombre if empresa else 'ERP')[:2]|upper }}
+  </div>
+  {% endif %}
+  <div style="line-height:1.35;">
+    <h2 style="margin:0 0 4px;color:#111;">{{ empresa.nombre if empresa else 'Establecimiento' }}</h2>
+    {% if empresa and empresa.nif %}<div><strong>NIF/CIF:</strong> {{ empresa.nif }}</div>{% endif %}
+    {% if empresa and empresa.direccion %}<div>{{ empresa.direccion }}</div>{% endif %}
+    <div>
+      {% if empresa and empresa.telefono %}<span><strong>Tel:</strong> {{ empresa.telefono }}</span>{% endif %}
+      {% if empresa and empresa.email %}<span>{% if empresa.telefono %} · {% endif %}<strong>Email:</strong> {{ empresa.email }}</span>{% endif %}
+    </div>
+  </div>
+</div>

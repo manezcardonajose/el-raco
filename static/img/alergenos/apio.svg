@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Apio">
+  <circle cx="32" cy="32" r="30" fill="#6d5ea8"/>
+  <g fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M24 51V29M32 51V23M40 51V29"/>
+    <path d="M24 29c-7-4-7-10-7-10 8 0 11 4 11 10"/>
+    <path d="M32 23c-5-7-2-12-2-12 8 4 9 9 4 15"/>
+    <path d="M40 29c7-4 7-10 7-10-8 0-11 4-11 10"/>
+  </g>
+</svg>

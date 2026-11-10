@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="card">
+
+<h2>Nueva merma</h2>
+
+<form method="POST">
+
+<label>Parte</label>
+<select name="parte_id" class="form-control">
+    {% for p in partes %}
+    <option value="{{ p.id }}">#{{ p.id }} - {{ p.fecha }}</option>
+    {% endfor %}
+</select>
+
+<label>Receta</label>
+<select name="receta_id" class="form-control">
+    {% for r in recetas %}
+    <option value="{{ r.id }}">{{ r.nombre }}</option>
+    {% endfor %}
+</select>
+
+<label>Cantidad</label>
+<input type="number" step="0.1" name="cantidad" class="form-control">
+
+<label>Motivo</label>
+<input type="text" name="motivo" class="form-control">
+
+<button class="btn btn-danger" style="margin-top:10px;">Guardar</button>
+
+</form>
+
+</div>
+
+{% endblock %}

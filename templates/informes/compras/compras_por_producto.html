@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="card">
+    <div class="card-header">
+        <h2><i class="fas fa-chart-bar"></i> COMPRAS POR PRODUCTO</h2>
+        <div>
+            <button onclick="window.print()" class="btn btn-info">
+                <i class="fas fa-print"></i> Imprimir
+            </button>
+            <a href="{{ url_for('informes.compras_por_producto', desde=fecha_desde, hasta=fecha_hasta, exportar='excel') }}" class="btn btn-success">
+                <i class="fas fa-file-excel"></i> Exportar Excel
+            </a>
+            <a href="{{ url_for('informes.compras') }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Volver
+            </a>
+        </div>
+    </div>
+    <!-- Filtros -->
+    <div style="background: #1e252b; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+        <form method="GET" style="display: grid; grid-template-columns: 2fr 2fr 1fr auto; gap: 15px; align-items: end;">
+            <div>
+                <label class="form-label">Desde:</label>
+                <input type="date" name="desde" value="{{ fecha_desde }}" class="form-control">
+            </div>
+            <div>
+                <label class="form-label">Hasta:</label>
+                <input type="date" name="hasta" value="{{ fecha_hasta }}" class="form-control">
+            </div>
+            <div style="align-self: end;">
+                <button type="submit" class="btn btn-primary">Filtrar</button>
+            </div>
+        </form>
+    </div>
+    <!-- Resumen -->
+    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin-bottom: 20px;">
+        <div style="background: #1e252b; padding: 15px; border-radius: 8px;">
+            <div style="font-size: 12px; color: #999;">Total productos</div>
+            <div style="font-size: 24px; font-weight: bold;">{{ datos|length }}</div>
+        </div>
+        <div style="background: #1e252b; padding: 15px; border-radius: 8px;">
+            <div style="font-size: 12px; color: #999;">Gasto total</div>
+            <div style="font-size: 24px; font-weight: bold; color: #28a745;">
+                {{ "%.2f"|format(datos|sum(attribute='total_gasto')) }} €
+            </div>
+        </div>
+        <div style="background: #1e252b; padding: 15px; border-radius: 8px;">
+            <div style="font-size: 12px; color: #999;">Total pedidos</div>
+            <div style="font-size: 24px; font-weight: bold;">{{ datos|sum(attribute='num_pedidos') }}</div>
+        </div>
+        <div style="background: #1e252b; padding: 15px; border-radius: 8px;">
+            <div style="font-size: 12px; color: #999;">Período</div>
+            <div style="font-size: 14px;">{{ fecha_desde }} a {{ fecha_hasta }}</div>
+        </div>
+    </div>
+    <!-- Tabla de resultados -->
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>Producto</th>
+                    <th>Código</th>
+                    <th>Pedidos</th>
+                    <th>Cantidad total</th>
+                    <th>Precio medio</th>
+                    <th>Gasto total</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for d in datos %}
+                <tr>
+                    <td><strong>{{ d.producto }}</strong></td>
+                    <td>{{ d.codigo or '---' }}</td>
+                    <td style="text-align: center;">{{ d.num_pedidos }}</td>
+                    <td>{{ "%.2f"|format(d.total_cantidad) }} {{ d.unidad }}</td>
+                    <td>{{ "%.2f"|format(d.precio_medio) }} €</td>
+                    <td style="text-align: right;">{{ "%.2f"|format(d.total_gasto) }} €</td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="6" style="text-align: center; padding: 40px;">
+                        No hay datos para el período seleccionado
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

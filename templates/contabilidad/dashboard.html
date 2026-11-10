@@ -1,0 +1,135 @@
+{% extends "base.html" %}
+{% block breadcrumb %}Contabilidad{% endblock %}
+{% block content %}
+
+<div class="card">
+    <div class="card-header">
+        <div>
+            <h2><i class="fas fa-balance-scale"></i> Control economico</h2>
+            <div style="font-size:13px;opacity:.8;">Documentos, vencimientos, pagos y base contable operativa.</div>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <form method="POST" action="{{ url_for('contabilidad.sincronizar_compras') }}">
+                <button class="btn btn-warning" onclick="return confirm('Importar recepciones de compras validadas economicamente?')">
+                    <i class="fas fa-download"></i> Traer compras
+                </button>
+            </form>
+            <form method="POST" action="{{ url_for('contabilidad.sincronizar_ventas') }}">
+                <button class="btn btn-info" onclick="return confirm('Importar facturas de recepcion y tickets TPV cobrados?')">
+                    <i class="fas fa-cash-register"></i> Traer ventas
+                </button>
+            </form>
+            <a href="{{ url_for('contabilidad.nueva_factura_proveedor') }}" class="btn btn-warning"><i class="fas fa-file-signature"></i> Factura proveedor</a>
+            <a href="{{ url_for('contabilidad.recurrentes') }}" class="btn btn-warning"><i class="fas fa-calendar-check"></i> Recurrentes</a>
+            <a href="{{ url_for('contabilidad.presupuesto') }}" class="btn btn-info"><i class="fas fa-calculator"></i> Presupuesto</a>
+            <a href="{{ url_for('contabilidad.explotacion') }}" class="btn btn-info"><i class="fas fa-chart-pie"></i> Explotacion</a>
+            <a href="{{ url_for('contabilidad.pagos') }}" class="btn btn-info"><i class="fas fa-money-bill-wave"></i> Pagos</a>
+            <a href="{{ url_for('contabilidad.impuestos') }}" class="btn btn-secondary"><i class="fas fa-percent"></i> Impuestos</a>
+            <a href="{{ url_for('contabilidad.nuevo_documento') }}" class="btn btn-success"><i class="fas fa-plus"></i> Nuevo documento</a>
+            <a href="{{ url_for('contabilidad.documentos') }}" class="btn btn-primary"><i class="fas fa-file-invoice"></i> Documentos</a>
+        </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-bottom:18px;">
+        <div style="background:#20252a;border:1px solid #344150;border-radius:8px;padding:14px;">
+            <div style="font-size:12px;opacity:.75;">Pendiente pago</div>
+            <div style="font-size:24px;font-weight:700;">{{ resumen.pendiente|euros }}</div>
+        </div>
+        <div style="background:#20252a;border:1px solid #344150;border-radius:8px;padding:14px;">
+            <div style="font-size:12px;opacity:.75;">Albaranes sin factura</div>
+            <div style="font-size:24px;font-weight:700;color:#0dcaf0;">{{ resumen.pendiente_factura|euros }}</div>
+        </div>
+        <div style="background:#20252a;border:1px solid #344150;border-radius:8px;padding:14px;">
+            <div style="font-size:12px;opacity:.75;">Vencido</div>
+            <div style="font-size:24px;font-weight:700;color:#ff6b6b;">{{ resumen.vencido|euros }}</div>
+        </div>
+        <div style="background:#20252a;border:1px solid #344150;border-radius:8px;padding:14px;">
+            <div style="font-size:12px;opacity:.75;">Gastos mes</div>
+            <div style="font-size:24px;font-weight:700;">{{ resumen.gastos_mes|euros }}</div>
+        </div>
+        <div style="background:#20252a;border:1px solid #344150;border-radius:8px;padding:14px;">
+            <div style="font-size:12px;opacity:.75;">Ingresos mes</div>
+            <div style="font-size:24px;font-weight:700;color:#51cf66;">{{ resumen.ingresos_mes|euros }}</div>
+        </div>
+        <div style="background:#20252a;border:1px solid #344150;border-radius:8px;padding:14px;">
+            <div style="font-size:12px;opacity:.75;">Docs pendientes</div>
+            <div style="font-size:24px;font-weight:700;">{{ resumen.docs_pendientes or 0 }}</div>
+        </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:minmax(0,1.25fr) minmax(280px,.75fr);gap:16px;">
+        <div>
+            <h3 style="color:#ff6b00;">Ultimos documentos</h3>
+            <div class="table-container">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Fecha</th>
+                            <th>Tipo</th>
+                            <th>Numero</th>
+                            <th>Tercero</th>
+                            <th style="text-align:right;">Total</th>
+                            <th>Estado</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for d in recientes %}
+                        <tr>
+                            <td>{{ d.fecha_documento|fecha_es }}</td>
+                            <td>{{ d.tipo }}</td>
+                            <td>{{ d.numero or '-' }}</td>
+                            <td>{{ d.tercero_nombre or '-' }}</td>
+                            <td style="text-align:right;">{{ d.total|euros }}</td>
+                            <td><span class="badge {% if d.estado == 'pagado' %}badge-success{% elif d.estado == 'vencido' %}badge-danger{% else %}badge-warning{% endif %}">{{ d.estado }}</span></td>
+                            <td><a class="btn btn-sm btn-info" href="{{ url_for('contabilidad.ver_documento', documento_id=d.id) }}">Ver</a></td>
+                        </tr>
+                        {% else %}
+                        <tr><td colspan="7" style="text-align:center;padding:20px;">No hay documentos economicos.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div>
+            <h3 style="color:#ff6b00;">Proximos vencimientos</h3>
+            <div class="table-container">
+                <table class="table">
+                    <thead><tr><th>Vence</th><th>Tercero</th><th style="text-align:right;">Pendiente</th></tr></thead>
+                    <tbody>
+                        {% for v in vencimientos %}
+                        <tr>
+                            <td>{{ (v.fecha_vencimiento or v.fecha_documento)|fecha_es }}</td>
+                            <td>{{ v.tercero_nombre or v.numero or '-' }}</td>
+                            <td style="text-align:right;">{{ v.pendiente|euros }}</td>
+                        </tr>
+                        {% else %}
+                        <tr><td colspan="3" style="text-align:center;padding:20px;">Sin vencimientos pendientes.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <h3 style="color:#ff6b00;margin-top:18px;">Por tipo</h3>
+            <div class="table-container">
+                <table class="table">
+                    <thead><tr><th>Tipo</th><th style="text-align:right;">Docs</th><th style="text-align:right;">Importe</th></tr></thead>
+                    <tbody>
+                        {% for t in por_tipo %}
+                        <tr>
+                            <td>{{ t.tipo }}</td>
+                            <td style="text-align:right;">{{ t.total_docs }}</td>
+                            <td style="text-align:right;">{{ t.total_importe|euros }}</td>
+                        </tr>
+                        {% else %}
+                        <tr><td colspan="3" style="text-align:center;padding:20px;">Sin datos.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

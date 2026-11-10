@@ -1,0 +1,104 @@
+{% extends 'base.html' %}
+{% block title %}Fiscalidad recepcion{% endblock %}
+{% block breadcrumb %}Recepcion / Fiscalidad{% endblock %}
+{% block content %}
+<div class="card">
+  <div class="card-header">
+    <h2><i class="fas fa-balance-scale"></i> Fiscalidad y cumplimiento</h2>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+      <a class="btn btn-secondary" href="{{ url_for('recepcion.impuestos') }}">Impuestos</a>
+      <a class="btn btn-primary" href="{{ url_for('recepcion.facturas') }}">Facturas</a>
+    </div>
+  </div>
+
+  <div class="alert alert-info">
+    Esta pantalla define los valores por defecto. La ERP conserva huella de factura y trazabilidad, pero el envio real a AEAT/VERI*FACTU o a plataformas oficiales requiere certificados y configuracion externa.
+  </div>
+
+  <form method="post" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;align-items:end;">
+    <div class="form-group">
+      <label class="form-label">Territorio fiscal</label>
+      <select class="form-control" name="territorio">
+        {% for t,n in [('canarias','Canarias / IGIC'),('peninsula_baleares','Peninsula y Baleares / IVA'),('ceuta_melilla','Ceuta-Melilla / IPSI'),('general','General / mixto')] %}
+        <option value="{{ t }}" {% if config and config.territorio == t %}selected{% endif %}>{{ n }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Impuesto estancia</label>
+      <select class="form-control" name="impuesto_estancia_id">
+        <option value="">Manual</option>
+        {% for imp in impuestos %}
+        <option value="{{ imp.id }}" {% if config and config.impuesto_estancia_id == imp.id %}selected{% endif %}>{{ imp.codigo }} - {{ imp.nombre }} ({{ '%.2f'|format(imp.porcentaje or 0) }}%)</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Impuesto extras</label>
+      <select class="form-control" name="impuesto_extras_id">
+        <option value="">Manual</option>
+        {% for imp in impuestos %}
+        <option value="{{ imp.id }}" {% if config and config.impuesto_extras_id == imp.id %}selected{% endif %}>{{ imp.codigo }} - {{ imp.nombre }} ({{ '%.2f'|format(imp.porcentaje or 0) }}%)</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="form-group"><label class="form-label">Serie factura</label><input class="form-control" name="serie_factura" value="{{ config.serie_factura if config else 'REC' }}"></div>
+    <div class="form-group"><label class="form-label">Serie proforma</label><input class="form-control" name="serie_proforma" value="{{ config.serie_proforma if config else 'PRO' }}"></div>
+    <div class="form-group"><label class="form-label">Serie rectificativa</label><input class="form-control" name="serie_rectificativa" value="{{ config.serie_rectificativa if config else 'REC-R' }}"></div>
+
+    <div class="form-group">
+      <label class="form-label">VERI*FACTU</label>
+      <select class="form-control" name="modo_verifactu">
+        {% for v,n in [('preparado_no_enviado','Preparado, sin envio automatico'),('verifactu','Envio VERI*FACTU configurado'),('no_verifactu','NO VERI*FACTU')] %}
+        <option value="{{ v }}" {% if config and config.modo_verifactu == v %}selected{% endif %}>{{ n }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Factura electronica</label>
+      <input class="form-control" name="modo_factura_electronica" value="{{ config.modo_factura_electronica if config else 'pendiente_configuracion' }}">
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Registro viajeros</label>
+      <input class="form-control" name="modo_registro_viajeros" value="{{ config.modo_registro_viajeros if config else 'ses_hospedajes_manual' }}">
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Hora alerta viajeros</label>
+      <input class="form-control" type="time" name="registro_viajeros_alerta_hora" value="{{ config.registro_viajeros_alerta_hora if config and 'registro_viajeros_alerta_hora' in config.keys() else '22:00' }}">
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Dias a preparar</label>
+      <input class="form-control" type="number" min="0" max="7" name="registro_viajeros_alerta_dias" value="{{ config.registro_viajeros_alerta_dias if config and 'registro_viajeros_alerta_dias' in config.keys() else 1 }}">
+      <small>0 prepara solo entradas de hoy; 1 incluye las de manana.</small>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Edad minima documento</label>
+      <input class="form-control" type="number" min="0" max="99" name="edad_min_documento" value="{{ config.edad_min_documento if config and config.edad_min_documento is not none else 14 }}">
+      <small>Por debajo de esta edad no se marca el numero de documento como faltante.</small>
+    </div>
+
+    <div class="form-group"><label class="form-label">Responsable tratamiento datos</label><input class="form-control" name="responsable_tratamiento" value="{{ config.responsable_tratamiento if config else (empresa.nombre if empresa else '') }}"></div>
+    <div class="form-group"><label class="form-label">Delegado proteccion datos / contacto</label><input class="form-control" name="delegado_proteccion_datos" value="{{ config.delegado_proteccion_datos if config else '' }}"></div>
+
+    <div class="form-group" style="grid-column:1/-1;">
+      <label class="form-label">Pie legal factura</label>
+      <textarea class="form-control" name="texto_pie_factura" rows="3">{{ config.texto_pie_factura if config else '' }}</textarea>
+    </div>
+
+    <div class="form-group" style="grid-column:1/-1;">
+      <label class="form-label">Observaciones internas</label>
+      <textarea class="form-control" name="observaciones" rows="3">{{ config.observaciones if config else '' }}</textarea>
+    </div>
+
+    <button class="btn btn-success" type="submit">Guardar configuracion fiscal</button>
+  </form>
+</div>
+{% endblock %}

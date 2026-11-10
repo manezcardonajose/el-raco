@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="card">
+    <div class="card-header">
+        <h2><i class="fas fa-boxes"></i> Lotes y trazabilidad</h2>
+        <a href="{{ url_for('lotes.nuevo_lote') }}" class="btn btn-success">
+            <i class="fas fa-plus"></i> Nuevo lote
+        </a>
+    </div>
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>Producto</th>
+                    <th>Lote</th>
+                    <th>Caducidad</th>
+                    <th>Stock</th>
+                    <th>Estado</th>
+                    <th>Estado descongelado</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for l in lotes %}
+                <tr>
+                    <td><strong>{{ l.producto_nombre }}</strong></td>
+                    <td>{{ l.codigo_lote }}</td>
+                    <td>{{ l.fecha_caducidad or '---' }}</td>
+                    <td>{{ l.cantidad_actual }} {{ l.unidad }}</td>
+                    <td>{{ l.estado }}</td>
+                    <td>
+                        <span class="badge
+                            {% if l.estado_descongelado == 'apto' %}badge-success
+                            {% elif l.estado_descongelado == 'no_apto' %}badge-danger
+                            {% elif l.estado_descongelado == 'en_curso' %}badge-warning
+                            {% else %}badge-secondary{% endif %}">
+                            {{ l.estado_descongelado or '---' }}
+                        </span>
+                    </td>
+                    <td>
+                        <a href="{{ url_for('lotes.historial_lote', lote_id=l.id) }}" class="btn-icon"><i class="fas fa-history"></i></a>
+                        <a href="{{ url_for('lotes.etiqueta_lote', lote_id=l.id) }}" class="btn-icon" target="_blank" title="Etiqueta"><i class="fas fa-tag"></i></a>
+                        <a href="{{ url_for('lotes.deterioro_lote', lote_id=l.id) }}" class="btn-icon" title="Deterioro / no apto"><i class="fas fa-exclamation-triangle"></i></a>
+                        {% if l.requiere_desinfeccion or 'fruta' in (l.familia or '')|lower or 'verdura' in (l.familia or '')|lower %}
+                        <a href="{{ url_for('lotes.desinfeccion_lote', lote_id=l.id) }}" class="btn-icon" title="Desinfeccion">
+                            <i class="fas fa-shield-alt"></i>
+                            {% if not l.num_desinfecciones %}<span class="badge badge-warning">APPCC</span>{% endif %}
+                        </a>
+                        {% endif %}
+                        {% if l.estado_descongelado in ['pendiente', 'en_curso'] %}
+                        <a href="{{ url_for('lotes.control_descongelado', lote_id=l.id) }}" class="btn-icon"><i class="fas fa-thermometer-half"></i></a>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="7">No hay lotes</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

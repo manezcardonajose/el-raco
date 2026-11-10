@@ -1,0 +1,192 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="card">
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+        <h2>️ Editar men del {{ menu.fecha }}</h2>
+        <a href="/menus" class="btn btn-red"> Volver</a>
+    </div>
+    
+    <form method="POST" id="form-menu">
+        <!-- Datos bsicos -->
+        <div style="background: #3a3f44; padding: 20px; border-radius: 4px; margin-bottom: 20px;">
+            <div style="display: grid; grid-template-columns: 1fr 1fr 2fr; gap: 15px;">
+                <div>
+                    <label>Fecha:</label>
+                    <input type="date" name="fecha" value="{{ menu.fecha }}" required style="width: 100%; padding: 8px;">
+                </div>
+                <div>
+                    <label>Tipo:</label>
+                    <select name="tipo_menu_id" required style="width: 100%; padding: 8px;">
+                        {% for t in tipos %}
+                        <option value="{{ t.id }}" {% if t.id == menu.tipo_menu_id %}selected{% endif %}>{{ t.nombre }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label>Observaciones:</label>
+                    <input type="text" name="observaciones" value="{{ menu.observaciones or '' }}" style="width: 100%; padding: 8px;">
+                </div>
+            </div>
+        </div>
+        
+        <!-- Secciones (subdepartamentos) -->
+        <h3>️ Secciones del men</h3>
+        <div id="secciones-container">
+            {% for a in asignados %}
+            <div class="seccion-card" style="background: #3a3f44; padding: 15px; border-radius: 4px; margin-bottom: 15px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                    <h4 style="margin:0; color: #ff6b00;">{{ a.nombre }}</h4>
+                    <button type="button" class="btn-small btn-red" onclick="eliminarSeccion(this)">️ Quitar seccin</button>
+                </div>
+                
+                <input type="hidden" name="subdepartamento_id[]" value="{{ a.subdepartamento_id }}">
+                <input type="hidden" name="orden_sub[]" value="{{ a.orden }}">
+                
+                <!-- Platos de esta seccin -->
+                <table style="width: 100%; margin-top: 10px;">
+                    <thead>
+                        <tr>
+                            <th>Orden</th>
+                            <th>Plato</th>
+                            <th>Accin</th>
+                        </tr>
+                    </thead>
+                    <tbody class="platos-tbody" data-subdepto="{{ a.subdepartamento_id }}">
+                        {% for p in a.platos %}
+                        <tr>
+                            <td><input type="number" name="orden_plato_{{ a.subdepartamento_id }}[]" value="{{ p.orden }}" style="width: 60px;"></td>
+                            <td>
+                                <select name="plato_id_{{ a.subdepartamento_id }}[]" style="width: 100%;">
+                                    <option value="">-- Seleccionar --</option>
+                                    {% for r in recetas %}
+                                    <option value="{{ r.id }}" {% if r.id == p.receta_id %}selected{% endif %}>{{ r.nombre }}</option>
+                                    {% endfor %}
+                                </select>
+                            </td>
+                            <td><button type="button" class="btn-small btn-red" onclick="eliminarFila(this)">️</button></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                <button type="button" class="btn btn-secondary" style="margin-top: 10px;" onclick="agregarPlato(this, {{ a.subdepartamento_id }})"> Aadir plato</button>
+            </div>
+            {% endfor %}
+        </div>
+        
+        <!-- Aadir nueva seccin -->
+        <div style="background: #2b2f33; padding: 20px; border-radius: 4px; margin-top: 20px;">
+            <h4 style="margin-top: 0;"> Aadir seccin al men</h4>
+            <div style="display: flex; gap: 10px;">
+                <select id="nueva-seccion" style="flex: 1; padding: 8px;">
+                    <option value="">-- Seleccionar subdepartamento --</option>
+                    {% for s in subdeptos %}
+                    <option value="{{ s.id }}" data-nombre="{{ s.nombre }}" data-depto="{{ s.departamento_nombre }}">
+                        {{ s.departamento_nombre }}  {{ s.nombre }}
+                    </option>
+                    {% endfor %}
+                </select>
+                <button type="button" class="btn btn-success" onclick="agregarSeccion()">Aadir seccin</button>
+            </div>
+        </div>
+        
+        <div style="margin-top: 30px;">
+            <button type="submit" class="btn btn-success"> Guardar men</button>
+            <a href="/menus/{{ menu.id }}" class="btn btn-info">️ Ver men</a>
+        </div>
+    </form>
+</div>
+
+<script>
+    function agregarSeccion() {
+        var select = document.getElementById('nueva-seccion');
+        var subdeptoId = select.value;
+        var subdeptoNombre = select.options[select.selectedIndex]?.text || '';
+        
+        if (!subdeptoId) {
+            alert('Selecciona un subdepartamento');
+            return;
+        }
+        
+        // Verificar si ya existe
+        var existente = document.querySelector(`input[name="subdepartamento_id[]"][value="${subdeptoId}"]`);
+        if (existente) {
+            alert('Esta seccin ya est en el men');
+            return;
+        }
+        
+        var container = document.getElementById('secciones-container');
+        var nuevaSeccion = document.createElement('div');
+        nuevaSeccion.className = 'seccion-card';
+        nuevaSeccion.style = 'background: #3a3f44; padding: 15px; border-radius: 4px; margin-bottom: 15px;';
+        nuevaSeccion.innerHTML = `
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                <h4 style="margin:0; color: #ff6b00;">${subdeptoNombre}</h4>
+                <button type="button" class="btn-small btn-red" onclick="eliminarSeccion(this)">️ Quitar seccin</button>
+            </div>
+            <input type="hidden" name="subdepartamento_id[]" value="${subdeptoId}">
+            <input type="hidden" name="orden_sub[]" value="0">
+            
+            <table style="width: 100%; margin-top: 10px;">
+                <thead>
+                    <tr>
+                        <th>Orden</th>
+                        <th>Plato</th>
+                        <th>Accin</th>
+                    </tr>
+                </thead>
+                <tbody class="platos-tbody" data-subdepto="${subdeptoId}">
+                </tbody>
+            </table>
+            <button type="button" class="btn btn-secondary" style="margin-top: 10px;" onclick="agregarPlato(this, ${subdeptoId})"> Aadir plato</button>
+        `;
+        container.appendChild(nuevaSeccion);
+        
+        select.value = '';
+    }
+    
+    function eliminarSeccion(boton) {
+        var seccion = boton.closest('.seccion-card');
+        seccion.remove();
+    }
+    
+    function agregarPlato(boton, subdeptoId) {
+        var tbody = boton.closest('.seccion-card').querySelector('.platos-tbody');
+        var newRow = document.createElement('tr');
+        newRow.innerHTML = `
+            <td><input type="number" name="orden_plato_${subdeptoId}[]" value="0" style="width: 60px;"></td>
+            <td>
+                <select name="plato_id_${subdeptoId}[]" style="width: 100%;">
+                    <option value="">-- Seleccionar --</option>
+                    {% for r in recetas %}
+                    <option value="{{ r.id }}">{{ r.nombre }}</option>
+                    {% endfor %}
+                </select>
+            </td>
+            <td><button type="button" class="btn-small btn-red" onclick="eliminarFila(this)">️</button></td>
+        `;
+        tbody.appendChild(newRow);
+    }
+    
+    function eliminarFila(boton) {
+        var fila = boton.closest('tr');
+        fila.remove();
+    }
+</script>
+
+<style>
+    .btn-small {
+        padding: 3px 8px;
+        border-radius: 3px;
+        border: none;
+        cursor: pointer;
+    }
+    .btn-red { background: #dc3545; color: white; }
+    .btn-secondary { background: #6c757d; color: white; }
+    .btn-success { background: #28a745; color: white; }
+    .btn-info { background: #17a2b8; color: white; }
+</style>
+{% endblock %}
+
+
+

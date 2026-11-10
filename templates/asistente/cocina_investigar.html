@@ -1,0 +1,270 @@
+{% extends "base.html" %}
+
+{% block title %}Investigacion IA Cocina{% endblock %}
+{% block breadcrumb %}<a href="{{ url_for('asistente.dashboard') }}">Asistente El Raco</a> / <a href="{{ url_for('asistente.cocina_ia') }}">IA Cocina</a> / Investigacion{% endblock %}
+
+{% block content %}
+<style>
+    .research-head {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 18px;
+        align-items: end;
+        margin-bottom: 18px;
+    }
+    .research-head h1 {
+        margin: 0 0 6px;
+        color: #ff6b00;
+        font-size: 28px;
+    }
+    .research-head p {
+        margin: 0;
+        max-width: 940px;
+        color: var(--text-muted, #5f6b7a);
+        line-height: 1.45;
+    }
+    .research-panel {
+        border: 1px solid var(--border-color, #d5dde7);
+        background: var(--card-bg, #fff);
+        border-radius: 8px;
+        overflow: hidden;
+        margin-bottom: 16px;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, .04);
+    }
+    .research-panel h2 {
+        margin: 0;
+        padding: 14px 16px;
+        color: #ff6b00;
+        font-size: 18px;
+        border-bottom: 1px solid var(--border-color, #d5dde7);
+        background: rgba(255, 107, 0, .07);
+    }
+    .research-body {
+        padding: 14px;
+    }
+    .research-form {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(220px, 1fr));
+        gap: 12px;
+    }
+    .research-form label {
+        display: block;
+        color: var(--text-muted, #5f6b7a);
+        font-size: 12px;
+        margin-bottom: 4px;
+    }
+    .research-form input,
+    .research-form select,
+    .research-form textarea {
+        width: 100%;
+        min-height: 38px;
+        border: 1px solid var(--border-color, #d5dde7);
+        border-radius: 7px;
+        padding: 8px 10px;
+        background: var(--input-bg, #fff);
+        color: var(--text-color, #16202a);
+    }
+    .research-form textarea {
+        min-height: 88px;
+        resize: vertical;
+    }
+    .span-2 {
+        grid-column: 1 / -1;
+    }
+    .research-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 12px;
+    }
+    .search-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+        gap: 10px;
+    }
+    .search-card {
+        border: 1px solid var(--border-color, #d5dde7);
+        border-radius: 8px;
+        padding: 12px;
+        background: rgba(148, 163, 184, .08);
+    }
+    .search-card strong {
+        display: block;
+        color: var(--text-color, #16202a);
+        margin-bottom: 6px;
+    }
+    .search-card small {
+        display: block;
+        color: var(--text-muted, #5f6b7a);
+        overflow-wrap: anywhere;
+        margin-bottom: 8px;
+    }
+    .research-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    .research-table th,
+    .research-table td {
+        padding: 10px 8px;
+        border-bottom: 1px solid var(--border-color, #d5dde7);
+        text-align: left;
+        vertical-align: top;
+    }
+    .research-table th {
+        color: #ff6b00;
+        font-size: 12px;
+        text-transform: uppercase;
+    }
+    @media (max-width: 820px) {
+        .research-head,
+        .research-form {
+            grid-template-columns: 1fr;
+        }
+        .span-2 {
+            grid-column: auto;
+        }
+    }
+</style>
+
+<div class="research-head">
+    <div>
+        <h1><i class="fas fa-search"></i> Investigacion externa de cocina</h1>
+        <p>Sirve para mirar fuera sin perder control: se registra fuente, resumen, riesgos y propuesta. Nada entra en menu ni receta sin validacion humana.</p>
+    </div>
+    <a class="btn btn-secondary" href="{{ url_for('asistente.cocina_ia') }}"><i class="fas fa-arrow-left"></i> IA Cocina</a>
+</div>
+
+<section class="research-panel">
+    <h2>Preparar busqueda</h2>
+    <div class="research-body">
+        <form class="research-form" method="get" action="{{ url_for('asistente.cocina_investigar') }}">
+            <div>
+                <label>Objetivo</label>
+                <select name="objetivo">
+                    {% for key, label in objetivos %}
+                    <option value="{{ key }}" {% if objetivo == key %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label>Idioma</label>
+                <select name="idioma">
+                    <option value="es" {% if idioma == 'es' %}selected{% endif %}>Espanol</option>
+                    <option value="en" {% if idioma == 'en' %}selected{% endif %}>Ingles</option>
+                    <option value="de" {% if idioma == 'de' %}selected{% endif %}>Aleman</option>
+                    <option value="it" {% if idioma == 'it' %}selected{% endif %}>Italiano</option>
+                </select>
+            </div>
+            <div>
+                <label>Producto / idea</label>
+                <input name="ingrediente" value="{{ ingrediente }}" placeholder="pollo, tofu, pescado, postre...">
+            </div>
+            <div>
+                <label>Perfil cliente</label>
+                <input name="perfil_cliente" value="{{ perfil_cliente }}" placeholder="familias, escandinavos, senior...">
+            </div>
+            <div class="span-2">
+                <label>Restricciones</label>
+                <input name="restricciones" value="{{ restricciones }}" placeholder="halal, sin gluten, sin apio, bajo coste, verano...">
+            </div>
+            <div class="span-2">
+                <button class="btn btn-primary" type="submit"><i class="fas fa-search"></i> Generar busquedas</button>
+            </div>
+        </form>
+    </div>
+</section>
+
+<section class="research-panel">
+    <h2>Busquedas sugeridas</h2>
+    <div class="research-body">
+        <div class="search-grid">
+            {% for item in busquedas %}
+            <article class="search-card">
+                <strong>{{ item.motor }}</strong>
+                <small>{{ item.consulta }}</small>
+                <a class="btn btn-secondary" target="_blank" rel="noopener noreferrer" href="{{ item.url }}"><i class="fas fa-external-link-alt"></i> Buscar</a>
+            </article>
+            {% else %}
+            <p>No hay busquedas generadas.</p>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+
+<section class="research-panel">
+    <h2>Registrar fuente y propuesta</h2>
+    <div class="research-body">
+        <form class="research-form" method="post" action="{{ url_for('asistente.cocina_investigar') }}">
+            <input type="hidden" name="objetivo" value="{{ objetivo }}">
+            <input type="hidden" name="ingrediente" value="{{ ingrediente }}">
+            <input type="hidden" name="perfil_cliente" value="{{ perfil_cliente }}">
+            <input type="hidden" name="restricciones" value="{{ restricciones }}">
+            <input type="hidden" name="idioma" value="{{ idioma }}">
+            <div class="span-2">
+                <label>Consulta usada</label>
+                <input name="consulta" value="{{ consulta_principal }}">
+            </div>
+            <div>
+                <label>Titulo fuente</label>
+                <input name="fuente_titulo" placeholder="Nombre de la receta, articulo o video">
+            </div>
+            <div>
+                <label>URL fuente</label>
+                <input name="fuente_url" placeholder="https://...">
+            </div>
+            <div class="span-2">
+                <label>Resumen</label>
+                <textarea name="resumen" placeholder="Que aporta esta fuente y por que interesa al hotel."></textarea>
+            </div>
+            <div class="span-2">
+                <label>Propuesta para El Raco</label>
+                <textarea name="propuesta" placeholder="Adaptacion concreta: receta, menu, coste, servicio, estacion, cliente objetivo..."></textarea>
+            </div>
+            <div class="span-2">
+                <label>Riesgos / control humano</label>
+                <textarea name="riesgos" placeholder="Alergenos, APPCC, halal, coste, proveedor, tecnica, tiempo, personal, contaminacion cruzada..."></textarea>
+            </div>
+            <div class="span-2 research-actions">
+                <button class="btn btn-secondary" name="accion" value="guardar" type="submit"><i class="fas fa-save"></i> Guardar investigacion</button>
+                <button class="btn btn-success" name="accion" value="guardar_recomendacion" type="submit"><i class="fas fa-clipboard-check"></i> Guardar como propuesta IA</button>
+            </div>
+        </form>
+    </div>
+</section>
+
+<section class="research-panel">
+    <h2>Investigaciones recientes</h2>
+    <div class="research-body" style="overflow-x:auto;">
+        <table class="research-table">
+            <thead>
+                <tr>
+                    <th>Fecha</th>
+                    <th>Objetivo</th>
+                    <th>Fuente</th>
+                    <th>Propuesta</th>
+                    <th>Estado</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in investigaciones %}
+                <tr>
+                    <td>{{ item.fecha_creacion|fecha_es }}<br><small>{{ item.usuario or '' }}</small></td>
+                    <td>{{ item.objetivo or '-' }}<br><small>{{ item.perfil_cliente or '' }} {{ item.restricciones or '' }}</small></td>
+                    <td>
+                        <strong>{{ item.fuente_titulo or item.consulta or '-' }}</strong><br>
+                        {% if item.fuente_url %}
+                        <a href="{{ item.fuente_url }}" target="_blank" rel="noopener noreferrer">{{ item.fuente_url }}</a>
+                        {% endif %}
+                        <br><small>{{ item.resumen or '' }}</small>
+                    </td>
+                    <td>{{ item.propuesta or '-' }}<br><small>{{ item.riesgos or '' }}</small></td>
+                    <td>{{ item.estado }}{% if item.recomendacion_id %}<br><small>Rec. #{{ item.recomendacion_id }}</small>{% endif %}</td>
+                </tr>
+                {% else %}
+                <tr><td colspan="5">Todavia no hay investigaciones externas guardadas.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</section>
+{% endblock %}

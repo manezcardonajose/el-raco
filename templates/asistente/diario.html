@@ -1,0 +1,271 @@
+{% extends "base.html" %}
+
+{% block title %}Copiloto operativo{% endblock %}
+{% block breadcrumb %}<a href="{{ url_for('asistente.dashboard') }}">Asistente El Raco</a> / Copiloto operativo{% endblock %}
+
+{% block content %}
+<style>
+    .daily-head { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:18px; align-items:end; margin-bottom:18px; }
+    .daily-head h1 { margin:0 0 6px; color:#ff6b00; font-size:28px; }
+    .daily-head p, .daily-mini { color:var(--text-muted,#5f6b7a); }
+    .daily-filter { display:flex; gap:10px; flex-wrap:wrap; justify-content:flex-end; align-items:end; }
+    .daily-filter label { display:block; font-size:12px; color:var(--text-muted,#5f6b7a); margin-bottom:4px; }
+    .daily-filter input { min-height:38px; border:1px solid var(--border-color,#d5dde7); border-radius:7px; padding:8px 10px; background:var(--input-bg,#fff); color:var(--text-color,#16202a); }
+    .daily-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(320px,1fr)); gap:14px; }
+    .daily-card { border:1px solid var(--border-color,#d5dde7); background:var(--card-bg,#fff); border-radius:8px; overflow:hidden; box-shadow:0 1px 2px rgba(0,0,0,.04); }
+    .daily-card h2 { margin:0; padding:14px 16px; color:#ff6b00; font-size:18px; border-bottom:1px solid var(--border-color,#d5dde7); background:rgba(255,107,0,.07); }
+    .daily-body { padding:14px 16px; }
+    .daily-body p { line-height:1.45; }
+    .daily-list { margin:10px 0 0; padding-left:18px; }
+    .daily-list li { margin-bottom:7px; }
+    .daily-rec { border-left:3px solid #ff6b00; padding:8px 10px; margin-top:10px; background:rgba(148,163,184,.1); }
+    .daily-badge { display:inline-flex; padding:3px 8px; border-radius:999px; color:#fff; font-size:12px; font-weight:700; background:#2563eb; }
+    .daily-badge.alta { background:#ea580c; }
+    .daily-badge.critica { background:#dc2626; }
+    .daily-badge.media { background:#2563eb; }
+    .daily-badge.info, .daily-badge.baja { background:#64748b; }
+    .copilot-strip {
+        display:grid;
+        grid-template-columns:minmax(170px,.25fr) minmax(0,1fr) auto;
+        gap:12px;
+        align-items:stretch;
+        margin-bottom:16px;
+    }
+    .copilot-score, .copilot-panel {
+        border:1px solid var(--border-color,#d5dde7);
+        border-radius:8px;
+        background:var(--card-bg,#fff);
+        box-shadow:0 1px 2px rgba(0,0,0,.04);
+        padding:14px;
+    }
+    .copilot-score {
+        color:#fff;
+    }
+    .copilot-score.verde { background:#15803d; }
+    .copilot-score.ambar { background:#a15c00; }
+    .copilot-score.rojo { background:#b91c1c; }
+    .copilot-score span { display:block; font-size:12px; opacity:.9; }
+    .copilot-score strong { display:block; margin-top:5px; font-size:32px; }
+    .copilot-panel h2 { margin:0 0 8px; color:#ff6b00; font-size:18px; }
+    .copilot-panel p { margin:0 0 8px; line-height:1.4; color:var(--text-color,#16202a); }
+    .copilot-callout {
+        border:1px solid var(--border-color,#d5dde7);
+        border-left:4px solid #ff6b00;
+        border-radius:8px;
+        padding:10px 12px;
+        margin-bottom:10px;
+        background:rgba(255,107,0,.06);
+    }
+    .copilot-callout.critico { border-left-color:#dc2626; background:rgba(220,38,38,.07); }
+    .copilot-callout.vigilancia { border-left-color:#d97706; background:rgba(217,119,6,.07); }
+    .copilot-callout.control { border-left-color:#16a34a; background:rgba(22,163,74,.07); }
+    .copilot-callout strong { display:block; margin-bottom:4px; color:var(--text-color,#16202a); }
+    .copilot-callout span { display:block; color:var(--text-muted,#5f6b7a); line-height:1.35; font-size:13px; }
+    .copilot-kpis { display:flex; flex-wrap:wrap; gap:7px; }
+    .copilot-kpi {
+        border:1px solid var(--border-color,#d5dde7);
+        border-radius:999px;
+        padding:4px 8px;
+        font-size:12px;
+        font-weight:700;
+        color:var(--text-muted,#5f6b7a);
+        background:rgba(100,116,139,.08);
+    }
+    .copilot-kpi.rojo { border-color:#dc2626; color:#b91c1c; background:rgba(220,38,38,.09); }
+    .copilot-kpi.ambar { border-color:#d97706; color:#a15c00; background:rgba(217,119,6,.09); }
+    .copilot-nerves {
+        display:flex;
+        flex-wrap:wrap;
+        gap:7px;
+        margin-top:8px;
+    }
+    .copilot-nerve {
+        border:1px solid var(--border-color,#d5dde7);
+        border-radius:7px;
+        padding:5px 8px;
+        font-size:12px;
+        font-weight:700;
+        background:rgba(100,116,139,.08);
+        color:var(--text-muted,#5f6b7a);
+    }
+    .copilot-nerve.rojo { border-color:#dc2626; color:#b91c1c; background:rgba(220,38,38,.09); }
+    .copilot-nerve.ambar { border-color:#d97706; color:#a15c00; background:rgba(217,119,6,.09); }
+    .copilot-nerve.verde { border-color:#16a34a; color:#15803d; background:rgba(22,163,74,.09); }
+    .copilot-sim {
+        margin-top:8px;
+        border:1px solid rgba(37,99,235,.25);
+        border-radius:8px;
+        padding:8px 10px;
+        background:rgba(37,99,235,.06);
+        color:var(--text-muted,#5f6b7a);
+        font-size:13px;
+        line-height:1.35;
+    }
+    .copilot-sim strong { color:var(--text-color,#16202a); }
+    .copilot-decision {
+        display:grid;
+        grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
+        gap:8px;
+        margin-top:10px;
+    }
+    .copilot-decision-box {
+        border:1px solid var(--border-color,#d5dde7);
+        border-radius:8px;
+        padding:8px 10px;
+        background:rgba(148,163,184,.08);
+    }
+    .copilot-decision-box strong {
+        display:block;
+        color:#ff6b00;
+        margin-bottom:5px;
+        font-size:13px;
+    }
+    .copilot-decision-box ul {
+        margin:0;
+        padding-left:16px;
+        color:var(--text-muted,#5f6b7a);
+        font-size:12px;
+        line-height:1.35;
+    }
+    .copilot-actions {
+        display:flex;
+        flex-direction:column;
+        gap:8px;
+        justify-content:center;
+    }
+    @media (max-width:1000px) {
+        .copilot-strip { grid-template-columns:1fr; }
+        .copilot-actions { flex-direction:row; flex-wrap:wrap; }
+    }
+</style>
+
+<div class="daily-head">
+    <div>
+        <h1><i class="fas fa-headset"></i> Copiloto operativo</h1>
+        <p>La cara diaria del sistema nervioso: resume salud, KPIs, avisos y trabajo por areas. No decide, no ejecuta solo y no sustituye al criterio humano.</p>
+    </div>
+    <form class="daily-filter" method="get" action="{{ url_for('asistente.asesor_diario') }}">
+        <div>
+            <label>Desde</label>
+            <input type="date" name="fecha_desde" value="{{ fecha_desde }}">
+        </div>
+        <div>
+            <label>Hasta</label>
+            <input type="date" name="fecha_hasta" value="{{ fecha_hasta }}">
+        </div>
+        <button class="btn btn-primary" type="submit"><i class="fas fa-search"></i> Revisar</button>
+    </form>
+</div>
+
+{% set op = contexto_operativo or {} %}
+{% set brief = op.get('brief', {}) %}
+{% set kpis = op.get('kpis', {}) %}
+{% set kpi_items = kpis.get('items', []) %}
+{% set mapa = op.get('mapa_nervioso', {}) %}
+{% set nervios = mapa.get('items', []) %}
+{% set copiloto = op.get('copiloto', {}) %}
+{% set simulacion = op.get('simulacion', {}) %}
+<section class="copilot-strip">
+    <div class="copilot-score {{ brief.get('estado', 'ambar') }}">
+        <span>Salud del centro</span>
+        <strong>{{ brief.get('score', 0) }}/100</strong>
+        <span>{{ brief.get('estado', 'sin dato')|upper }}</span>
+    </div>
+    <div class="copilot-panel">
+        <h2>{{ op.get('centro', 'Centro activo') }}</h2>
+        {% if copiloto %}
+        <div class="copilot-callout {{ copiloto.modo }}">
+            <strong>{{ copiloto.titular }}</strong>
+            <span>{{ copiloto.motivo }}</span>
+            <span><b>Siguiente paso:</b> {{ copiloto.accion }}</span>
+        </div>
+        {% endif %}
+        <p>{{ brief.get('lectura', 'Sin lectura operativa disponible.') }}</p>
+        {% if copiloto.avisos %}
+        <p><strong>Avisos:</strong> {{ copiloto.avisos|join(' ') }}</p>
+        {% endif %}
+        {% if op.get('tendencia') %}
+        <p><strong>Tendencia:</strong> {{ op.tendencia.lectura }}</p>
+        {% endif %}
+        {% if copiloto %}
+        <div class="copilot-decision">
+            <div class="copilot-decision-box">
+                <strong>Pros</strong>
+                <ul>{% for item in copiloto.pros[:3] %}<li>{{ item }}</li>{% endfor %}</ul>
+            </div>
+            <div class="copilot-decision-box">
+                <strong>Contras</strong>
+                <ul>{% for item in copiloto.contras[:3] %}<li>{{ item }}</li>{% endfor %}</ul>
+            </div>
+            <div class="copilot-decision-box">
+                <strong>Mejoras</strong>
+                <ul>{% for item in copiloto.mejoras[:3] %}<li>{{ item }}</li>{% endfor %}</ul>
+            </div>
+            <div class="copilot-decision-box">
+                <strong>Recortes prudentes</strong>
+                <ul>{% for item in copiloto.recortes[:3] %}<li>{{ item }}</li>{% endfor %}</ul>
+            </div>
+        </div>
+        {% endif %}
+        <div class="copilot-kpis">
+            {% for kpi in kpi_items if kpi.estado in ['rojo', 'ambar'] %}
+            <span class="copilot-kpi {{ kpi.estado }}">{{ kpi.titulo }}: {% if kpi.valor is none %}s/d{% else %}{{ kpi.valor }}{{ kpi.unidad }}{% endif %}</span>
+            {% else %}
+            <span class="copilot-kpi">KPIs sin alertas fuertes</span>
+            {% endfor %}
+        </div>
+        {% if nervios %}
+        <div class="copilot-nerves">
+            {% for nervio in nervios[:5] %}
+            <span class="copilot-nerve {{ nervio.estado }}">{{ nervio.modulo }} · {{ nervio.pulso }}/100</span>
+            {% endfor %}
+        </div>
+        {% endif %}
+        {% if simulacion.resumen %}
+        <div class="copilot-sim">
+            <strong>Simulador demo/laboratorio:</strong> {{ simulacion.resumen.lectura }}
+            {% if simulacion.resumen.centros_configurados %}
+            <br>{{ simulacion.resumen.centros_configurados }} centros configurados · {{ simulacion.resumen.escenarios }} escenarios del centro activo.
+            {% endif %}
+            <br>El Copiloto usa esto como referencia; la realidad del establecimiento manda.
+        </div>
+        {% endif %}
+        {% set modulo = 'copiloto_operativo' %}
+        {% set origen = 'asistente/diario' %}
+        {% set referencia_id = op.get('centro', 'centro_activo') %}
+        {% set contenido = (brief.get('lectura', '') ~ '\n' ~ (copiloto.titular if copiloto else '') ~ '\n' ~ (copiloto.accion if copiloto else '')) %}
+        {% include "asistente/_reporte_contenido_ia.html" %}
+    </div>
+    <div class="copilot-actions">
+        <a class="btn btn-primary" href="{{ url_for('asistente.cerebro_operativo') }}"><i class="fas fa-brain"></i> Abrir cerebro</a>
+        <form method="post" action="{{ url_for('asistente.cerebro_operativo_escanear_sistema') }}">
+            <button class="btn btn-secondary" type="submit"><i class="fas fa-wave-square"></i> Escanear</button>
+        </form>
+    </div>
+</section>
+
+<div class="daily-grid">
+    {% for grupo in grupos %}
+    <section class="daily-card">
+        <h2><i class="fas {{ grupo.icono }}"></i> {{ grupo.titulo }}</h2>
+        <div class="daily-body">
+            <p>{{ grupo.detalle }}</p>
+            <ul class="daily-list">
+                {% for accion in grupo.acciones %}
+                <li>{{ accion }}</li>
+                {% endfor %}
+            </ul>
+            {% for rec in grupo.recomendaciones %}
+            <div class="daily-rec">
+                <span class="daily-badge {{ rec.prioridad }}">{{ rec.prioridad|upper }}</span>
+                <strong style="display:block;margin-top:6px;">{{ rec.titulo }}</strong>
+                <span class="daily-mini">{{ rec.detalle }}</span>
+            </div>
+            {% else %}
+            <p class="daily-mini">Sin avisos fuertes para este bloque en el periodo.</p>
+            {% endfor %}
+        </div>
+    </section>
+    {% endfor %}
+</div>
+{% endblock %}

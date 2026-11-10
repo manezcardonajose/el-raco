@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+{% block breadcrumb %}Contabilidad / Explotacion{% endblock %}
+{% block content %}
+
+<div class="card">
+    <div class="card-header">
+        <div>
+            <h2><i class="fas fa-chart-pie"></i> Explotacion mensual</h2>
+            <div style="font-size:13px;opacity:.8;">Comparativa simple de ingresos, gastos, pagos y resultado operativo.</div>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <a href="{{ url_for('contabilidad.recurrentes') }}" class="btn btn-warning">Recurrentes</a>
+            <a href="{{ url_for('contabilidad.dashboard') }}" class="btn btn-secondary">Panel</a>
+        </div>
+    </div>
+
+    <form method="GET" style="display:flex;gap:10px;align-items:end;flex-wrap:wrap;margin-bottom:16px;">
+        <div>
+            <label class="form-label">Mes</label>
+            <input type="month" name="mes" class="form-control" value="{{ mes }}">
+        </div>
+        <button class="btn btn-primary">Ver</button>
+    </form>
+
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-bottom:18px;">
+        <div style="background:#20252a;border:1px solid #344150;border-radius:8px;padding:14px;">
+            <div style="font-size:12px;opacity:.75;">Ingresos</div>
+            <div style="font-size:24px;font-weight:700;color:#51cf66;">{{ resumen.ingresos|euros }}</div>
+        </div>
+        <div style="background:#20252a;border:1px solid #344150;border-radius:8px;padding:14px;">
+            <div style="font-size:12px;opacity:.75;">Gastos</div>
+            <div style="font-size:24px;font-weight:700;color:#ffb347;">{{ resumen.gastos|euros }}</div>
+        </div>
+        <div style="background:#20252a;border:1px solid #344150;border-radius:8px;padding:14px;">
+            <div style="font-size:12px;opacity:.75;">Resultado</div>
+            <div style="font-size:24px;font-weight:700;{% if resultado >= 0 %}color:#51cf66;{% else %}color:#ff6b6b;{% endif %}">{{ resultado|euros }}</div>
+        </div>
+        <div style="background:#20252a;border:1px solid #344150;border-radius:8px;padding:14px;">
+            <div style="font-size:12px;opacity:.75;">Pagos registrados</div>
+            <div style="font-size:24px;font-weight:700;">{{ pagos.total|euros }}</div>
+        </div>
+        <div style="background:#20252a;border:1px solid #344150;border-radius:8px;padding:14px;">
+            <div style="font-size:12px;opacity:.75;">Pendiente</div>
+            <div style="font-size:24px;font-weight:700;">{{ resumen.pendiente|euros }}</div>
+        </div>
+    </div>
+
+    {% if recurrentes_pendientes %}
+    <div style="background:#2a2118;border:1px solid #66451f;border-radius:8px;padding:12px;margin-bottom:18px;">
+        <strong style="color:#ffb347;">Recurrentes pendientes de generar:</strong>
+        {% for r in recurrentes_pendientes %}
+            <span style="display:inline-block;margin:4px 8px 0 0;">{{ r.nombre }} ({{ r.siguiente_fecha }})</span>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(280px,.45fr);gap:16px;">
+        <div>
+            <h3 style="color:#ff6b00;">Por cuenta</h3>
+            <div class="table-container">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Cuenta</th>
+                            <th>Nombre</th>
+                            <th style="text-align:right;">Ingresos</th>
+                            <th style="text-align:right;">Gastos</th>
+                            <th style="text-align:right;">Docs</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for c in por_cuenta %}
+                        <tr>
+                            <td>{{ c.cuenta }}</td>
+                            <td>{{ c.cuenta_nombre }}</td>
+                            <td style="text-align:right;">{{ c.ingresos|euros }}</td>
+                            <td style="text-align:right;">{{ c.gastos|euros }}</td>
+                            <td style="text-align:right;">{{ c.documentos }}</td>
+                        </tr>
+                        {% else %}
+                        <tr><td colspan="5" style="text-align:center;padding:24px;">Sin documentos en este mes.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div>
+            <h3 style="color:#ff6b00;">Por tipo</h3>
+            <div class="table-container">
+                <table class="table">
+                    <thead><tr><th>Tipo</th><th style="text-align:right;">Total</th><th style="text-align:right;">Pend.</th></tr></thead>
+                    <tbody>
+                        {% for t in por_tipo %}
+                        <tr>
+                            <td>{{ t.tipo }}</td>
+                            <td style="text-align:right;">{{ t.total|euros }}</td>
+                            <td style="text-align:right;">{{ t.pendiente|euros }}</td>
+                        </tr>
+                        {% else %}
+                        <tr><td colspan="3" style="text-align:center;padding:18px;">Sin datos.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

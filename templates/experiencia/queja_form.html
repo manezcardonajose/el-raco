@@ -1,0 +1,147 @@
+{% extends "base.html" %}
+
+{% block title %}Nueva queja{% endblock %}
+{% block breadcrumb %}Experiencia cliente / Nueva queja{% endblock %}
+
+{% block content %}
+<style>
+    .xp-head h1 { margin:0 0 6px; color:#ff6b00; font-size:28px; }
+    .xp-head p { margin:0 0 18px; color:var(--text-muted,#6b7280); max-width:900px; }
+    .xp-form { border:1px solid var(--border-color,#d5dde7); background:var(--card-bg,#fff); border-radius:8px; padding:16px; }
+    .xp-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); gap:12px; }
+    .xp-field label { display:block; font-size:12px; color:var(--text-muted,#6b7280); margin-bottom:5px; }
+    .xp-field input, .xp-field select, .xp-field textarea {
+        width:100%; min-height:38px; border:1px solid var(--border-color,#d5dde7); border-radius:7px;
+        padding:8px 10px; background:var(--input-bg,#fff); color:var(--text-color,#16202a);
+    }
+    .xp-field textarea { min-height:100px; resize:vertical; }
+    .xp-actions { display:flex; flex-wrap:wrap; gap:10px; margin-top:16px; }
+    .xp-note { color:var(--text-muted,#6b7280); font-size:13px; margin:0 0 14px; }
+</style>
+
+<div class="xp-head">
+    <h1><i class="fas fa-plus-circle"></i> Nueva queja / contacto RRPP</h1>
+    <p>Primero registramos lo que dice el cliente. Luego se investigan comprobaciones, causa y acciones. Asi no se mezcla una queja con un parte tecnico hasta que haya motivo.</p>
+</div>
+
+<form class="xp-form" method="post" action="{{ url_for('experiencia.nueva_queja') }}">
+    <p class="xp-note">Puedes enlazar una reserva o viajero para autocompletar datos. Si no existe, registra el cliente manualmente.</p>
+    <div class="xp-grid">
+        <div class="xp-field">
+            <label>Reserva</label>
+            <select name="reserva_id">
+                <option value="">Sin enlazar</option>
+                {% for r in reservas %}
+                <option value="{{ r.id }}">{{ r.codigo or ('Reserva ' ~ r.id) }} - {{ r.titular_nombre or '-' }} - Hab. {{ r.habitacion or '-' }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="xp-field">
+            <label>Viajero</label>
+            <select name="viajero_id">
+                <option value="">Sin enlazar</option>
+                {% for v in viajeros %}
+                <option value="{{ v.id }}">{{ v.nombre }} {{ v.apellidos or '' }} - {{ v.reserva_codigo or ('Reserva ' ~ v.reserva_id) }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="xp-field">
+            <label>Cliente / titular</label>
+            <input type="text" name="titular_nombre" placeholder="Nombre del cliente">
+        </div>
+        <div class="xp-field">
+            <label>Habitacion</label>
+            <input type="text" name="habitacion" placeholder="Numero o ubicacion">
+        </div>
+        <div class="xp-field">
+            <label>Canal</label>
+            <select name="canal">
+                {% for value, label in canales %}
+                <option value="{{ value }}">{{ label }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="xp-field">
+            <label>Tipo</label>
+            <select name="tipo">
+                {% for value, label in tipos %}
+                <option value="{{ value }}">{{ label }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="xp-field">
+            <label>Categoria</label>
+            <select name="categoria">
+                {% for value, label in categorias %}
+                <option value="{{ value }}">{{ label }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="xp-field">
+            <label>Subcategoria</label>
+            <input type="text" name="subcategoria" placeholder="Ej. ducha, desayuno, ruido...">
+        </div>
+        <div class="xp-field">
+            <label>Gravedad</label>
+            <select name="gravedad">
+                {% for value, label in gravedades %}
+                <option value="{{ value }}" {% if value == 'media' %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="xp-field">
+            <label>Responsable</label>
+            <input type="text" name="responsable" placeholder="Persona que lo sigue">
+        </div>
+        <div class="xp-field">
+            <label>Fecha limite</label>
+            <input type="date" name="fecha_limite">
+        </div>
+        <div class="xp-field">
+            <label>Idioma</label>
+            <input type="text" name="idioma" placeholder="es, en, de, it...">
+        </div>
+        <div class="xp-field">
+            <label>Email</label>
+            <input type="email" name="email">
+        </div>
+        <div class="xp-field">
+            <label>Telefono</label>
+            <input type="text" name="telefono">
+        </div>
+        <div class="xp-field">
+            <label>Nacionalidad</label>
+            <input type="text" name="nacionalidad">
+        </div>
+        <div class="xp-field">
+            <label>Compensacion estimada</label>
+            <input type="text" name="compensacion_importe" placeholder="0,00">
+        </div>
+    </div>
+    <div class="xp-grid" style="margin-top:12px;">
+        <div class="xp-field">
+            <label>Descripcion del cliente</label>
+            <textarea name="descripcion" required placeholder="Que ha pasado, cuando, donde, quien lo atiende..."></textarea>
+        </div>
+        <div class="xp-field">
+            <label>Impacto / contexto</label>
+            <textarea name="impacto" placeholder="Impacto en la estancia, repetidor, reserva larga, salud, imagen..."></textarea>
+        </div>
+        <div class="xp-field">
+            <label>Accion inmediata</label>
+            <textarea name="acciones_inmediatas" placeholder="Que se hizo en el momento"></textarea>
+        </div>
+    </div>
+    <label style="display:inline-flex; gap:8px; align-items:center; margin-top:12px;">
+        <input type="checkbox" name="requiere_compensacion" value="1"> Requiere compensacion o detalle comercial
+    </label>
+    <div class="xp-field" style="margin-top:8px;">
+        <label>Tipo de compensacion</label>
+        <input type="text" name="compensacion_tipo" placeholder="Invitacion, descuento, cambio habitacion, detalle...">
+    </div>
+    <div class="xp-actions">
+        <button class="btn btn-success" type="submit"><i class="fas fa-save"></i> Guardar e investigar</button>
+        <a class="btn btn-secondary" href="{{ url_for('experiencia.quejas') }}">Volver</a>
+    </div>
+</form>
+{% endblock %}

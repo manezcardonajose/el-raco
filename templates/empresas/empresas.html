@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+
+{% block breadcrumb %}Empresas{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header">
+        <h2><i class="fas fa-building"></i> Gestin de Empresas</h2>
+        <a href="{{ url_for('empresas.nueva_empresa') }}" class="btn btn-success">
+            <i class="fas fa-plus"></i> Nueva Empresa
+        </a>
+    </div>
+    
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Nombre</th>
+                    <th>NIF</th>
+                    <th>Telfono</th>
+                    <th>Email</th>
+                    <th>Estado</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for e in empresas %}
+                <tr>
+                    <td>{{ e.id }}</td>
+                    <td><strong>{{ e.nombre }}</strong></td>
+                    <td>{{ e.nif or '---' }}</td>
+                    <td>{{ e.telefono or '---' }}</td>
+                    <td>{{ e.email or '---' }}</td>
+                    <td>
+                        {% if e.activo %}
+                            <span style="color: #28a745;"> Activa</span>
+                        {% else %}
+                            <span style="color: #dc3545;"> Inactiva</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <a href="{{ url_for('empresas.editar_empresa', empresa_id=e.id) }}" class="btn-sm btn-primary" title="Editar">
+                            <i class="fas fa-edit"></i>
+                        </a>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="7" style="text-align: center; padding: 40px;">
+                        No hay empresas registradas
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<style>
+    .btn-sm {
+        padding: 5px 8px;
+        border-radius: 3px;
+        text-decoration: none;
+        display: inline-block;
+        font-size: 12px;
+        margin: 0 2px;
+        border: none;
+        cursor: pointer;
+    }
+    .btn-primary { background: #007bff; color: white; }
+</style>
+{% endblock %}
+
+
+
+

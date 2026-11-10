@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="card">
+
+    <!-- CABECERA -->
+    <div class="card-header" style="display:flex; justify-content:space-between; flex-wrap:wrap; gap:10px;">
+        <h2><i class="fas fa-building"></i> Producción por departamentos</h2>
+
+        <div style="display:flex; gap:10px; flex-wrap:wrap;">
+            <form method="GET" style="display:flex; gap:10px;">
+                <input type="date" name="fecha" value="{{ fecha }}" class="form-control">
+                <button type="submit" class="btn btn-primary">Filtrar</button>
+            </form>
+
+            <a href="{{ url_for('produccion.planificar_produccion') }}" class="btn btn-success">
+                Planificar desde menús
+            </a>
+        </div>
+    </div>
+
+    <!-- BUSCADOR -->
+    <div style="padding:15px;">
+        <input type="text" id="buscador" placeholder="Buscar departamento..." class="form-control">
+    </div>
+
+    <!-- TABLA -->
+    <div class="table-container">
+        <table class="table table-hover" id="tablaDepartamentos">
+            <thead>
+                <tr>
+                    <th>Departamento</th>
+                    <th style="text-align:center;">Partes</th>
+                    <th style="text-align:center;">Líneas</th>
+                    <th style="text-align:center;">Acciones</th>
+                </tr>
+            </thead>
+
+            <tbody>
+                {% for d in departamentos %}
+                <tr>
+                    <td><strong>{{ d.nombre }}</strong></td>
+
+                    <td style="text-align:center;">
+                        <span class="badge bg-info">{{ d.num_partes or 0 }}</span>
+                    </td>
+
+                    <td style="text-align:center;">
+                        <span class="badge bg-secondary">{{ d.num_lineas or 0 }}</span>
+                    </td>
+
+                    <td style="text-align:center;">
+                        <a href="{{ url_for('produccion.produccion_departamento', depto_id=d.id, fecha=fecha) }}" class="btn btn-sm btn-info">Ver</a>
+                        <a href="/departamentos/{{ d.id }}/editar" class="btn btn-sm btn-primary">Editar</a>
+
+                        <form method="POST" action="/departamentos/{{ d.id }}/eliminar"
+                              style="display:inline;"
+                              onsubmit="return confirm('¿Eliminar departamento?');">
+                            <button class="btn btn-sm btn-danger">Eliminar</button>
+                        </form>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="4" style="text-align:center;">No hay departamentos</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+</div>
+
+<!-- SCRIPT BUSCADOR -->
+<script>
+document.getElementById('buscador').addEventListener('keyup', function() {
+    let filtro = this.value.toLowerCase();
+    let filas = document.querySelectorAll("#tablaDepartamentos tbody tr");
+
+    filas.forEach(f => {
+        let texto = f.innerText.toLowerCase();
+        f.style.display = texto.includes(filtro) ? "" : "none";
+    });
+});
+</script>
+
+{% endblock %}

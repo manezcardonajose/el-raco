@@ -1,0 +1,186 @@
+{% extends 'base.html' %}
+{% block title %}Prevision servicios{% endblock %}
+{% block breadcrumb %}Recepcion / Prevision servicios{% endblock %}
+{% block content %}
+<div class="card">
+  <div class="card-header">
+    <h2><i class="fas fa-utensils"></i> Prevision real de servicios</h2>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+      <button class="btn btn-info" type="button" onclick="window.print()"><i class="fas fa-print"></i> Imprimir</button>
+      <a class="btn btn-success" href="{{ url_for('recepcion.exportar_prevision_servicios', desde=desde, hasta=hasta, servicio=servicio, tipo='operativo') }}"><i class="fas fa-file-csv"></i> Exportar parte</a>
+      <a class="btn btn-success" href="{{ url_for('recepcion.exportar_prevision_servicios', desde=desde, hasta=hasta, servicio=servicio) }}"><i class="fas fa-file-csv"></i> Exportar CSV</a>
+      <a class="btn btn-secondary" href="{{ url_for('recepcion.dashboard') }}">Panel recepcion</a>
+      <a class="btn btn-secondary" href="{{ url_for('recepcion.reservas') }}">Reservas</a>
+      <a class="btn btn-secondary" href="{{ url_for('recepcion.regimenes') }}">Regimenes</a>
+    </div>
+  </div>
+
+  <form method="get" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;align-items:end;margin-bottom:16px;">
+    <div class="form-group"><label class="form-label">Desde</label><input class="form-control" type="date" name="desde" value="{{ desde }}"></div>
+    <div class="form-group"><label class="form-label">Hasta</label><input class="form-control" type="date" name="hasta" value="{{ hasta }}"></div>
+    <div class="form-group"><label class="form-label">Servicio</label><select class="form-control" name="servicio">
+      <option value="">Todos</option>
+      {% for key,label in servicios.items() %}<option value="{{ key }}" {% if servicio == key %}selected{% endif %}>{{ label }}</option>{% endfor %}
+    </select></div>
+    <button class="btn btn-primary" type="submit"><i class="fas fa-search"></i> Ver</button>
+  </form>
+
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:16px;">
+    <div class="rx-box"><span>Dias filtro</span><strong>{{ total_periodo.dias }}</strong></div>
+    <div class="rx-box"><span>Reservas con estancia</span><strong>{{ total_periodo.reservas_estancia }}</strong></div>
+    <div class="rx-box"><span>Pax estancia</span><strong>{{ total_periodo.pax_estancia }}</strong></div>
+    <div class="rx-box"><span>Pax alojados acumulados</span><strong>{{ total_periodo.pax_alojados }}</strong></div>
+    <div class="rx-box"><span>Entradas</span><strong>{{ total_periodo.entradas_pax }}</strong><br><small>{{ total_periodo.entradas_reservas }} reservas</small></div>
+    <div class="rx-box"><span>Salidas</span><strong>{{ total_periodo.salidas_pax }}</strong><br><small>{{ total_periodo.salidas_reservas }} reservas</small></div>
+  </div>
+
+  <div class="table-container" style="margin-bottom:16px;">
+    <table>
+      <thead><tr><th>Total periodo</th><th>Pax por regimen</th><th>Desayuno</th><th>Comida</th><th>Cena</th><th>Todo incluido / snacks</th><th>Avisos</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><strong>{{ desde }} / {{ hasta }}</strong></td>
+          <td>{{ total_periodo.regimenes_txt }}</td>
+          <td><strong>{{ total_periodo.servicios.get('desayuno', 0) }}</strong></td>
+          <td><strong>{{ total_periodo.servicios.get('comida', 0) }}</strong></td>
+          <td><strong>{{ total_periodo.servicios.get('cena', 0) }}</strong></td>
+          <td><strong>{{ total_periodo.servicios.get('bebidas_snacks', 0) }}</strong></td>
+          <td>{{ total_periodo.avisos }}</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="table-container">
+    <table>
+      <thead>
+        <tr>
+          <th>Dia</th>
+          <th>Pax alojados</th>
+          <th>Pax por regimen</th>
+          <th>Entradas</th>
+          <th>Salidas</th>
+          <th>Desayuno</th>
+          <th>Comida</th>
+          <th>Cena</th>
+          <th>Todo incluido / snacks</th>
+          <th>Avisos</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for d in dias_operativos %}
+        <tr>
+          <td><strong>{{ d.fecha }}</strong></td>
+          <td><strong>{{ d.pax_alojados }}</strong></td>
+          <td>{{ d.regimenes_txt }}</td>
+          <td>{{ d.entradas_pax }} pax<br><small>{{ d.entradas_reservas }} reservas</small></td>
+          <td>{{ d.salidas_pax }} pax<br><small>{{ d.salidas_reservas }} reservas</small></td>
+          <td>{{ d.servicios.get('desayuno', 0) }}</td>
+          <td>{{ d.servicios.get('comida', 0) }}</td>
+          <td>{{ d.servicios.get('cena', 0) }}</td>
+          <td>{{ d.servicios.get('bebidas_snacks', 0) }}</td>
+          <td>{{ d.avisos }}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="10">No hay reservas en el periodo.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<details style="margin-top:16px;">
+  <summary style="cursor:pointer;font-weight:700;">Ver resumen y detalle completo</summary>
+
+<div class="card" style="margin-top:16px;">
+  <div class="card-header"><h2><i class="fas fa-chart-simple"></i> Resumen por servicio</h2></div>
+  <div class="table-container">
+    <table>
+      <thead><tr><th>Servicio</th><th>Reservas</th><th>Personas</th><th>Reservas con avisos</th></tr></thead>
+      <tbody>
+        {% for s in resumen %}
+        <tr><td><strong>{{ s.nombre }}</strong></td><td>{{ s.reservas }}</td><td>{{ s.personas }}</td><td>{{ s.avisos }}</td></tr>
+        {% else %}
+        <tr><td colspan="4">No hay servicios contratados para la fecha.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="card" style="margin-top:16px;">
+  <div class="card-header"><h2><i class="fas fa-calendar-day"></i> Resumen por dia</h2></div>
+  <div class="table-container">
+    <table>
+      <thead><tr><th>Fecha</th><th>Lineas servicio</th><th>Personas</th><th>Avisos</th><th>Detalle servicios</th></tr></thead>
+      <tbody>
+        {% for d in resumen_dias %}
+        <tr>
+          <td><strong>{{ d.fecha }}</strong></td>
+          <td>{{ d.reservas }}</td>
+          <td><strong>{{ d.personas }}</strong></td>
+          <td>{{ d.avisos }}</td>
+          <td>{{ d.servicios_txt or '-' }}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="5">No hay servicios contratados para el periodo.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="card" style="margin-top:16px;">
+  <div class="card-header"><h2><i class="fas fa-bed"></i> Estancias del periodo</h2></div>
+  <div class="table-container">
+    <table>
+      <thead><tr><th>Reserva</th><th>Habitacion</th><th>Cliente</th><th>Fechas</th><th>Personas</th><th>Regimen</th><th>Servicios</th><th>Avisos</th></tr></thead>
+      <tbody>
+        {% for e in estancias %}
+        {% set r = e.reserva %}
+        <tr>
+          <td><a href="{{ url_for('recepcion.reserva_detalle', id=r.id) }}">{{ r.codigo or ('#' ~ r.id) }}</a></td>
+          <td>{{ e.habitacion }}</td>
+          <td>{{ r.titular_nombre or '-' }}</td>
+          <td>{{ r.fecha_entrada }} / {{ r.fecha_salida }}</td>
+          <td><strong>{{ e.personas }}</strong></td>
+          <td>{{ e.regimen }}</td>
+          <td>{{ e.servicios }}</td>
+          <td>{% if e.avisos %}<strong>{{ e.avisos }}</strong>{% else %}-{% endif %}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="8">No hay estancias en el periodo.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="card" style="margin-top:16px;">
+  <div class="card-header"><h2><i class="fas fa-clipboard-list"></i> Detalle para cocina / servicio</h2></div>
+  <div class="table-container">
+    <table>
+      <thead><tr><th>Fecha</th><th>Servicio</th><th>Reserva</th><th>Habitacion</th><th>Cliente</th><th>Personas</th><th>Dia</th><th>Regimen</th><th>Avisos</th></tr></thead>
+      <tbody>
+        {% for d in detalle %}
+        {% set r = d.reserva %}
+        <tr>
+          <td>{{ d.fecha }}</td>
+          <td>{{ d.servicio_nombre }}</td>
+          <td><a href="{{ url_for('recepcion.reserva_detalle', id=r.id) }}">{{ r.codigo or ('#' ~ r.id) }}</a></td>
+          <td>{{ d.habitacion }}</td>
+          <td>{{ r.titular_nombre or '-' }}</td>
+          <td><strong>{{ d.personas }}</strong><br><small>{{ d.adultos }} adultos / {{ d.menores }} menores</small></td>
+          <td>{{ d.estado_dia }}</td>
+          <td>{{ d.regimen }}</td>
+          <td>{% if d.avisos %}<strong>{{ d.avisos }}</strong>{% else %}-{% endif %}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="9">Sin detalle para mostrar.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+</details>
+{% endblock %}

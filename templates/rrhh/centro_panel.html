@@ -1,0 +1,223 @@
+{% extends 'base.html' %}
+{% block title %}{% if modo_general %}Empresa completa{% else %}Centro {{ panel.centro.nombre }}{% endif %}{% endblock %}
+{% block breadcrumb %}RRHH / {% if modo_general %}Empresa completa{% else %}Centro{% endif %}{% endblock %}
+{% block content %}
+<style>
+  .centro-hero{display:flex;justify-content:space-between;gap:16px;align-items:flex-start;margin-bottom:14px}
+  .centro-actions{display:flex;gap:8px;flex-wrap:wrap}
+  .centro-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:12px 0}
+  .centro-kpi{border:1px solid var(--border-color,#2d3748);border-radius:8px;padding:12px;background:rgba(255,255,255,.03)}
+  .centro-kpi strong{display:block;font-size:1.55rem;line-height:1;margin-bottom:5px}
+  .centro-kpi span{color:var(--text-muted,#9ca3af);font-size:.9rem}
+  .centro-sections{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+  .centro-section{border:1px solid var(--border-color,#2d3748);border-radius:8px;padding:14px;background:rgba(255,255,255,.02)}
+  .centro-section h3{margin:0 0 10px;font-size:1.05rem}
+  .mini-list{display:grid;gap:8px}
+  .mini-row{display:flex;justify-content:space-between;gap:10px;border-bottom:1px solid rgba(148,163,184,.18);padding:7px 0}
+  .mini-row:last-child{border-bottom:0}
+  .mini-main{font-weight:700}
+  .mini-sub{color:var(--text-muted,#9ca3af);font-size:.88rem}
+  .center-card-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px;margin-top:12px}
+  .center-card{display:block;text-decoration:none;color:inherit;border:1px solid var(--border-color,#2d3748);border-radius:8px;padding:14px;background:rgba(255,255,255,.03)}
+  .center-card:hover{border-color:#38bdf8}
+  .empty-note{color:var(--text-muted,#9ca3af);padding:10px;border:1px dashed rgba(148,163,184,.45);border-radius:8px}
+  @media (max-width: 1100px){.centro-sections{grid-template-columns:1fr}.centro-hero{display:block}.centro-actions{margin-top:10px}}
+</style>
+
+{% if modo_general %}
+<div class="card">
+  <div class="card-header centro-hero">
+    <div>
+      <h2><i class="fas fa-layer-group"></i> Empresa completa</h2>
+      <p class="text-muted">Vista general de la empresa y entrada separada a cada centro u hotel.</p>
+    </div>
+    <div class="centro-actions">
+      <a class="btn btn-success" href="{{ url_for('rrhh.seleccionar_empresa_general') }}"><i class="fas fa-check"></i> Usar vista empresa</a>
+      <a class="btn btn-secondary" href="{{ url_for('rrhh.centros_trabajo') }}"><i class="fas fa-building"></i> Centros</a>
+    </div>
+  </div>
+  <div class="centro-grid">
+    <div class="centro-kpi"><strong>{{ total_centros }}</strong><span>Centros activos</span></div>
+    <div class="centro-kpi"><strong>{{ total_personal }}</strong><span>Personas activas</span></div>
+    <div class="centro-kpi"><strong>{{ sin_centro.departamentos }}</strong><span>Departamentos sin centro</span></div>
+  </div>
+  <div class="center-card-grid">
+    {% for item in centro_cards %}
+      {% set c = item.centro %}
+      <a class="center-card" href="{{ url_for('rrhh.centro_panel', id=c.id) }}">
+        <div class="mini-main">{{ c.nombre }}</div>
+        <div class="mini-sub">{{ c.codigo or 'Sin codigo' }}{% if not c.activo %} · Inactivo{% endif %}</div>
+        <div class="centro-grid">
+          <div class="centro-kpi"><strong>{{ item.departamentos }}</strong><span>Departamentos</span></div>
+          <div class="centro-kpi"><strong>{{ item.empleados }}</strong><span>Personal</span></div>
+          <div class="centro-kpi"><strong>{{ item.menus }}</strong><span>Menus</span></div>
+          <div class="centro-kpi"><strong>{{ item.pedidos }}</strong><span>Pedidos</span></div>
+        </div>
+      </a>
+    {% else %}
+      <div class="empty-note">No hay centros creados todavia.</div>
+    {% endfor %}
+  </div>
+</div>
+{% else %}
+{% set centro = panel.centro %}
+<div class="card">
+  <div class="card-header centro-hero">
+    <div>
+      <h2><i class="fas fa-hotel"></i> {{ centro.nombre }}</h2>
+      <p class="text-muted">{{ centro.codigo or 'Sin codigo' }}{% if centro.direccion %} · {{ centro.direccion }}{% endif %}</p>
+    </div>
+    <div class="centro-actions">
+      <a class="btn btn-secondary" href="{{ url_for('rrhh.centro_empresa_general') }}"><i class="fas fa-layer-group"></i> Empresa</a>
+      <span class="btn btn-success"><i class="fas fa-check"></i> Centro seleccionado</span>
+      <a class="btn btn-primary" href="{{ url_for('departamentos.index', centro_id=centro.id) }}"><i class="fas fa-sitemap"></i> Departamentos</a>
+      <a class="btn btn-secondary" href="{{ url_for('rrhh.cuadrante_real', centro_id=centro.id) }}"><i class="fas fa-calendar-alt"></i> Personal</a>
+      <a class="btn btn-warning" href="{{ url_for('rrhh.editar_centro_trabajo', id=centro.id) }}"><i class="fas fa-edit"></i> Editar centro</a>
+    </div>
+  </div>
+
+  <div class="centro-grid">
+    <div class="centro-kpi"><strong>{{ panel.kpis.departamentos }}</strong><span>Departamentos</span></div>
+    <div class="centro-kpi"><strong>{{ panel.kpis.subdepartamentos }}</strong><span>Subdepartamentos</span></div>
+    {% if panel.kpis.puntos_venta %}<div class="centro-kpi"><strong>{{ panel.kpis.puntos_venta }}</strong><span>Puntos de venta</span></div>{% endif %}
+    {% if panel.tiene_actividad_operativa and panel.kpis.almacenes %}<div class="centro-kpi"><strong>{{ panel.kpis.almacenes }}</strong><span>Almacenes</span></div>{% endif %}
+    {% if panel.kpis.empleados %}<div class="centro-kpi"><strong>{{ panel.kpis.empleados }}</strong><span>Personal</span></div>{% endif %}
+    {% if panel.kpis.menus_diarios %}<div class="centro-kpi"><strong>{{ panel.kpis.menus_diarios }}</strong><span>Menus diarios</span></div>{% endif %}
+    {% if panel.kpis.menus_fijos %}<div class="centro-kpi"><strong>{{ panel.kpis.menus_fijos }}</strong><span>Menus fijos</span></div>{% endif %}
+    {% if panel.kpis.pedidos %}<div class="centro-kpi"><strong>{{ panel.kpis.pedidos }}</strong><span>Pedidos</span></div>{% endif %}
+    {% if panel.tiene_actividad_operativa and panel.kpis.appcc %}<div class="centro-kpi"><strong>{{ panel.kpis.appcc }}</strong><span>Controles APPCC</span></div>{% endif %}
+  </div>
+
+  <div class="centro-sections">
+    <section class="centro-section">
+      <h3><i class="fas fa-sitemap"></i> Estructura del centro</h3>
+      <div class="mini-list">
+        {% for d in panel.departamentos %}
+          <div class="mini-row">
+            <div>
+              <div class="mini-main">{{ d.nombre }}</div>
+              <div class="mini-sub">{{ d.tipo_operativo or 'departamento' }}</div>
+            </div>
+            <a class="btn btn-sm btn-secondary" href="{{ url_for('departamentos.ver_departamento', id=d.id) }}">Ver</a>
+          </div>
+        {% else %}
+          <div class="empty-note">Este centro aun no tiene departamentos.</div>
+        {% endfor %}
+      </div>
+    </section>
+
+    {% if not panel.tiene_actividad_operativa %}
+    <section class="centro-section">
+      <h3><i class="fas fa-info-circle"></i> Centro sin operativa</h3>
+      <div class="empty-note">Este centro no tiene menus, pedidos, personal ni puntos de venta asignados. Solo se muestra su ficha y estructura para no mezclar datos que no pertenecen al centro.</div>
+    </section>
+    {% endif %}
+
+    {% if panel.menus_diarios %}
+    <section class="centro-section">
+      <h3><i class="fas fa-utensils"></i> Menus diarios</h3>
+      <div class="mini-list">
+        {% for m in panel.menus_diarios %}
+          <div class="mini-row">
+            <div>
+              <div class="mini-main">{{ m.fecha or 'Sin fecha' }}</div>
+              <div class="mini-sub">{{ m.departamento_nombre or m.punto_venta_nombre or 'Sin destino' }} · {{ m.modo_servicio or 'servicio' }}</div>
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    </section>
+    {% endif %}
+
+    {% if panel.menus_fijos %}
+    <section class="centro-section">
+      <h3><i class="fas fa-book-open"></i> Menus fijos</h3>
+      <div class="mini-list">
+        {% for m in panel.menus_fijos %}
+          <div class="mini-row">
+            <div>
+              <div class="mini-main">{{ m.nombre }}</div>
+              <div class="mini-sub">{{ m.departamento_nombre or m.punto_venta_nombre or 'Sin destino' }}{% if m.fecha_inicio or m.fecha_fin %} · {{ m.fecha_inicio or '' }} - {{ m.fecha_fin or '' }}{% endif %}</div>
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    </section>
+    {% endif %}
+
+    {% if panel.pedidos %}
+    <section class="centro-section">
+      <h3><i class="fas fa-shopping-cart"></i> Pedidos</h3>
+      <div class="mini-list">
+        {% for p in panel.pedidos %}
+          <div class="mini-row">
+            <div>
+              <div class="mini-main">{{ p.numero_pedido or ('Pedido #' ~ p.id) }}</div>
+              <div class="mini-sub">{{ p.tipo_pedido or 'pedido' }} · {{ p.estado or 'sin estado' }} · {{ p.fecha_pedido or '' }}</div>
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    </section>
+    {% endif %}
+
+    {% if panel.empleados %}
+    <section class="centro-section">
+      <h3><i class="fas fa-users"></i> Personal</h3>
+      <div class="mini-list">
+        {% for e in panel.empleados %}
+          <div class="mini-row">
+            <div>
+              <div class="mini-main">{{ e.nombre }} {{ e.apellidos or '' }}</div>
+              <div class="mini-sub">{{ e.departamento_nombre or 'Sin departamento' }}{% if e.subdepartamento_nombre %} · {{ e.subdepartamento_nombre }}{% endif %}</div>
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    </section>
+    {% endif %}
+
+    {% if panel.tiene_actividad_operativa and (panel.puntos_venta or panel.almacenes) %}
+    <section class="centro-section">
+      <h3><i class="fas fa-cash-register"></i> Puntos de venta y almacenes</h3>
+      <div class="mini-list">
+        {% for pv in panel.puntos_venta %}
+          <div class="mini-row"><div><div class="mini-main">{{ pv.nombre }}</div><div class="mini-sub">Punto de venta · {{ pv.tipo or 'sin tipo' }}</div></div></div>
+        {% endfor %}
+        {% for a in panel.almacenes %}
+          <div class="mini-row"><div><div class="mini-main">{{ a.nombre }}</div><div class="mini-sub">Almacen · {{ a.tipo or 'seco' }}</div></div></div>
+        {% endfor %}
+      </div>
+    </section>
+    {% endif %}
+
+    {% if panel.tiene_actividad_operativa and panel.appcc %}
+    <section class="centro-section">
+      <h3><i class="fas fa-clipboard-check"></i> APPCC</h3>
+      <div class="mini-list">
+        {% for c in panel.appcc %}
+          <div class="mini-row">
+            <div>
+              <div class="mini-main">{{ c.nombre }}</div>
+              <div class="mini-sub">{{ c.area or 'Sin area' }} · {{ c.frecuencia or 'sin frecuencia' }}</div>
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    </section>
+    {% endif %}
+
+    {% if panel.tiene_actividad_operativa and panel.equipos %}
+    <section class="centro-section">
+      <h3><i class="fas fa-tools"></i> Equipos / mantenimiento</h3>
+      <div class="mini-list">
+        {% for e in panel.equipos %}
+          <div class="mini-row"><div><div class="mini-main">{{ e.nombre }}</div><div class="mini-sub">{{ e.tipo or 'equipo' }} · {{ e.ubicacion or 'sin ubicacion' }}</div></div></div>
+        {% endfor %}
+      </div>
+    </section>
+    {% endif %}
+  </div>
+</div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+{% block title %}Operacion de pago{% endblock %}
+{% block breadcrumb %}Pagos / Operacion{% endblock %}
+
+{% block content %}
+<div class="card">
+  <div class="card-header" style="display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap;">
+    <div>
+      <h2><i class="fas fa-receipt"></i> {{ operacion.referencia_interna }}</h2>
+      <p style="margin:4px 0 0;opacity:.78;">{{ operacion.descripcion or 'Operacion de pago' }}</p>
+    </div>
+    <a class="btn btn-secondary" href="{{ url_for('pagos.operaciones') }}">Volver</a>
+  </div>
+
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px;margin-bottom:16px;">
+    <div class="card" style="box-shadow:none;"><small>Importe</small><h3>{{ operacion.importe|euros }}</h3></div>
+    <div class="card" style="box-shadow:none;"><small>Estado</small><h3>{{ operacion.estado }}</h3></div>
+    <div class="card" style="box-shadow:none;"><small>Proveedor</small><h3>{{ operacion.proveedor }}</h3></div>
+    <div class="card" style="box-shadow:none;"><small>Metodo</small><h3>{{ operacion.metodo or '-' }}</h3></div>
+  </div>
+
+  {% if operacion.checkout_url %}
+  <div class="alert alert-info">
+    URL de pago:
+    <a href="{{ checkout_url_publica or operacion.checkout_url }}" target="_blank">{{ checkout_url_publica or operacion.checkout_url }}</a>
+  </div>
+  {% endif %}
+
+  {% if operacion.checkout_url %}
+  <form method="post" action="{{ url_for('pagos.enviar_link', operation_id=operacion.id) }}" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;align-items:end;border:1px solid #cbd5e1;border-radius:8px;padding:12px;margin-bottom:16px;">
+    <h3 style="grid-column:1/-1;margin:0;color:#ff6b00;">Enviar link al cliente</h3>
+    <div class="form-group">
+      <label class="form-label">Email destino</label>
+      <input class="form-control" type="email" name="destinatario" value="{{ operacion.cliente_email or '' }}" required>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Plantilla</label>
+      <select class="form-control" name="plantilla_id">
+        {% for p in plantillas %}
+        <option value="{{ p.id }}" {% if p.por_defecto %}selected{% endif %}>{{ p.nombre }} · {{ p.idioma }} · {{ p.canal }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Asunto</label>
+      <input class="form-control" name="asunto" placeholder="Se rellena desde la plantilla si lo dejas vacio">
+    </div>
+    <button class="btn btn-primary" type="submit"><i class="fas fa-envelope"></i> Enviar email</button>
+  </form>
+  {% endif %}
+
+  {% if sync %}
+  <div class="alert alert-info">Sincronizacion: {{ sync }}</div>
+  {% endif %}
+
+  {% if operacion.estado == 'confirmado' %}
+  <div style="margin-bottom:12px;">
+    <a class="btn btn-primary" href="{{ url_for('pagos.operacion_detalle', operation_id=operacion.id, sync=1) }}">
+      <i class="fas fa-link"></i> Sincronizar con origen
+    </a>
+  </div>
+  {% endif %}
+
+  {% if operacion.error %}
+  <div class="alert alert-danger">{{ operacion.error }}</div>
+  {% endif %}
+
+  <div class="table-responsive">
+    <table class="table">
+      <tbody>
+        <tr><th>Cliente</th><td>{{ operacion.cliente_nombre or '-' }} / {{ operacion.cliente_email or '-' }}</td></tr>
+        <tr><th>Origen</th><td>{{ operacion.origen_modulo or '-' }} / {{ operacion.origen_tipo or '-' }} / {{ operacion.origen_id or '-' }}</td></tr>
+        <tr><th>ID proveedor</th><td>{{ operacion.proveedor_payment_id or '-' }}</td></tr>
+        <tr><th>Sesion proveedor</th><td>{{ operacion.proveedor_session_id or '-' }}</td></tr>
+        <tr><th>Creacion</th><td>{{ operacion.fecha_creacion }}</td></tr>
+        <tr><th>Confirmacion</th><td>{{ operacion.fecha_confirmacion or '-' }}</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <details style="margin-top:12px;">
+    <summary>Respuesta tecnica</summary>
+    <pre style="white-space:pre-wrap;">{{ operacion.raw_response_json }}</pre>
+  </details>
+
+  <h3 style="color:#ff6b00;margin-top:18px;">Comunicaciones</h3>
+  <div class="table-responsive">
+    <table class="table">
+      <thead><tr><th>Fecha</th><th>Canal</th><th>Destino</th><th>Resultado</th><th>Error</th></tr></thead>
+      <tbody>
+        {% for c in comunicaciones %}
+        <tr>
+          <td>{{ c.fecha }}</td>
+          <td>{{ c.canal }}</td>
+          <td>{{ c.destinatario }}</td>
+          <td>{{ c.resultado }}</td>
+          <td>{{ c.error or '-' }}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="5" style="text-align:center;padding:18px;">Sin comunicaciones.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

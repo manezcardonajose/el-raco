@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header">
+        <h2><i class="fas fa-edit"></i> Editar producto: {{ producto.nombre }}</h2>
+        <a href="{{ next_url or url_for('productos.productos') }}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left"></i> Volver
+        </a>
+    </div>
+
+    <form method="POST" action="{{ url_for('productos.editar_producto', producto_id=producto.id) }}">
+        <input type="hidden" name="next" value="{{ next_url or url_for('productos.productos') }}">
+
+        <div class="form-group">
+            <label class="form-label">Nombre</label>
+            <input type="text" name="nombre" value="{{ producto.nombre }}" required class="form-control">
+        </div>
+
+        <div class="form-group">
+            <label class="form-label">Codigo</label>
+            <input type="text" name="codigo" value="{{ producto.codigo or '' }}" class="form-control">
+        </div>
+
+        <div class="form-group">
+            <label class="form-label">Cantidad</label>
+            <input type="number" step="0.001" name="cantidad" value="{{ producto.cantidad }}" class="form-control">
+        </div>
+
+        <div class="form-group">
+            <label class="form-label">Unidad</label>
+            <input type="text" name="unidad" value="{{ producto.unidad }}" class="form-control">
+        </div>
+
+        <div class="form-group">
+            <label class="form-label">Familia</label>
+            <input type="text" name="familia" value="{{ producto.familia or '' }}" class="form-control">
+        </div>
+
+        <div class="form-group">
+            <label class="form-label">Alergenos del producto</label>
+            <input type="text" name="alergenos" value="{{ producto.alergenos or '' }}" class="form-control" placeholder="Ej. Apio, Leche, Frutos con cascara">
+            <label style="display:flex;gap:6px;align-items:center;margin-top:6px;">
+                <input type="checkbox" name="alergenos_validado" value="1" {% if producto.alergenos_validado %}checked{% endif %}>
+                Revisado/validado para tarjetas
+            </label>
+        </div>
+
+        <div class="form-group">
+            <label class="form-label">Precio</label>
+            <input type="number" step="0.01" name="precio" value="{{ producto.precio }}" class="form-control">
+        </div>
+
+        <div class="form-group">
+            <label class="form-label">Stock minimo</label>
+            <input type="number" step="0.001" name="stock_minimo" value="{{ producto.stock_minimo }}" class="form-control">
+        </div>
+
+        <div class="form-group">
+            <label class="form-label">Tipo de conservacion</label>
+            <select name="tipo_conservacion" class="form-control">
+                <option value="seco" {% if producto.tipo_conservacion == 'seco' %}selected{% endif %}>Seco</option>
+                <option value="refrigerado" {% if producto.tipo_conservacion == 'refrigerado' %}selected{% endif %}>Refrigerado</option>
+                <option value="congelado" {% if producto.tipo_conservacion == 'congelado' %}selected{% endif %}>Congelado</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label class="form-label">Ubicacion</label>
+            <input type="text" name="ubicacion" value="{{ producto.ubicacion or '' }}" class="form-control">
+        </div>
+
+        <div style="margin-top:20px;display:flex;gap:10px;flex-wrap:wrap;">
+            <button type="submit" class="btn btn-success">
+                <i class="fas fa-save"></i> Guardar cambios
+            </button>
+            <a href="{{ next_url or url_for('productos.productos') }}" class="btn btn-secondary">Cancelar</a>
+        </div>
+    </form>
+
+    <form method="POST" action="{{ url_for('productos.eliminar_producto', producto_id=producto.id) }}" style="margin-top:10px;">
+        <input type="hidden" name="next" value="{{ next_url or url_for('productos.productos') }}">
+        <button type="submit" class="btn btn-danger" onclick="return confirm('Eliminar este producto?')">
+            <i class="fas fa-trash"></i> Eliminar
+        </button>
+    </form>
+</div>
+{% endblock %}

@@ -1,0 +1,357 @@
+{% extends "base.html" %}
+
+{% block title %}Centro de Decision Hotelera{% endblock %}
+{% block breadcrumb %}<a href="{{ url_for('asistente.dashboard') }}">Asistente El Raco</a> / Centro de decision{% endblock %}
+
+{% block content %}
+<style>
+    .decision-head {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 18px;
+        align-items: end;
+        margin-bottom: 18px;
+    }
+    .decision-head h1 {
+        margin: 0 0 6px;
+        color: #ff6b00;
+        font-size: 28px;
+    }
+    .decision-head p {
+        margin: 0;
+        max-width: 980px;
+        color: var(--text-muted, #5f6b7a);
+        line-height: 1.45;
+    }
+    .decision-filter {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        align-items: end;
+        justify-content: flex-end;
+    }
+    .decision-filter label {
+        display: block;
+        font-size: 12px;
+        color: var(--text-muted, #5f6b7a);
+        margin-bottom: 4px;
+    }
+    .decision-filter input {
+        min-height: 38px;
+        border: 1px solid var(--border-color, #d5dde7);
+        border-radius: 7px;
+        padding: 8px 10px;
+        background: var(--input-bg, #fff);
+        color: var(--text-color, #16202a);
+    }
+    .decision-actions {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        margin-bottom: 16px;
+    }
+    .decision-action-group {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        align-items: center;
+        padding: 8px;
+        border: 1px solid var(--border-color, #d5dde7);
+        border-radius: 8px;
+        background: rgba(148, 163, 184, .06);
+    }
+    .decision-action-group > span {
+        color: var(--text-muted, #5f6b7a);
+        font-size: 12px;
+        font-weight: 700;
+        text-transform: uppercase;
+        margin: 0 2px;
+    }
+    .decision-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(175px, 1fr));
+        gap: 12px;
+        margin-bottom: 16px;
+    }
+    .decision-card, .decision-panel, .decision-rec {
+        border: 1px solid var(--border-color, #d5dde7);
+        background: var(--card-bg, #fff);
+        border-radius: 8px;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, .04);
+    }
+    .decision-card {
+        padding: 14px;
+    }
+    .decision-card span {
+        display: block;
+        color: var(--text-muted, #5f6b7a);
+        font-size: 12px;
+        margin-bottom: 7px;
+    }
+    .decision-card strong {
+        display: block;
+        color: var(--text-color, #16202a);
+        font-size: 24px;
+    }
+    .decision-card.estado-sano strong { color: #16803a; }
+    .decision-card.estado-vigilar strong { color: #b36b00; }
+    .decision-card.estado-riesgo strong { color: #b42318; }
+    .decision-panels {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 14px;
+        margin-bottom: 18px;
+    }
+    .decision-panel {
+        padding: 15px;
+    }
+    .decision-panel h2 {
+        margin: 0 0 8px;
+        font-size: 18px;
+        color: #ff6b00;
+    }
+    .decision-score {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 10px;
+    }
+    .decision-score strong {
+        min-width: 52px;
+        font-size: 26px;
+    }
+    .decision-bar {
+        flex: 1;
+        height: 10px;
+        border-radius: 999px;
+        background: rgba(100, 116, 139, .18);
+        overflow: hidden;
+    }
+    .decision-fill {
+        height: 100%;
+        border-radius: inherit;
+        background: #16803a;
+    }
+    .estado-vigilar .decision-fill { background: #b36b00; }
+    .estado-riesgo .decision-fill { background: #b42318; }
+    .decision-list {
+        display: grid;
+        gap: 7px;
+        margin: 12px 0;
+        padding: 0;
+        list-style: none;
+    }
+    .decision-list li {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        border-bottom: 1px solid var(--border-color, #d5dde7);
+        padding-bottom: 6px;
+        color: var(--text-muted, #5f6b7a);
+        font-size: 13px;
+    }
+    .decision-list b {
+        color: var(--text-color, #16202a);
+        text-align: right;
+    }
+    .decision-panel p, .decision-rec p {
+        color: var(--text-muted, #5f6b7a);
+        line-height: 1.45;
+    }
+    .decision-rec {
+        padding: 15px;
+        margin-bottom: 12px;
+    }
+    .decision-rec h3 {
+        margin: 8px 0;
+        color: var(--text-color, #16202a);
+        font-size: 18px;
+    }
+    .decision-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+    .decision-badge {
+        display: inline-flex;
+        align-items: center;
+        border: 1px solid var(--border-color, #d5dde7);
+        border-radius: 999px;
+        padding: 4px 9px;
+        font-size: 12px;
+        color: var(--text-muted, #5f6b7a);
+        background: rgba(148, 163, 184, .08);
+    }
+    .decision-badge.alta, .decision-badge.riesgo { border-color: #f0a199; color: #b42318; }
+    .decision-badge.media, .decision-badge.vigilar { border-color: #f2c16d; color: #9a5b00; }
+    .decision-badge.info, .decision-badge.sano { border-color: #8fd3a2; color: #16803a; }
+    .decision-impact {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 10px;
+        margin-top: 12px;
+    }
+    .decision-impact div {
+        border: 1px solid var(--border-color, #d5dde7);
+        border-radius: 8px;
+        padding: 10px;
+        background: rgba(148, 163, 184, .06);
+    }
+    .decision-impact strong {
+        display: block;
+        margin-bottom: 5px;
+        color: var(--text-color, #16202a);
+    }
+    .decision-quality {
+        border: 1px solid var(--border-color, #d5dde7);
+        border-left: 4px solid #b36b00;
+        border-radius: 8px;
+        background: var(--card-bg, #fff);
+        padding: 14px;
+        margin-bottom: 16px;
+    }
+    .decision-quality.estado-sano { border-left-color: #16803a; }
+    .decision-quality.estado-riesgo { border-left-color: #b42318; }
+    .decision-quality h2 {
+        margin: 0 0 8px;
+        color: #ff6b00;
+        font-size: 18px;
+    }
+    .decision-quality-grid {
+        display: grid;
+        grid-template-columns: minmax(160px, 220px) minmax(0, 1fr);
+        gap: 12px;
+        align-items: start;
+    }
+    @media (max-width: 760px) {
+        .decision-head { grid-template-columns: 1fr; }
+        .decision-filter { justify-content: stretch; }
+        .decision-filter input, .decision-filter button { width: 100%; }
+        .decision-quality-grid { grid-template-columns: 1fr; }
+    }
+</style>
+
+<div class="decision-head">
+    <div>
+        <h1><i class="fas fa-compass"></i> Centro de Decision Hotelera</h1>
+        <p>Primera capa del cerebro operativo: une cliente, margen, equipo, cocina e infraestructura para aconsejar decisiones sin perder de vista satisfaccion y rentabilidad.</p>
+    </div>
+    <form class="decision-filter" method="get" action="{{ url_for('asistente.centro_decision') }}">
+        <div>
+            <label>Desde</label>
+            <input type="date" name="fecha_desde" value="{{ fecha_desde }}">
+        </div>
+        <div>
+            <label>Hasta</label>
+            <input type="date" name="fecha_hasta" value="{{ fecha_hasta }}">
+        </div>
+        <button class="btn btn-primary" type="submit"><i class="fas fa-search"></i> Analizar</button>
+    </form>
+</div>
+
+<form class="decision-actions" method="post" action="{{ url_for('asistente.guardar_centro_decision') }}">
+    <input type="hidden" name="fecha_desde" value="{{ fecha_desde }}">
+    <input type="hidden" name="fecha_hasta" value="{{ fecha_hasta }}">
+    <div class="decision-action-group">
+        <span>Decision</span>
+        <button class="btn btn-success" type="submit"><i class="fas fa-save"></i> Guardar propuestas</button>
+        <a class="btn btn-primary" href="{{ url_for('asistente.chat_estrategico') }}"><i class="fas fa-comments"></i> Chat</a>
+        <a class="btn btn-primary" href="{{ url_for('asistente.simulador_decision') }}"><i class="fas fa-chart-line"></i> Simular</a>
+    </div>
+    <div class="decision-action-group">
+        <span>Contexto</span>
+        <a class="btn btn-secondary" href="{{ url_for('asistente.radar_estrategico') }}"><i class="fas fa-satellite-dish"></i> Radar</a>
+        <a class="btn btn-secondary" href="{{ url_for('asistente.vision_temporada') }}"><i class="fas fa-calendar-alt"></i> Temporada</a>
+        <a class="btn btn-secondary" href="{{ url_for('asistente.gestion_360', fecha_desde=fecha_desde, fecha_hasta=fecha_hasta) }}"><i class="fas fa-chart-pie"></i> Gestion 360</a>
+    </div>
+    <div class="decision-action-group">
+        <span>Operacion</span>
+        <a class="btn btn-secondary" href="{{ url_for('asistente.cocina_ia', fecha_desde=fecha_desde, fecha_hasta=fecha_hasta) }}"><i class="fas fa-utensils"></i> Cocina</a>
+        <a class="btn btn-secondary" href="{{ url_for('buffet_ia.panel') }}"><i class="fas fa-store"></i> Buffet</a>
+    </div>
+</form>
+
+<div class="decision-grid">
+    <div class="decision-card estado-{{ contexto.estado }}"><span>Salud operativa</span><strong>{{ contexto.salud }}%</strong></div>
+    <div class="decision-card estado-{{ contexto.calidad_datos.estado }}"><span>Calidad datos</span><strong>{{ contexto.calidad_datos.score }}%</strong></div>
+    <div class="decision-card"><span>Ingresos aprox.</span><strong>{{ metricas.ingresos_totales_aprox|euros }}</strong></div>
+    <div class="decision-card"><span>Costes controlados</span><strong>{{ metricas.costes_controlados_aprox|euros }}</strong></div>
+    <div class="decision-card"><span>Margen aprox.</span><strong>{{ metricas.margen_aprox|euros }}</strong></div>
+    <div class="decision-card"><span>Ocupacion aprox.</span><strong>{{ metricas.ocupacion_aprox_pct }}%</strong></div>
+    <div class="decision-card"><span>Quejas abiertas</span><strong>{{ metricas.quejas_abiertas }}</strong></div>
+</div>
+
+<section class="decision-quality estado-{{ contexto.calidad_datos.estado }}">
+    <h2><i class="fas fa-triangle-exclamation"></i> Calidad de datos para decidir</h2>
+    <div class="decision-quality-grid">
+        <div>
+            <div class="decision-score">
+                <strong>{{ contexto.calidad_datos.score }}%</strong>
+                <div class="decision-bar"><div class="decision-fill" style="width: {{ contexto.calidad_datos.score }}%;"></div></div>
+            </div>
+            <span class="decision-badge {{ contexto.calidad_datos.estado }}">{{ contexto.calidad_datos.estado|upper }}</span>
+        </div>
+        <div>
+            <p>{{ contexto.calidad_datos.lectura }}</p>
+            {% if contexto.calidad_datos.alertas %}
+            <ul class="decision-list">
+                {% for alerta in contexto.calidad_datos.alertas %}
+                <li><span><strong>{{ alerta.titulo }}</strong><br>{{ alerta.detalle }}</span><b>{{ alerta.nivel }}</b></li>
+                {% endfor %}
+            </ul>
+            {% else %}
+            <p>Los datos principales del periodo son razonables para orientar la decision.</p>
+            {% endif %}
+        </div>
+    </div>
+</section>
+
+<div class="decision-panels">
+    {% for area in areas %}
+    <section class="decision-panel estado-{{ area.estado }}">
+        <h2>{{ area.titulo }}</h2>
+        <div class="decision-score">
+            <strong>{{ area.score }}%</strong>
+            <div class="decision-bar"><div class="decision-fill" style="width: {{ area.score }}%;"></div></div>
+            <span class="decision-badge {{ area.estado }}">{{ area.estado|upper }}</span>
+        </div>
+        <ul class="decision-list">
+            {% for nombre, valor in area.metricas %}
+            <li><span>{{ nombre }}</span><b>{{ valor }}</b></li>
+            {% endfor %}
+        </ul>
+        <p>{{ area.lectura }}</p>
+    </section>
+    {% endfor %}
+</div>
+
+<h2 style="color:#ff6b00;margin:18px 0 10px;">Propuestas de decision</h2>
+{% for rec in recomendaciones %}
+<article class="decision-rec">
+    <div class="decision-meta">
+        <span class="decision-badge {{ rec.prioridad }}">{{ rec.prioridad|upper }}</span>
+        <span class="decision-badge">{{ rec.area }}</span>
+    </div>
+    <h3>{{ rec.titulo }}</h3>
+    <p><strong>Decision:</strong> {{ rec.decision }}</p>
+    <div class="decision-impact">
+        <div><strong>Cliente</strong>{{ rec.impacto_cliente }}</div>
+        <div><strong>Economia</strong>{{ rec.impacto_economico }}</div>
+        <div><strong>Riesgo</strong>{{ rec.riesgo }}</div>
+    </div>
+</article>
+{% endfor %}
+
+<section class="decision-panel">
+    <h2>Huecos de datos</h2>
+    {% if huecos %}
+        <ul class="decision-list">
+            {% for hueco in huecos %}
+            <li><span>{{ hueco.titulo }} - {{ hueco.impacto }}</span><b>{{ hueco.estado }}</b></li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <p>Los bloques principales tienen datos. El siguiente paso es crear simuladores por hotel, inversion, oferta, tour operador y reorganizacion operativa.</p>
+    {% endif %}
+</section>
+{% endblock %}

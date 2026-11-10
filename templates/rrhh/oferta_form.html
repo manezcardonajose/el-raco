@@ -1,0 +1,116 @@
+{% extends 'base.html' %}
+{% block title %}Nueva oferta{% endblock %}
+{% block breadcrumb %}RRHH / Seleccion / Nueva oferta{% endblock %}
+{% block content %}
+<div class="card">
+  <div class="card-header">
+    <h2><i class="fas fa-briefcase"></i> Nueva oferta de trabajo</h2>
+    <a class="btn btn-secondary" href="{{ url_for('rrhh.seleccion') }}">Volver</a>
+  </div>
+  <form method="post">
+    <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap:14px;">
+      <div class="form-group">
+        <label class="form-label">Titulo</label>
+        <input class="form-control" name="titulo" required placeholder="Camarero/a de pisos, cocinero/a...">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Estado</label>
+        <select class="form-control" name="estado">
+          <option value="abierta">Abierta</option>
+          <option value="pausada">Pausada</option>
+          <option value="cerrada">Cerrada</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Departamento</label>
+        <select class="form-control" name="departamento_id">
+          <option value="">Sin asignar</option>
+          {% for d in departamentos %}<option value="{{ d.id }}">{{ d.nombre }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Subdepartamento</label>
+        <select class="form-control" name="subdepartamento_id">
+          <option value="">Sin asignar</option>
+          {% for s in subdepartamentos %}<option value="{{ s.id }}">{{ s.nombre }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Centro</label>
+        <select class="form-control" name="centro_id">
+          <option value="">Sin asignar</option>
+          {% for c in centros %}<option value="{{ c.id }}">{{ c.nombre }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Puesto operativo</label>
+        <select class="form-control" name="puesto_id">
+          <option value="">Sin asignar</option>
+          {% for p in puestos %}<option value="{{ p.id }}">{{ p.nombre }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Categoria laboral</label>
+        <select class="form-control" name="categoria_id">
+          <option value="">Sin asignar</option>
+          {% for c in categorias %}<option value="{{ c.id }}">{{ c.nombre }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Tipo contrato</label>
+        <input class="form-control" name="tipo_contrato" placeholder="Fijo discontinuo, temporal...">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Jornada</label>
+        <input class="form-control" name="jornada" placeholder="Completa, parcial, turnos...">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Salario desde</label>
+        <input class="form-control" type="number" step="0.01" name="salario_desde">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Salario hasta</label>
+        <input class="form-control" type="number" step="0.01" name="salario_hasta">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Inicio previsto</label>
+        <input class="form-control" type="date" name="fecha_inicio">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Cierre oferta</label>
+        <input class="form-control" type="date" name="fecha_cierre">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Dias para responder descartes</label>
+        <input class="form-control" type="number" min="0" name="dias_respuesta_descarte" value="{{ config.dias_respuesta_descarte or 7 }}">
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Descripcion</label>
+      <textarea class="form-control" name="descripcion" rows="4"></textarea>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Requisitos</label>
+      <textarea class="form-control" name="requisitos" rows="4"></textarea>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Competencias clave para valorar CV</label>
+      <textarea class="form-control" name="competencias_clave" rows="3" placeholder="Experiencia buffet, idiomas, disponibilidad inmediata..."></textarea>
+    </div>
+    <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap:14px;">
+      <div class="form-group">
+        <label class="form-label">Asunto descarte propio de esta oferta</label>
+        <input class="form-control" name="asunto_descarte" placeholder="Vacio = configuracion general">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Plantilla descarte propia</label>
+        <textarea class="form-control" name="plantilla_descarte" rows="4" placeholder="Vacio = configuracion general"></textarea>
+      </div>
+    </div>
+    <div style="display:flex; gap:10px; flex-wrap:wrap;">
+      <button class="btn btn-success" type="submit">Crear oferta</button>
+      <a class="btn btn-secondary" href="{{ url_for('rrhh.seleccion') }}">Cancelar</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

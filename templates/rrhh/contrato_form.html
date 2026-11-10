@@ -1,0 +1,30 @@
+{% extends 'base.html' %}
+{% block title %}{% if contrato %}Editar contrato{% else %}Nuevo contrato{% endif %}{% endblock %}
+{% block breadcrumb %}RRHH / Contratos / {% if contrato %}Editar{% else %}Nuevo{% endif %}{% endblock %}
+{% block content %}
+<div class="card"><div class="card-header"><h2><i class="fas fa-file-contract"></i> {% if contrato %}Editar contrato{% else %}Nuevo contrato{% endif %}</h2></div>
+<form method="post">
+<h3 style="color:#ff6b00; margin-bottom:15px;">Datos principales</h3>
+<div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap:16px;">
+<div class="form-group"><label class="form-label">Empleado *</label><select class="form-control" name="empleado_id" required><option value="">Seleccionar</option>{% for e in empleados %}<option value="{{ e.id }}" {% if contrato and contrato.empleado_id == e.id %}selected{% endif %}>{{ e.nombre }} {{ e.apellidos or '' }}</option>{% endfor %}</select></div>
+<div class="form-group"><label class="form-label">Tipo contrato</label><input class="form-control" name="tipo_contrato" value="{{ contrato.tipo_contrato if contrato else '' }}"></div>
+<div class="form-group"><label class="form-label">Estado</label><select class="form-control" name="estado">{% for s in ['activo','pendiente','finalizado','anulado'] %}<option value="{{ s }}" {% if contrato and contrato.estado == s %}selected{% endif %}>{{ s }}</option>{% endfor %}</select></div>
+<div class="form-group"><label class="form-label">Fecha inicio</label><input class="form-control" type="date" name="fecha_inicio" value="{{ contrato.fecha_inicio if contrato else '' }}"></div>
+<div class="form-group"><label class="form-label">Fecha fin</label><input class="form-control" type="date" name="fecha_fin" value="{{ contrato.fecha_fin if contrato else '' }}"></div>
+<div class="form-group"><label class="form-label">Fecha preaviso</label><input class="form-control" type="date" name="fecha_preaviso" value="{{ contrato.fecha_preaviso if contrato else '' }}"></div>
+<div class="form-group"><label class="form-label">Centro de trabajo</label><input class="form-control" name="centro_trabajo" value="{{ contrato.centro_trabajo if contrato else '' }}"></div>
+<div class="form-group"><label class="form-label">Puesto de trabajo</label><input class="form-control" name="puesto_trabajo" value="{{ contrato.puesto_trabajo if contrato else '' }}"></div>
+<div class="form-group"><label class="form-label">Grupo profesional</label><input class="form-control" name="grupo_profesional" value="{{ contrato.grupo_profesional if contrato else '' }}"></div>
+<div class="form-group"><label class="form-label">Categoría</label><select class="form-control" name="categoria_id"><option value="">La del empleado</option>{% for c in categorias %}<option value="{{ c.id }}" {% if contrato and contrato.categoria_id == c.id %}selected{% endif %}>{{ c.nombre }}</option>{% endfor %}</select></div>
+<div class="form-group"><label class="form-label">Convenio</label><input class="form-control" name="convenio" value="{{ contrato.convenio if contrato else '' }}"></div>
+<div class="form-group"><label class="form-label">Periodo prueba</label><input class="form-control" name="periodo_prueba" value="{{ contrato.periodo_prueba if contrato else '' }}"></div>
+</div>
+<h3 style="color:#ff6b00; margin:20px 0 15px;">Jornada y salario</h3>
+<div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap:16px;">
+{% for field,label,type in [('jornada','Jornada','text'),('tipo_jornada','Tipo jornada','text'),('turno','Turno / patrón interno','text'),('dias_trabajo','Días trabajo','text'),('horas_semanales','Horas semanales','number'),('salario_bruto_anual','Salario bruto anual','number'),('salario_bruto_mensual','Salario bruto mensual','number'),('salario_bruto','Salario bruto referencia','number'),('pagas','Pagas','number'),('vacaciones_dias','Vacaciones días/año','number'),('archivo','Archivo/ruta','text'),('motivo_fin','Motivo fin','text')] %}
+<div class="form-group"><label class="form-label">{{ label }}</label><input class="form-control" {% if type=='number' %}type="number" step="0.01"{% endif %} name="{{ field }}" value="{{ contrato[field] if contrato and field in contrato.keys() else (14 if field=='pagas' else 30 if field=='vacaciones_dias' else '') }}"></div>
+{% endfor %}
+</div><div class="form-group"><label class="form-label">Observaciones</label><textarea class="form-control" name="observaciones" rows="3">{{ contrato.observaciones if contrato else '' }}</textarea></div>
+{% if contrato %}<div class="form-group"><label class="form-label">Motivo del cambio</label><input class="form-control" name="motivo_cambio" required placeholder="Obligatorio para dejar trazabilidad"></div>{% endif %}
+<button class="btn btn-success" type="submit">Guardar</button> <a class="btn btn-secondary" href="{{ url_for('rrhh.lista_contratos') }}">Volver</a></form></div>
+{% endblock %}

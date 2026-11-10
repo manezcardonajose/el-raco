@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Parte producción</title>
+
+<style>
+body { font-family: Arial; }
+h1 { margin-bottom:5px; }
+table { width:100%; border-collapse: collapse; margin-top:15px; }
+th, td { border:1px solid #000; padding:6px; }
+</style>
+</head>
+
+<body>
+
+<h1>Producción</h1>
+<p><strong>Fecha:</strong> {{ parte.fecha }}</p>
+<p><strong>Turno:</strong> {{ parte.turno }}</p>
+
+<table>
+<thead>
+<tr>
+<th>Receta</th>
+<th>Cantidad</th>
+</tr>
+</thead>
+
+<tbody>
+{% for l in lineas %}
+<tr>
+<td>{{ l.receta_nombre }}</td>
+<td>{{ l.cantidad_planificada }}</td>
+</tr>
+{% endfor %}
+</tbody>
+</table>
+
+</body>
+</html>

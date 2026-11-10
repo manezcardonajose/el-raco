@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+{% block breadcrumb %}Contabilidad / Factura proveedor{% endblock %}
+{% block content %}
+
+<div class="card">
+    <div class="card-header">
+        <div>
+            <h2><i class="fas fa-file-signature"></i> Crear factura desde albaranes</h2>
+            <div style="font-size:13px;opacity:.8;">Agrupa los albaranes mensuales del proveedor y deja la factura lista para pago.</div>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <a href="{{ url_for('contabilidad.facturas_proveedor') }}" class="btn btn-secondary">Facturas proveedor</a>
+            <a href="{{ url_for('contabilidad.dashboard') }}" class="btn btn-primary">Panel</a>
+        </div>
+    </div>
+
+    <form method="GET" style="display:grid;grid-template-columns:minmax(220px,1fr) auto;gap:10px;align-items:end;margin-bottom:16px;">
+        <div>
+            <label class="form-label">Proveedor</label>
+            <select name="proveedor_id" class="form-control" onchange="this.form.submit()">
+                <option value="">Seleccionar proveedor</option>
+                {% for p in proveedores %}
+                <option value="{{ p.id }}" {% if proveedor_id == p.id %}selected{% endif %}>{{ p.nombre }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <button class="btn btn-primary">Ver albaranes</button>
+    </form>
+
+    {% if proveedor_id %}
+    <form method="POST">
+        <input type="hidden" name="proveedor_id" value="{{ proveedor_id }}">
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;margin-bottom:16px;">
+            <div>
+                <label class="form-label">Numero factura</label>
+                <input name="numero_factura" class="form-control" required>
+            </div>
+            <div>
+                <label class="form-label">Fecha factura</label>
+                <input type="date" name="fecha_documento" class="form-control" value="{{ now.strftime('%Y-%m-%d') }}">
+            </div>
+            <div>
+                <label class="form-label">Vencimiento</label>
+                <input type="date" name="fecha_vencimiento" class="form-control">
+            </div>
+            <div>
+                <label class="form-label">Cuenta</label>
+                <select name="cuenta_contable" class="form-control">
+                    <option value="600">600 Compras</option>
+                    <option value="602">602 Otros aprovisionamientos</option>
+                    <option value="622">622 Reparaciones</option>
+                    <option value="628">628 Suministros</option>
+                    {% for c in opciones.cuentas %}
+                    <option value="{{ c.codigo }}">{{ c.codigo }} {{ c.nombre }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label class="form-label">Base imponible</label>
+                <input type="number" step="0.01" name="base_imponible" class="form-control" placeholder="Opcional">
+            </div>
+            <div>
+                <label class="form-label">Impuesto</label>
+                <input type="number" step="0.01" name="impuesto_importe" class="form-control" placeholder="Opcional">
+            </div>
+            <div>
+                <label class="form-label">Total factura</label>
+                <input type="number" step="0.01" name="total_factura" class="form-control" placeholder="Si se deja vacio suma albaranes">
+            </div>
+        </div>
+
+        <div class="table-container" style="margin-bottom:16px;">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th></th>
+                        <th>Fecha</th>
+                        <th>Albaran</th>
+                        <th>Recepcion</th>
+                        <th style="text-align:right;">Total</th>
+                        <th>Estado</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for a in albaranes %}
+                    <tr>
+                        <td><input type="checkbox" name="albaran_ids" value="{{ a.id }}" checked></td>
+                        <td>{{ a.fecha_documento or '-' }}</td>
+                        <td>{{ a.numero or a.numero_albaran or a.id }}</td>
+                        <td>{{ a.recepcion_id or '-' }}</td>
+                        <td style="text-align:right;">{{ "%.2f"|format(a.total or 0) }}</td>
+                        <td>{{ a.estado }}</td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="6" style="text-align:center;padding:24px;">Este proveedor no tiene albaranes pendientes de factura.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <div style="margin-bottom:16px;">
+            <label class="form-label">Observaciones</label>
+            <textarea name="observaciones" class="form-control" rows="3"></textarea>
+        </div>
+        <button class="btn btn-success" {% if not albaranes %}disabled{% endif %}>
+            <i class="fas fa-check"></i> Crear factura y cerrar albaranes
+        </button>
+    </form>
+    {% endif %}
+</div>
+
+{% endblock %}

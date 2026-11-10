@@ -1,0 +1,225 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="card">
+    <div class="card-header">
+        <div>
+            <h2><i class="fas fa-box"></i> Productos</h2>
+            <div style="display:inline-flex;align-items:center;gap:8px;padding:6px 10px;border:1px solid var(--border,#d5dde8);border-radius:8px;background:var(--card-bg,#fff);color:var(--text-muted,#475569);font-size:.9rem;">
+                <i class="fas fa-building"></i>
+                <span>Centro actual:</span>
+                <strong style="color:var(--text,#0f172a);">{{ centro_activo.nombre if centro_activo else 'Empresa completa' }}</strong>
+            </div>
+        </div>
+        <div>
+            <a href="{{ url_for('productos.importar_catalogo') }}" class="btn btn-warning">
+                <i class="fas fa-file-import"></i> Importar catalogo
+            </a>
+            <a href="{{ url_for('productos.nuevo_producto', next=request.full_path) }}" class="btn btn-success">
+                <i class="fas fa-plus"></i> Nuevo producto
+            </a>
+            <a href="{{ url_for('utils.exportar', modulo='productos') }}" class="btn btn-info">
+                <i class="fas fa-file-excel"></i> Exportar Excel
+            </a>
+        </div>
+    </div>
+
+    <div style="display:flex;gap:15px;margin-bottom:20px;flex-wrap:wrap;">
+        <a href="{{ url_for('productos.productos', consulta='todo') }}"
+           class="btn {% if consulta_actual == 'todo' or not consulta_actual %}btn-primary{% else %}btn-secondary{% endif %}">
+            <i class="fas fa-filter"></i> Todos
+        </a>
+        <a href="{{ url_for('productos.productos', consulta='bajo_stock') }}"
+           class="btn {% if consulta_actual == 'bajo_stock' %}btn-warning{% else %}btn-secondary{% endif %}">
+            <i class="fas fa-exclamation-triangle"></i> Stock bajo
+        </a>
+        <a href="{{ url_for('productos.productos', consulta='agotados') }}"
+           class="btn {% if consulta_actual == 'agotados' %}btn-danger{% else %}btn-secondary{% endif %}">
+            <i class="fas fa-times-circle"></i> Agotados
+        </a>
+        <a href="{{ url_for('productos.productos', conservacion='seco') }}"
+           class="btn {% if request.args.get('conservacion') == 'seco' %}btn-info{% else %}btn-secondary{% endif %}">
+            <i class="fas fa-archive"></i> Seco
+        </a>
+        <a href="{{ url_for('productos.productos', conservacion='refrigerado') }}"
+           class="btn {% if request.args.get('conservacion') == 'refrigerado' %}btn-info{% else %}btn-secondary{% endif %}">
+            <i class="fas fa-snowflake"></i> Refrigerado
+        </a>
+        <a href="{{ url_for('productos.productos', conservacion='congelado') }}"
+           class="btn {% if request.args.get('conservacion') == 'congelado' %}btn-info{% else %}btn-secondary{% endif %}">
+            <i class="fas fa-icicles"></i> Congelado
+        </a>
+    </div>
+
+    <div style="margin-bottom:20px;">
+        <form method="GET" action="{{ url_for('productos.productos') }}">
+            {% if request.args.get('consulta') %}
+            <input type="hidden" name="consulta" value="{{ request.args.get('consulta') }}">
+            {% endif %}
+            {% if request.args.get('conservacion') %}
+            <input type="hidden" name="conservacion" value="{{ request.args.get('conservacion') }}">
+            {% endif %}
+            <div style="display:flex;gap:10px;flex-wrap:wrap;">
+                <input type="text" name="buscar"
+                       placeholder="Buscar producto por nombre o codigo..."
+                       value="{{ request.args.get('buscar', '') }}"
+                       style="flex:1;min-width:260px;padding:10px;border-radius:4px;border:1px solid #555;background:#2b2f33;color:white;">
+                <select name="familia"
+                        style="min-width:190px;padding:10px;border-radius:4px;border:1px solid #555;background:#2b2f33;color:white;">
+                    <option value="">Todas las familias</option>
+                    {% for fam in familias %}
+                    <option value="{{ fam.familia }}" {% if familia_actual == fam.familia %}selected{% endif %}>
+                        {{ fam.familia }}
+                    </option>
+                    {% endfor %}
+                </select>
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-search"></i> Buscar
+                </button>
+                {% if request.args.get('buscar') or request.args.get('familia') or request.args.get('conservacion') %}
+                <a href="{{ url_for('productos.productos') }}" class="btn btn-secondary">
+                    <i class="fas fa-times"></i> Limpiar
+                </a>
+                {% endif %}
+            </div>
+        </form>
+    </div>
+
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>Codigo</th>
+                    <th>Producto</th>
+                    <th>Familia</th>
+                    <th>Alergenos</th>
+                    <th>Proveedor</th>
+                    <th>Stock total</th>
+                    <th>Precio</th>
+                    <th>Conservacion</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for p in productos %}
+                <tr>
+                    <td>{{ p.codigo or '---' }}</td>
+                    <td><strong>{{ p.nombre }}</strong></td>
+                    <td>{{ p.familia or '---' }}</td>
+                    <td>
+                        {{ p.alergenos or '---' }}
+                        {% if p.alergenos and not p.alergenos_validado %}
+                        <br><small style="color:#ffc107;">Pendiente validar</small>
+                        {% endif %}
+                    </td>
+                    <td>{{ p.proveedor_nombre or 'Sin proveedor' }}</td>
+                    <td>
+                        {% if p.stock_total <= 0 %}
+                        <span style="color:#dc3545;font-weight:bold;">AGOTADO</span>
+                        {% elif p.stock_total <= p.stock_minimo %}
+                        <span style="color:#ffc107;font-weight:bold;">{{ p.stock_total|numero_es }} {{ p.unidad }}</span>
+                        {% else %}
+                        {{ p.stock_total|numero_es }} {{ p.unidad }}
+                        {% endif %}
+                    </td>
+                    <td>{{ p.precio|euros }}</td>
+                    <td>
+                        {% if p.tipo_conservacion == 'seco' %}
+                        <i class="fas fa-archive"></i> Seco
+                        {% elif p.tipo_conservacion == 'refrigerado' %}
+                        <i class="fas fa-snowflake"></i> Refrigerado
+                        {% elif p.tipo_conservacion == 'congelado' %}
+                        <i class="fas fa-icicles"></i> Congelado
+                        {% else %}
+                        {{ p.tipo_conservacion or '---' }}
+                        {% endif %}
+                    </td>
+                    <td style="text-align:center;">
+                        <a href="{{ url_for('productos.ver_producto', producto_id=p.id, next=request.full_path) }}" class="btn-icon" title="Ver">
+                            <i class="fas fa-eye"></i>
+                        </a>
+                        <a href="{{ url_for('productos.editar_producto', producto_id=p.id, next=request.full_path) }}" class="btn-icon" title="Editar">
+                            <i class="fas fa-edit"></i>
+                        </a>
+                        <a href="{{ url_for('productos.producto_proveedores', producto_id=p.id) }}" class="btn-icon" title="Proveedores">
+                            <i class="fas fa-truck"></i>
+                        </a>
+                        <form method="POST" action="{{ url_for('productos.eliminar_producto', producto_id=p.id) }}"
+                              style="display:inline;"
+                              onsubmit="return confirm('Eliminar este producto?');">
+                            <input type="hidden" name="next" value="{{ request.full_path }}">
+                            <button type="submit" class="btn-icon" style="background:#dc3545;color:white;" title="Eliminar">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </form>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="9" style="text-align:center;padding:40px;">
+                        No hay productos que mostrar
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    {% if total_paginas > 1 %}
+    <div style="display:flex;justify-content:center;gap:5px;margin-top:20px;flex-wrap:wrap;">
+        {% for p in range(1, total_paginas + 1) %}
+        {% if p == pagina_actual %}
+        <span class="btn-pagina active">{{ p }}</span>
+        {% else %}
+        <a href="{{ url_for('productos.productos', pagina=p, consulta=consulta_actual, buscar=request.args.get('buscar', ''), familia=request.args.get('familia', ''), conservacion=request.args.get('conservacion', '')) }}"
+           class="btn-pagina">{{ p }}</a>
+        {% endif %}
+        {% endfor %}
+    </div>
+    {% endif %}
+</div>
+
+<style>
+    .btn-pagina {
+        display:inline-block;
+        padding:8px 12px;
+        border-radius:4px;
+        background:#3a3f44;
+        color:white;
+        text-decoration:none;
+        font-size:14px;
+        min-width:40px;
+        text-align:center;
+    }
+
+    .btn-pagina.active {
+        background:#ff6b00;
+        color:white;
+        font-weight:bold;
+    }
+
+    .btn-pagina:hover {
+        background:#ff6b00;
+    }
+
+    .btn-icon {
+        display:inline-flex;
+        align-items:center;
+        justify-content:center;
+        padding:5px 8px;
+        margin:0 2px;
+        border-radius:4px;
+        text-decoration:none;
+        background:#3a3f44;
+        color:#ff6b00;
+        transition:all 0.2s;
+        font-size:14px;
+        border:none;
+        cursor:pointer;
+    }
+
+    .btn-icon:hover {
+        background:#ff6b00;
+        color:white;
+    }
+</style>
+{% endblock %}

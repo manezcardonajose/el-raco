@@ -1,0 +1,2121 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <script>
+        (() => {
+            const token = () => document.querySelector('meta[name="csrf-token"]')?.content || '';
+            const originalFetch = window.fetch.bind(window);
+            window.fetch = (input, init = {}) => {
+                const method = String(init.method || 'GET').toUpperCase();
+                const target = typeof input === 'string' ? input : (input && input.url) || '';
+                const sameOrigin = !target || target.startsWith('/') || target.startsWith(window.location.origin);
+                if (sameOrigin && !['GET', 'HEAD', 'OPTIONS'].includes(method)) {
+                    const headers = new Headers(init.headers || (input && input.headers) || {});
+                    headers.set('X-CSRF-Token', token());
+                    init = Object.assign({}, init, {headers});
+                }
+                return originalFetch(input, init);
+            };
+            document.addEventListener('submit', event => {
+                const form = event.target;
+                if (!form || String(form.method || 'GET').toUpperCase() === 'GET') return;
+                let field = form.querySelector('input[name="csrf_token"]');
+                if (!field) {
+                    field = document.createElement('input');
+                    field.type = 'hidden';
+                    field.name = 'csrf_token';
+                    form.appendChild(field);
+                }
+                field.value = token();
+            }, true);
+        })();
+    </script>
+    <link rel="icon" href="{{ url_for('static', filename='brand/el-raco-logo.svg') }}" type="image/svg+xml">
+    <title>{% block title %}El Racó ERP{% endblock %}</title>
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --brand: #ff6b00;
+            --brand-strong: #c55200;
+            --success: #16803a;
+            --danger: #b42318;
+            --warning: #9a5b00;
+            --info: #0369a1;
+        }
+
+        body.theme-light {
+            color-scheme: light;
+            --page-bg: #f4f7fb;
+            --surface-bg: #ffffff;
+            --surface-soft: #f8fafc;
+            --surface-raised: #ffffff;
+            --sidebar-bg: linear-gradient(180deg, #ffffff 0%, #eef3f8 100%);
+            --submenu-bg: #f6f9fc;
+            --topbar-bg: #ffffff;
+            --text-color: #111827;
+            --text-muted: #475569;
+            --text-soft: #64748b;
+            --border-color: #cbd5e1;
+            --border-strong: #94a3b8;
+            --input-bg: #ffffff;
+            --input-text: #111827;
+            --table-head-bg: #e9eef6;
+            --table-hover-bg: #eef6ff;
+            --menu-text: #334155;
+            --menu-hover-bg: #fff1e6;
+            --shadow-soft: 0 8px 20px rgba(15, 23, 42, .07);
+        }
+
+        body.theme-dark {
+            color-scheme: dark;
+            --page-bg: #141b23;
+            --surface-bg: #1d2731;
+            --surface-soft: #263241;
+            --surface-raised: #222e3b;
+            --sidebar-bg: linear-gradient(180deg, #1c2631 0%, #16202a 100%);
+            --submenu-bg: #1a2430;
+            --topbar-bg: #1c2631;
+            --text-color: #f3f7fb;
+            --text-muted: #d0dae5;
+            --text-soft: #aebccc;
+            --border-color: #46586d;
+            --border-strong: #687d94;
+            --input-bg: #17212c;
+            --input-text: #f8fafc;
+            --table-head-bg: #202b37;
+            --table-hover-bg: #2b3a4a;
+            --menu-text: #d6e0ea;
+            --menu-hover-bg: #2b3a4a;
+            --shadow-soft: 0 8px 22px rgba(0, 0, 0, .32);
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--page-bg);
+            color: var(--text-color);
+            display: flex;
+            min-height: 100vh;
+        }
+
+        .sidebar {
+            width: 280px;
+            background: var(--sidebar-bg);
+            border-right: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            transition: width 0.3s;
+            box-shadow: var(--shadow-soft);
+            position: fixed;
+            height: 100vh;
+            overflow-y: auto;
+            z-index: 1000;
+        }
+
+        .sidebar.collapsed {
+            width: 80px;
+        }
+
+        .sidebar-header {
+            padding: 20px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .sidebar-header h2 {
+            color: #ff6b00;
+            font-size: 18px;
+            margin: 0;
+            white-space: nowrap;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .brand-logo {
+            width: 36px;
+            height: 30px;
+            object-fit: contain;
+            background: rgba(255,255,255,0.94);
+            border-radius: 6px;
+            padding: 2px;
+        }
+
+        .sidebar-header i {
+            color: #ff6b00;
+            cursor: pointer;
+            font-size: 20px;
+        }
+
+        .sidebar-menu {
+            flex: 1;
+            padding: 20px 0;
+        }
+
+        .menu-item {
+            padding: 12px 20px;
+            display: flex;
+            align-items: center;
+            color: var(--menu-text);
+            text-decoration: none;
+            transition: all 0.2s;
+            border-left: 3px solid transparent;
+        }
+
+        .menu-item:hover {
+            background: var(--menu-hover-bg);
+            color: var(--brand);
+            border-left-color: var(--brand);
+        }
+
+        .menu-item i {
+            width: 24px;
+            font-size: 18px;
+            margin-right: 15px;
+            text-align: center;
+        }
+
+        .menu-item span {
+            white-space: nowrap;
+        }
+
+        .sidebar.collapsed .menu-item span {
+            display: none;
+        }
+
+        .sidebar.collapsed .menu-item i {
+            margin-right: 0;
+            width: 100%;
+        }
+
+        .menu-divider {
+            height: 1px;
+            background: var(--border-color);
+            margin: 15px 20px;
+        }
+
+        .menu-categoria {
+            margin: 5px 0;
+        }
+
+        .menu-categoria-header {
+            padding: 12px 20px;
+            display: flex;
+            align-items: center;
+            color: var(--menu-text);
+            cursor: pointer;
+            transition: all 0.2s;
+            border-left: 3px solid transparent;
+        }
+
+        .menu-categoria-header:hover {
+            background: var(--menu-hover-bg);
+            color: var(--brand);
+            border-left-color: var(--brand);
+        }
+
+        .menu-categoria-header i:first-child {
+            width: 24px;
+            font-size: 18px;
+            margin-right: 15px;
+            text-align: center;
+        }
+
+        .menu-categoria-header .flecha {
+            margin-left: auto;
+            font-size: 12px;
+            transition: transform 0.3s;
+        }
+
+        .menu-categoria-header.open .flecha {
+            transform: rotate(180deg);
+        }
+
+        .submenu {
+            display: none;
+            background: var(--submenu-bg);
+            padding: 5px 0;
+        }
+
+        .submenu .menu-item {
+            padding-left: 44px;
+            font-size: 13px;
+        }
+
+        .submenu .menu-item i {
+            margin-right: 15px;
+            width: 20px;
+            font-size: 14px;
+        }
+
+        .submenu-label {
+            padding: 10px 20px 5px 44px;
+            color: var(--text-soft);
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: .02em;
+            text-transform: uppercase;
+        }
+
+        .menu-categoria-header.open + .submenu {
+            display: block;
+        }
+
+        .main-content {
+            flex: 1;
+            margin-left: 280px;
+            transition: margin-left 0.3s;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .main-content.expanded {
+            margin-left: 80px;
+        }
+
+        .topbar {
+            background: var(--topbar-bg);
+            padding: 15px 30px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 2px solid var(--brand);
+            box-shadow: var(--shadow-soft);
+            position: sticky;
+            top: 0;
+            z-index: 900;
+        }
+
+        .topbar-left {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .toggle-sidebar {
+            background: none;
+            border: none;
+            color: #ff6b00;
+            font-size: 24px;
+            cursor: pointer;
+            display: none;
+        }
+
+        .breadcrumb {
+            color: var(--text-soft);
+            font-size: 14px;
+        }
+
+        .breadcrumb a {
+            color: #ff6b00;
+            text-decoration: none;
+        }
+
+        .topbar-right {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .brain-command {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            min-width: 280px;
+            max-width: 390px;
+            flex: 1 1 320px;
+        }
+
+        .brain-command input {
+            width: 100%;
+            height: 36px;
+            border: 1px solid var(--border-color);
+            border-radius: 999px;
+            padding: 0 12px;
+            background: var(--input-bg);
+            color: var(--input-text);
+            font-size: 13px;
+        }
+
+        .brain-command button,
+        .brain-command a {
+            height: 36px;
+            min-width: 36px;
+            border-radius: 999px;
+            border: 1px solid var(--brand);
+            background: var(--brand);
+            color: #fff;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            text-decoration: none;
+            cursor: pointer;
+        }
+
+        .brain-command a {
+            background: var(--surface-bg);
+            color: var(--brand);
+        }
+
+        .ia-report-box {
+            margin-top: 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 9px 11px;
+            background: rgba(148, 163, 184, .08);
+            color: var(--text-color);
+        }
+
+        .ia-report-box summary {
+            cursor: pointer;
+            color: #b45309;
+            font-weight: 700;
+            font-size: 13px;
+        }
+
+        .ia-report-box form {
+            display: grid;
+            gap: 8px;
+            margin-top: 10px;
+        }
+
+        .ia-report-box label {
+            display: grid;
+            gap: 4px;
+            color: var(--text-muted);
+            font-size: 12px;
+        }
+
+        .ia-report-box select,
+        .ia-report-box textarea {
+            width: 100%;
+            border: 1px solid var(--border-color);
+            border-radius: 7px;
+            padding: 7px 9px;
+            background: var(--input-bg);
+            color: var(--text-color);
+        }
+
+        .brain-status {
+            min-height: 36px;
+            border: 1px solid var(--border-color);
+            border-radius: 999px;
+            padding: 0 10px;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: var(--surface-bg);
+            color: var(--text-color);
+            font-size: 13px;
+            text-decoration: none;
+            white-space: nowrap;
+        }
+
+        .brain-status.verde { border-color: #15803d; color: #15803d; }
+        .brain-status.ambar { border-color: #a15c00; color: #a15c00; }
+        .brain-status.rojo { border-color: #b91c1c; color: #b91c1c; }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .user-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: #ff6b00;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+        }
+
+        .user-details {
+            text-align: right;
+        }
+
+        .user-name {
+            font-weight: bold;
+            color: #ff6b00;
+        }
+
+        .user-role {
+            font-size: 12px;
+            color: var(--text-soft);
+        }
+
+        .content-container {
+            padding: 30px;
+            flex: 1;
+        }
+
+        .card {
+            background: var(--surface-bg);
+            border-radius: 8px;
+            padding: 25px;
+            margin-bottom: 25px;
+            box-shadow: var(--shadow-soft);
+            border: 1px solid var(--border-color);
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .card-header h2 {
+            color: #ff6b00;
+            font-size: 20px;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .card-header h2 i {
+            font-size: 24px;
+        }
+
+        .btn {
+            padding: 8px 16px;
+            border-radius: 4px;
+            border: none;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background: #007bff;
+            color: white;
+        }
+
+        .btn-success {
+            background: #28a745;
+            color: white;
+        }
+
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+
+        .btn-warning {
+            background: #ffc107;
+            color: black;
+        }
+
+        .btn-info {
+            background: #17a2b8;
+            color: white;
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn:hover {
+            opacity: 0.8;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+
+        .btn-sm {
+            padding: 4px 8px;
+            font-size: 12px;
+        }
+
+        .btn-lg {
+            padding: 12px 24px;
+            font-size: 16px;
+        }
+
+        .table-container {
+            overflow-x: auto;
+            border-radius: 6px;
+            border: 1px solid var(--border-color);
+            width: 100%;
+            margin-bottom: 20px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            table-layout: fixed;
+            min-width: 600px;
+        }
+
+        th, td {
+            padding: 10px 8px;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+            text-align: left;
+            font-size: 13px;
+        }
+
+        th {
+            background: var(--table-head-bg);
+            color: var(--brand);
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 12px;
+            letter-spacing: 0.5px;
+        }
+
+        tr:hover {
+            background: var(--table-hover-bg);
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: bold;
+            white-space: nowrap;
+        }
+
+        .badge-info {
+            background: #007bff;
+            color: white;
+        }
+
+        .badge-danger {
+            background: #dc3545;
+            color: white;
+        }
+
+        .badge-success {
+            background: #28a745;
+            color: white;
+        }
+
+        .badge-warning {
+            background: #ffc107;
+            color: black;
+        }
+
+        .badge-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 5px;
+            color: var(--text-muted);
+            font-weight: 500;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 10px 12px;
+            background: var(--input-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            color: var(--input-text);
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: #ff6b00;
+            box-shadow: 0 0 0 3px rgba(255, 107, 0, 0.1);
+        }
+
+        .alert {
+            padding: 12px 20px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+            border-left: 4px solid;
+        }
+
+        .alert-success {
+            background: #1e3a2a;
+            border-left-color: #28a745;
+            color: #a8e6b0;
+        }
+
+        .alert-danger {
+            background: #3a1e1e;
+            border-left-color: #dc3545;
+            color: #f8a5a5;
+        }
+
+        .alert-warning {
+            background: #3a2e1e;
+            border-left-color: #ffc107;
+            color: #ffe6a5;
+        }
+
+        .alert-info {
+            background: #1e2a3a;
+            border-left-color: #17a2b8;
+            color: #a5d1e6;
+        }
+
+        .badge-alerta {
+            background: #dc3545;
+            color: white;
+            font-size: 11px;
+            font-weight: bold;
+            padding: 2px 6px;
+            border-radius: 10px;
+            margin-left: 8px;
+            float: right;
+        }
+
+        .menu-item .badge-alerta {
+            margin-left: auto;
+            float: none;
+        }
+
+        .sidebar.collapsed .menu-item .badge-alerta {
+            display: none;
+        }
+
+        @media print {
+            .sidebar, .topbar, .btn, .card-header a, .form-group, footer {
+                display: none !important;
+            }
+
+            .main-content {
+                margin-left: 0 !important;
+                padding: 0 !important;
+            }
+
+            .card {
+                box-shadow: none !important;
+                border: 1px solid #ddd !important;
+                background: white !important;
+            }
+
+            body {
+                background: white !important;
+                color: black !important;
+            }
+
+            table {
+                border-collapse: collapse !important;
+                width: 100% !important;
+            }
+
+            th {
+                background: #f0f0f0 !important;
+                color: black !important;
+            }
+        }
+
+        @media (max-width: 1180px) {
+            .brain-command {
+                min-width: 42px;
+                max-width: 42px;
+                flex: 0 0 42px;
+            }
+            .brain-command input,
+            .brain-command button {
+                display: none;
+            }
+            .brain-status span {
+                display: none;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .sidebar {
+                width: 80px;
+            }
+
+            .sidebar .menu-item span {
+                display: none;
+            }
+
+            .sidebar .menu-categoria-header span {
+                display: none;
+            }
+
+            .sidebar .menu-item i {
+                margin-right: 0;
+                width: 100%;
+            }
+
+            .main-content {
+                margin-left: 80px;
+            }
+
+            .toggle-sidebar {
+                display: block;
+            }
+
+            .user-details {
+                display: none;
+            }
+
+            .submenu .menu-item {
+                padding-left: 20px;
+            }
+
+            .menu-categoria-header .flecha {
+                display: none;
+            }
+        }
+
+        .btn-icon {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 5px 8px;
+            margin: 0 2px;
+            border-radius: 4px;
+            text-decoration: none;
+            background: #3a3f44;
+            color: #ff6b00;
+            transition: all 0.2s;
+            font-size: 14px;
+            border: none;
+            cursor: pointer;
+        }
+
+        .btn-icon:hover {
+            background: #ff6b00;
+            color: white;
+            transform: scale(1.1);
+        }
+
+        .btn-pagina {
+            display: inline-block;
+            padding: 8px 12px;
+            border-radius: 4px;
+            background: #3a3f44;
+            color: white;
+            text-decoration: none;
+            font-size: 14px;
+            min-width: 40px;
+            text-align: center;
+        }
+
+        .btn-pagina.active {
+            background: #ff6b00;
+            color: white;
+            font-weight: bold;
+        }
+
+        .btn-pagina:hover {
+            background: #ff6b00;
+        }
+
+        .btn:active,
+        .btn-icon:active,
+        .btn-pagina:active,
+        .menu-item:active,
+        .menu-categoria-header:active,
+        .theme-toggle:active {
+            transform: scale(0.98);
+        }
+
+        .theme-toggle {
+            border: 1px solid var(--border-color);
+            background: var(--surface-soft);
+            color: var(--brand);
+            border-radius: 8px;
+            width: 38px;
+            height: 38px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: background .2s, border-color .2s, transform .2s;
+        }
+
+        .theme-toggle:hover {
+            background: var(--menu-hover-bg);
+            border-color: var(--brand);
+        }
+
+        body.theme-light .sidebar {
+            background: var(--sidebar-bg);
+            border-right-color: var(--border-color);
+            box-shadow: var(--shadow-soft);
+        }
+
+        body.theme-light .sidebar-header,
+        body.theme-light .topbar {
+            background: var(--topbar-bg);
+            border-color: var(--border-color);
+            box-shadow: var(--shadow-soft);
+        }
+
+        body.theme-light .topbar {
+            border-bottom: 2px solid var(--brand);
+        }
+
+        body.theme-light .menu-item,
+        body.theme-light .menu-categoria-header {
+            color: var(--menu-text);
+        }
+
+        body.theme-light .menu-item:hover,
+        body.theme-light .menu-categoria-header:hover,
+        body.theme-light .menu-categoria-header.open {
+            background: var(--menu-hover-bg);
+            color: var(--brand-strong);
+            border-left-color: var(--brand);
+        }
+
+        body.theme-light .submenu {
+            background: var(--submenu-bg);
+        }
+
+        body.theme-light .menu-divider,
+        body.theme-light .table-container,
+        body.theme-light .card {
+            border-color: var(--border-color);
+        }
+
+        body.theme-light .content-container {
+            background: var(--page-bg);
+        }
+
+        body.theme-light .card {
+            background: var(--surface-bg);
+            color: var(--text-color);
+            box-shadow: var(--shadow-soft);
+        }
+
+        body.theme-light th {
+            background: var(--table-head-bg);
+            color: var(--brand-strong);
+        }
+
+        body.theme-light tr:hover {
+            background: var(--table-hover-bg);
+        }
+
+        body.theme-light .form-label,
+        body.theme-light .breadcrumb,
+        body.theme-light .user-role {
+            color: var(--text-soft);
+        }
+
+        body.theme-light .form-control {
+            background: var(--input-bg);
+            border-color: var(--border-color);
+            color: var(--input-text);
+        }
+
+        body.theme-light .theme-toggle {
+            background: #fff7ed;
+            border-color: #fed7aa;
+            color: #c55200;
+        }
+
+        body.theme-light .text-muted,
+        body.theme-light small {
+            color: var(--text-soft) !important;
+        }
+
+        body.theme-light .content-container [style*="background:#20252a"],
+        body.theme-light .content-container [style*="background:#16202a"],
+        body.theme-light .content-container [style*="background:#101820"],
+        body.theme-light .content-container [style*="background:#111827"],
+        body.theme-light .content-container [style*="background: #1c1f23"],
+        body.theme-light .content-container [style*="background: #1e252b"],
+        body.theme-light .content-container [style*="background: #2b2f33"],
+        body.theme-light .content-container [style*="background: #3a3f44"] {
+            background: #ffffff !important;
+            color: var(--text-color) !important;
+            border-color: var(--border-color) !important;
+        }
+
+        body.theme-light .content-container [style*="border: 1px solid #444"],
+        body.theme-light .content-container [style*="border-bottom: 1px solid #444"],
+        body.theme-light .content-container [style*="border:1px solid #334155"],
+        body.theme-light .content-container [style*="border-top:1px solid #334155"] {
+            border-color: var(--border-color) !important;
+        }
+
+        body.theme-light .content-container [style*="color: #999"],
+        body.theme-light .content-container [style*="color: #666"],
+        body.theme-light .content-container [style*="color:#cbd5e1"],
+        body.theme-light .content-container [style*="color:#94a3b8"],
+        body.theme-light .content-container [style*="color:#9fb1c5"] {
+            color: var(--text-soft) !important;
+        }
+
+        body.theme-light .appcc-linea,
+        body.theme-light .stats div {
+            background: #ffffff !important;
+            color: var(--text-color) !important;
+            border-color: var(--border-color) !important;
+        }
+
+        body.theme-light .appcc-grid label,
+        body.theme-light .appcc-grid small,
+        body.theme-light .prod-stock-line,
+        body.theme-light .stats span {
+            color: var(--text-soft) !important;
+        }
+
+        body.theme-light .prod-badge.neutral {
+            background: #e2e8f0 !important;
+            color: #334155 !important;
+        }
+
+        body.theme-dark .content-container {
+            background: var(--page-bg);
+        }
+
+        body.theme-light a,
+        body.theme-dark a {
+            color: var(--brand);
+        }
+
+        body.theme-light .card,
+        body.theme-dark .card,
+        body.theme-light .content-container .panel,
+        body.theme-dark .content-container .panel,
+        body.theme-light .content-container [class$="-panel"],
+        body.theme-dark .content-container [class$="-panel"],
+        body.theme-light .content-container [class$="-card"],
+        body.theme-dark .content-container [class$="-card"] {
+            background: var(--surface-bg);
+            color: var(--text-color);
+            border-color: var(--border-color);
+        }
+
+        body.theme-light table,
+        body.theme-dark table {
+            color: var(--text-color);
+        }
+
+        body.theme-light td,
+        body.theme-dark td {
+            border-color: var(--border-color);
+        }
+
+        body.theme-light input,
+        body.theme-light select,
+        body.theme-light textarea,
+        body.theme-dark input,
+        body.theme-dark select,
+        body.theme-dark textarea {
+            background: var(--input-bg);
+            color: var(--input-text);
+            border-color: var(--border-color);
+            caret-color: var(--brand);
+        }
+
+        body.theme-light input::placeholder,
+        body.theme-light textarea::placeholder,
+        body.theme-dark input::placeholder,
+        body.theme-dark textarea::placeholder {
+            color: var(--text-soft);
+            opacity: 1;
+        }
+
+        body.theme-light input:focus,
+        body.theme-light select:focus,
+        body.theme-light textarea:focus,
+        body.theme-dark input:focus,
+        body.theme-dark select:focus,
+        body.theme-dark textarea:focus {
+            outline: none;
+            border-color: var(--brand);
+            box-shadow: 0 0 0 3px rgba(255, 107, 0, .16);
+        }
+
+        body.theme-light .content-container [style*="background:#20252a"],
+        body.theme-light .content-container [style*="background:#16202a"],
+        body.theme-light .content-container [style*="background:#101820"],
+        body.theme-light .content-container [style*="background:#111827"],
+        body.theme-light .content-container [style*="background:#121820"],
+        body.theme-light .content-container [style*="background:#182431"],
+        body.theme-light .content-container [style*="background:#1d2530"],
+        body.theme-light .content-container [style*="background:#252b33"],
+        body.theme-light .content-container [style*="background: #20252a"],
+        body.theme-light .content-container [style*="background: #16202a"],
+        body.theme-light .content-container [style*="background: #101820"],
+        body.theme-light .content-container [style*="background: #111827"],
+        body.theme-light .content-container [style*="background: #121820"],
+        body.theme-light .content-container [style*="background: #182431"],
+        body.theme-light .content-container [style*="background: #1d2530"],
+        body.theme-light .content-container [style*="background: #252b33"] {
+            background: var(--surface-bg) !important;
+            color: var(--text-color) !important;
+            border-color: var(--border-color) !important;
+        }
+
+        body.theme-dark .content-container [style*="background:#fff"],
+        body.theme-dark .content-container [style*="background:#ffffff"],
+        body.theme-dark .content-container [style*="background: #fff"],
+        body.theme-dark .content-container [style*="background: #ffffff"] {
+            background: var(--surface-bg) !important;
+            color: var(--text-color) !important;
+            border-color: var(--border-color) !important;
+        }
+
+        body.theme-dark .content-container [style*="color:#111"],
+        body.theme-dark .content-container [style*="color:#17202a"],
+        body.theme-dark .content-container [style*="color:#182230"],
+        body.theme-dark .content-container [style*="color: #111"],
+        body.theme-dark .content-container [style*="color: #17202a"],
+        body.theme-dark .content-container [style*="color: #182230"] {
+            color: var(--text-color) !important;
+        }
+
+        body.theme-dark .content-container [style*="color:#555"],
+        body.theme-dark .content-container [style*="color:#666"],
+        body.theme-dark .content-container [style*="color:#999"],
+        body.theme-dark .content-container [style*="color: #555"],
+        body.theme-dark .content-container [style*="color: #666"],
+        body.theme-dark .content-container [style*="color: #999"] {
+            color: var(--text-muted) !important;
+        }
+
+        body.theme-dark .topbar-right a > div,
+        body.theme-light .topbar-right a > div,
+        body.theme-dark .topbar-right span > div,
+        body.theme-light .topbar-right span > div {
+            background: var(--surface-bg) !important;
+            color: var(--text-color) !important;
+            border-color: var(--border-color) !important;
+        }
+
+        body.operational-screen {
+            display: block;
+            min-height: 100vh;
+        }
+
+        body.operational-screen .main-content {
+            margin-left: 0 !important;
+            min-height: 100vh;
+        }
+
+        body.operational-screen .content-container {
+            padding: 10px;
+            min-height: 100vh;
+        }
+
+        body.operational-screen .card {
+            margin-bottom: 10px;
+        }
+
+        .sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border: 0;
+        }
+    </style>
+</head>
+<body class="theme-light {% if modo_pantalla_operativa %}operational-screen{% endif %}">
+    {% if not modo_pantalla_operativa %}
+    <div class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <h2><img class="brand-logo" src="{{ url_for('static', filename='brand/el-raco-logo.svg') }}" alt="El Racó ERP"><span>El Racó ERP</span></h2>
+            <i class="fas fa-chevron-left" id="toggleSidebar"></i>
+        </div>
+
+        <div class="sidebar-menu">
+            {% set puede_estructura = tiene_permiso('acceso_global') or tiene_permiso('gestionar_estructura') %}
+            {% set puede_tpv = tiene_permiso('tpv_ver') or tiene_permiso('tpv_gestionar') %}
+            {% set puede_productos = tiene_permiso('productos_ver') or tiene_permiso('productos_gestionar') or tiene_permiso('proveedores_ver') or tiene_permiso('proveedores_gestionar') %}
+            {% set puede_compras = tiene_permiso('compras_solicitar') or tiene_permiso('compras_recepcionar') or tiene_permiso('compras_gestionar') or tiene_permiso('compras_negociar') or tiene_permiso('compras_validar_economico') %}
+            {% set puede_produccion = tiene_permiso('produccion_ver') or tiene_permiso('produccion_editar') %}
+            {% set puede_appcc = tiene_permiso('appcc_ver') or tiene_permiso('appcc_gestionar') %}
+            {% set puede_mantenimiento = tiene_permiso('mantenimiento_ver') or tiene_permiso('mantenimiento_gestionar') %}
+            {% set puede_rrhh_admin = tiene_permiso('rrhh_ver') or tiene_permiso('rrhh_gestionar') or tiene_permiso('ver_rrhh') %}
+            {% set puede_rrhh_cuadrantes = tiene_permiso('ver_cuadrantes') or tiene_permiso('gestionar_cuadrantes') %}
+            {% set puede_rrhh = puede_rrhh_admin or puede_rrhh_cuadrantes %}
+            {% set puede_recepcion = tiene_permiso('recepcion_ver') or tiene_permiso('recepcion_gestionar') or tiene_permiso('recepcion_facturacion') %}
+            {% set puede_animacion = tiene_permiso('animacion_ver') or tiene_permiso('animacion_gestionar') or tiene_permiso('acceso_global') %}
+            {% set puede_experiencia = tiene_permiso('experiencia_ver') or tiene_permiso('experiencia_gestionar') or tiene_permiso('recepcion_gestionar') or tiene_permiso('informes_ver') or tiene_permiso('acceso_global') %}
+            {% set puede_pisos = tiene_permiso('pisos_ver') or tiene_permiso('pisos_gestionar') %}
+            {% set puede_contabilidad = tiene_permiso('contabilidad_ver') or tiene_permiso('contabilidad_gestionar') %}
+            {% set puede_informes = tiene_permiso('informes_ver') %}
+            {% set puede_asistente = tiene_permiso('asistente_ver') or tiene_permiso('acceso_global') or tiene_permiso('informes_ver') or tiene_permiso('contabilidad_ver') or tiene_permiso('rrhh_ver') or tiene_permiso('recepcion_gestionar') %}
+            {% set puede_admin = tiene_permiso('gestionar_usuarios') or tiene_permiso('gestionar_empresas') %}
+            {% set rol_actual = (session.user_rol or '')|lower %}
+            {% set puede_ia_estrategica = tiene_permiso('ia_estrategica_ver') or tiene_permiso('acceso_global') or rol_actual in ['admin', 'administrador', 'gerente', 'director', 'direccion', 'direccion_general', 'director_operaciones', 'director_hotel', 'subdirector', 'propietario'] %}
+            {% set puede_operativa_cocina = rol_actual in ['admin', 'administrador', 'gerente', 'director', 'direccion', 'direccion_general', 'director_operaciones', 'director_hotel', 'subdirector', 'propietario', 'jefe_cocina', 'chef', 'jefe_partida', 'cocinero', 'ayudante_cocina'] %}
+            <a href="/" class="menu-item">
+                <i class="fas fa-home"></i>
+                <span>Inicio</span>
+            </a>
+            {% if tiene_permiso('acceso_global') or session.user_es_global in [1, true, '1', 'true', 'True'] %}
+            <a href="{{ url_for('demo.dashboard') }}" class="menu-item">
+                <i class="fas fa-route"></i>
+                <span>Demo guiada</span>
+            </a>
+            {% if session.user_empresa_id in [1, '1'] or session.empresa_id in [1, '1'] %}
+            <a href="{{ url_for('demo.sala_control') }}" class="menu-item">
+                <i class="fas fa-tower-observation"></i>
+                <span>Sala interna pruebas</span>
+            </a>
+            {% endif %}
+            <a href="{{ url_for('demo.simulador_centros') }}" class="menu-item">
+                <i class="fas fa-sliders-h"></i>
+                <span>Simulador por centro</span>
+            </a>
+            <a href="{{ url_for('demo.seguridad_herramientas') }}" class="menu-item">
+                <i class="fas fa-shield-halved"></i>
+                <span>Seguridad y backups</span>
+            </a>
+            {% endif %}
+            {% if puede_asistente %}
+            <div class="menu-categoria">
+                <div class="menu-categoria-header" onclick="toggleSubmenu(this)">
+                    <i class="fas fa-brain"></i>
+                    <span>Asistente IA</span>
+                    <i class="fas fa-chevron-down flecha"></i>
+                </div>
+                <div class="submenu">
+                    <a href="{{ url_for('asistente.dashboard') }}" class="menu-item sub-item"><i class="fas fa-brain"></i> Panel IA</a>
+                    {% if puede_ia_estrategica %}
+                    <div class="submenu-label">Direccion</div>
+                    <a href="{{ url_for('asistente.centro_decision') }}" class="menu-item sub-item"><i class="fas fa-compass"></i> Centro decision</a>
+                    <a href="{{ url_for('asistente.chat_estrategico') }}" class="menu-item sub-item"><i class="fas fa-comments"></i> Chat estrategico</a>
+                    <a href="{{ url_for('asistente.simulador_decision') }}" class="menu-item sub-item"><i class="fas fa-chart-line"></i> Simulador estrategico</a>
+                    <a href="{{ url_for('asistente.radar_estrategico') }}" class="menu-item sub-item"><i class="fas fa-satellite-dish"></i> Radar y mercado</a>
+                    {% endif %}
+                    <div class="submenu-label">Operacion</div>
+                    {% if puede_ia_estrategica %}
+                    <a href="{{ url_for('asistente.cerebro_operativo') }}" class="menu-item sub-item"><i class="fas fa-brain"></i> Cerebro operativo</a>
+                    {% endif %}
+                    <a href="{{ url_for('asistente.asesor_diario') }}" class="menu-item sub-item"><i class="fas fa-comments"></i> Asesor diario</a>
+                    <a href="{{ url_for('asistente.gestion_360') }}" class="menu-item sub-item"><i class="fas fa-chart-pie"></i> Gestion 360</a>
+                    <a href="{{ url_for('asistente.cocina_ia') }}" class="menu-item sub-item"><i class="fas fa-utensils"></i> IA Cocina</a>
+                    <a href="{{ url_for('buffet_ia.panel') }}" class="menu-item sub-item"><i class="fas fa-store"></i> IA montaje buffet</a>
+                    <div class="submenu-label">Datos y aprendizaje</div>
+                    <a href="{{ url_for('asistente.documentos_ia') }}" class="menu-item sub-item"><i class="fas fa-file-import"></i> Lectura documentos</a>
+                    <a href="{{ url_for('asistente.aprendizaje') }}" class="menu-item sub-item"><i class="fas fa-seedling"></i> Aprendizaje</a>
+                    <a href="{{ url_for('asistente.reportes_contenido_ia') }}" class="menu-item sub-item"><i class="fas fa-flag"></i> Reportes IA</a>
+                </div>
+            </div>
+            {% endif %}
+            <a href="{{ url_for('mantenimiento.aviso_mantenimiento') }}" class="menu-item">
+                <i class="fas fa-tools"></i>
+                <span>Aviso mantenimiento</span>
+            </a>
+
+            {% if puede_estructura %}
+            <div class="menu-categoria">
+                <div class="menu-categoria-header" onclick="toggleSubmenu(this)">
+                    <i class="fas fa-hotel"></i>
+                    <span>Establecimiento</span>
+                    <i class="fas fa-chevron-down flecha"></i>
+                </div>
+                <div class="submenu">
+                    <a href="{{ url_for('configuracion_inicial') }}" class="menu-item sub-item">
+                        <i class="fas fa-tasks"></i> Configuracion inicial
+                    </a>
+                    {% if tiene_permiso('gestionar_empresas') %}
+                    <a href="{{ url_for('empresas.listar_empresas') }}" class="menu-item sub-item">
+                        <i class="fas fa-hotel"></i> Empresas y datos fiscales
+                    </a>
+                    {% endif %}
+                    <a href="{{ url_for('rrhh.centros_trabajo') }}" class="menu-item sub-item">
+                        <i class="fas fa-map-marker-alt"></i> Centros / hoteles
+                    </a>
+                    <a href="{{ url_for('estructura_establecimiento') }}" class="menu-item sub-item">
+                        <i class="fas fa-map"></i> Bloques, plantas y zonas
+                    </a>
+                    <a href="{{ url_for('recepcion.tipos_habitacion') }}" class="menu-item sub-item">
+                        <i class="fas fa-tags"></i> Tipos habitacion
+                    </a>
+                    <a href="{{ url_for('recepcion.habitaciones') }}" class="menu-item sub-item">
+                        <i class="fas fa-bed"></i> Habitaciones
+                    </a>
+                    <a href="/departamentos" class="menu-item sub-item">
+                        <i class="fas fa-building"></i> Departamentos
+                    </a>
+                    <a href="{{ url_for('departamentos.listar_subdepartamentos') }}" class="menu-item sub-item">
+                        <i class="fas fa-diagram-project"></i> Subdepartamentos
+                    </a>
+                    <a href="{{ url_for('puntos_venta.listar_puntos_venta') }}" class="menu-item sub-item">
+                        <i class="fas fa-store"></i> Puntos de venta
+                    </a>
+                    <a href="{{ url_for('almacenes.almacenes') }}" class="menu-item sub-item">
+                        <i class="fas fa-warehouse"></i> Almacenes
+                    </a>
+                    <a href="{{ url_for('inventario.inventario') }}" class="menu-item sub-item">
+                        <i class="fas fa-clipboard-list"></i> Inventario operativo
+                    </a>
+                    <a href="{{ url_for('inventario.revista') }}" class="menu-item sub-item">
+                        <i class="fas fa-clipboard-check"></i> Revista inventario
+                    </a>
+                    <a href="{{ url_for('empresas.equipos_activos') }}" class="menu-item sub-item">
+                        <i class="fas fa-cubes"></i> Equipos / Activos
+                    </a>
+                    {% if tiene_permiso('gestionar_empresas') %}
+                    <a href="{{ url_for('empresas.configurar_etiquetas') }}" class="menu-item sub-item">
+                        <i class="fas fa-tags"></i> Etiquetas e impresoras
+                    </a>
+                    <a href="{{ url_for('empresas.dispositivos_impresion') }}" class="menu-item sub-item">
+                        <i class="fas fa-print"></i> Dispositivos impresion
+                    </a>
+                    <a href="{{ url_for('empresas.cola_impresion') }}" class="menu-item sub-item">
+                        <i class="fas fa-list-check"></i> Cola impresion
+                    </a>
+                    {% endif %}
+                    <!--
+                        <i class="fas fa-plus-circle"></i> Nuevo almacén
+                    </a>
+                    -->
+                </div>
+            </div>
+            {% endif %}
+
+            <div class="menu-divider"></div>
+
+            {% if puede_tpv %}
+            <div class="menu-categoria">
+                <div class="menu-categoria-header" onclick="toggleSubmenu(this)">
+                    <i class="fas fa-cash-register"></i>
+                    <span>TPV</span>
+                    <i class="fas fa-chevron-down flecha"></i>
+                </div>
+                <div class="submenu">
+                    <a href="{{ url_for('tpv.dashboard') }}" class="menu-item sub-item">
+                        <i class="fas fa-cash-register"></i> Panel TPV
+                    </a>
+                    <a href="{{ url_for('tpv.arranque') }}" class="menu-item sub-item">
+                        <i class="fas fa-power-off"></i> Arranque terminal
+                    </a>
+                    <a href="{{ url_for('tpv.terminales') }}" class="menu-item sub-item">
+                        <i class="fas fa-desktop"></i> Terminales y perifericos
+                    </a>
+                    <a href="{{ url_for('tpv.catalogo') }}" class="menu-item sub-item">
+                        <i class="fas fa-th-large"></i> Catalogo por punto
+                    </a>
+                    <a href="{{ url_for('tpv.acceso') }}" class="menu-item sub-item">
+                        <i class="fas fa-door-open"></i> Acceso rapido
+                    </a>
+                    <a href="{{ url_for('tpv.buffet') }}" class="menu-item sub-item">
+                        <i class="fas fa-utensils"></i> Control buffet
+                    </a>
+                    <a href="{{ url_for('tpv.cuentas') }}" class="menu-item sub-item">
+                        <i class="fas fa-receipt"></i> Cuentas / tickets
+                    </a>
+                    <a href="{{ url_for('tpv.pantalla') }}" class="menu-item sub-item">
+                        <i class="fas fa-tv"></i> Pantalla cocina/barra
+                    </a>
+                    <a href="{{ url_for('puntos_venta.listar_puntos_venta') }}" class="menu-item sub-item">
+                        <i class="fas fa-store"></i> Puntos de venta
+                    </a>
+                </div>
+            </div>
+            {% endif %}
+
+            {% if puede_productos %}
+            <div class="menu-categoria">
+                <div class="menu-categoria-header" onclick="toggleSubmenu(this)">
+                    <i class="fas fa-box"></i>
+                    <span>Productos</span>
+                    <i class="fas fa-chevron-down flecha"></i>
+                </div>
+                <div class="submenu">
+                    <a href="/productos" class="menu-item sub-item"><i class="fas fa-box"></i> Productos</a>
+                    <a href="/proveedores" class="menu-item sub-item"><i class="fas fa-truck"></i> Proveedores</a>
+                </div>
+            </div>
+            {% endif %}
+
+            {% if puede_compras %}
+            <div class="menu-categoria">
+                <div class="menu-categoria-header" onclick="toggleSubmenu(this)">
+                    <i class="fas fa-shopping-cart"></i>
+                    <span>Compras</span>
+                    <i class="fas fa-chevron-down flecha"></i>
+                </div>
+                <div class="submenu">
+                    <div class="submenu-label">Planificar compra</div>
+                    <a href="/compras/pedidos" class="menu-item sub-item"><i class="fas fa-clipboard-list"></i> Pedidos</a>
+                    {% if tiene_permiso('compras_solicitar') or tiene_permiso('compras_gestionar') %}
+                    <a href="{{ url_for('compras.necesidades_compra') }}" class="menu-item sub-item"><i class="fas fa-clipboard-check"></i> Necesidades</a>
+                    <a href="/compras/pedidos/nuevo-tipo-a" class="menu-item sub-item"><i class="fas fa-plus-circle"></i> Pedido por lista</a>
+                    <a href="/compras/pedidos/nuevo-tipo-b" class="menu-item sub-item"><i class="fas fa-plus-circle"></i> Pedido por proveedor</a>
+                    {% endif %}
+                    {% if tiene_permiso('compras_recepcionar') or tiene_permiso('compras_gestionar') %}
+                    <div class="submenu-label">Recepcionar</div>
+                    <a href="/compras/recepcion" class="menu-item sub-item"><i class="fas fa-truck-loading"></i> Recepciones</a>
+                    <a href="{{ url_for('compras.recepcion_directa', rapida=1, tablet=1) }}" class="menu-item sub-item"><i class="fas fa-receipt"></i> Compra rapida ticket</a>
+                    {% endif %}
+                    {% if tiene_permiso('compras_recepcionar') or tiene_permiso('compras_validar_economico') or tiene_permiso('compras_gestionar') %}
+                    <div class="submenu-label">Control</div>
+                    <a href="/compras/recepciones/validar" class="menu-item sub-item"><i class="fas fa-check"></i> Control recepciones</a>
+                    <a href="{{ url_for('compras.incidencias_compras') }}" class="menu-item sub-item"><i class="fas fa-exclamation-triangle"></i> Incidencias compras</a>
+                    <a href="{{ url_for('compras.auditoria_compras') }}" class="menu-item sub-item"><i class="fas fa-history"></i> Auditoria compras</a>
+                    {% endif %}
+                    {% if tiene_permiso('compras_validar_economico') or tiene_permiso('compras_gestionar') %}
+                    <a href="{{ url_for('compras.historico_precios') }}" class="menu-item sub-item"><i class="fas fa-chart-line"></i> Historico precios</a>
+                    {% endif %}
+                    {% if tiene_permiso('compras_gestionar') %}
+                    <div class="submenu-label">Stock e inventario</div>
+                    <a href="/traspasos" class="menu-item sub-item"><i class="fas fa-exchange-alt"></i> Traspasos</a>
+                    <a href="/stock" class="menu-item sub-item"><i class="fas fa-chart-bar"></i> Stock</a>
+                    <a href="{{ url_for('inventario.inventario') }}" class="menu-item sub-item"><i class="fas fa-clipboard-list"></i> Inventario operativo</a>
+                    <a href="{{ url_for('inventario.revista') }}" class="menu-item sub-item"><i class="fas fa-clipboard-check"></i> Revista inventario</a>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+
+            {% if puede_appcc or puede_tpv or puede_produccion %}
+            <div class="menu-categoria">
+    <div class="menu-categoria-header" onclick="toggleSubmenu(this)">
+        <i class="fas fa-calendar"></i>
+        <span>Planificación</span>
+        <i class="fas fa-chevron-down flecha"></i>
+    </div>
+    <div class="submenu">
+        <a href="/recetas" class="menu-item sub-item"><i class="fas fa-utensil-spoon"></i> Recetas</a>
+        <a href="/menus" class="menu-item sub-item">
+            <i class="fas fa-calendar-day"></i> Menús diarios
+        </a>
+        <a href="/menus/fijos" class="menu-item sub-item">
+            <i class="fas fa-bookmark"></i> Menús fijos
+        </a>
+        {% if puede_operativa_cocina %}
+        <a href="{{ url_for('recetas.biblioteca_recetas') }}" class="menu-item sub-item">
+            <i class="fas fa-book-open"></i> Biblioteca recetas
+        </a>
+        <a href="{{ url_for('menus.importar_menus_centro') }}" class="menu-item sub-item">
+            <i class="fas fa-file-import"></i> Importar menus
+        </a>
+        <a href="/menus/semanal" class="menu-item sub-item">
+            <i class="fas fa-calendar-week"></i> Vista semanal
+        </a>
+        <a href="/menus/tipos" class="menu-item sub-item">
+            <i class="fas fa-tags"></i> Tipos de menú
+        </a>
+        {% endif %}
+    </div>
+</div>
+            {% endif %}
+
+            {% if puede_produccion and puede_operativa_cocina %}
+            <div class="menu-categoria">
+                <div class="menu-categoria-header" onclick="toggleSubmenu(this)">
+                    <i class="fas fa-fire"></i>
+                    <span>Producción</span>
+                    <i class="fas fa-chevron-down flecha"></i>
+                </div>
+                <div class="submenu">
+                    <a href="/produccion" class="menu-item sub-item"><i class="fas fa-tasks"></i> Partes de producción</a>
+                    <a href="{{ url_for('produccion.terminales_cocina') }}" class="menu-item sub-item"><i class="fas fa-tablet-alt"></i> Terminales cocina</a>
+                    <a href="/produccion/departamentos" class="menu-item sub-item"><i class="fas fa-building"></i> Por departamentos</a>
+                    <a href="/produccion/planificar" class="menu-item sub-item"><i class="fas fa-calendar-alt"></i> Planificar desde menús</a>
+                    <a href="{{ url_for('buffet_ia.panel') }}" class="menu-item sub-item"><i class="fas fa-store"></i> Montaje buffet IA</a>
+                    <a href="{{ url_for('produccion.necesidades_planificacion') }}" class="menu-item sub-item"><i class="fas fa-clipboard-check"></i> Necesidades</a>
+                    <a href="{{ url_for('lotes.panel_carnes_pescados') }}" class="menu-item sub-item"><i class="fas fa-snowflake"></i> Congelados produccion</a>
+                    <a href="/produccion/mermas" class="menu-item sub-item"><i class="fas fa-trash-alt"></i> Mermas</a>
+                    <a href="{{ url_for('produccion.vista_semanal_produccion') }}" class="menu-item sub-item">
+                        <i class="fas fa-calendar-week"></i> Planificación semanal
+                    </a>
+                </div>
+            </div>
+            {% endif %}
+
+            {% if puede_appcc %}
+            <div class="menu-categoria">
+                <div class="menu-categoria-header" onclick="toggleSubmenu(this)">
+                    <i class="fas fa-temperature-high"></i>
+                    <span>APPCC</span>
+                    <i class="fas fa-chevron-down flecha"></i>
+                </div>
+                <div class="submenu">
+                    <a href="/appcc" class="menu-item sub-item"><i class="fas fa-chart-line"></i> Dashboard</a>
+                    <a href="{{ url_for('appcc.cierre_diario_appcc') }}" class="menu-item sub-item"><i class="fas fa-check-circle"></i> Cierre diario</a>
+                    <a href="{{ url_for('appcc.plan_appcc') }}" class="menu-item sub-item"><i class="fas fa-shield-alt"></i> Plan APPCC</a>
+                    <a href="{{ url_for('appcc.operativa_appcc') }}" class="menu-item sub-item"><i class="fas fa-clipboard-list"></i> Registros operativa</a>
+                    <a href="/appcc/equipos" class="menu-item sub-item"><i class="fas fa-thermometer-half"></i> Equipos</a>
+                    <a href="/appcc/limpieza" class="menu-item sub-item"><i class="fas fa-broom"></i> Limpieza</a>
+                    <a href="/appcc/caducidades" class="menu-item sub-item"><i class="fas fa-clock"></i> Caducidades</a>
+                    <a href="/lotes" class="menu-item sub-item"><i class="fas fa-boxes"></i> Lotes y trazabilidad</a>
+                    {% if puede_operativa_cocina %}
+                    <a href="{{ url_for('appcc.alertas_descongelados_appcc') }}" class="menu-item sub-item">
+                        <i class="fas fa-bell"></i> Alertas descongelado
+                        <span class="badge-alerta" id="alerta-count" style="display: none;">0</span>
+                    </a>
+                    <a href="{{ url_for('lotes.panel_carnes_pescados') }}" class="menu-item sub-item">
+                        <i class="fas fa-snowflake"></i> Operativa congelados
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+
+            {% if puede_mantenimiento %}
+            <div class="menu-categoria">
+                <div class="menu-categoria-header" onclick="toggleSubmenu(this)">
+                    <i class="fas fa-wrench"></i>
+                    <span>Mantenimiento</span>
+                    <i class="fas fa-chevron-down flecha"></i>
+                </div>
+                <div class="submenu">
+                    <a href="/mantenimiento" class="menu-item sub-item"><i class="fas fa-chart-pie"></i> Dashboard</a>
+                    <a href="{{ url_for('mantenimiento.aviso_mantenimiento') }}" class="menu-item sub-item"><i class="fas fa-tools"></i> Aviso rapido</a>
+                    <a href="/mantenimiento/equipos" class="menu-item sub-item"><i class="fas fa-tools"></i> Equipos</a>
+                    <a href="/mantenimiento/ordenes" class="menu-item sub-item"><i class="fas fa-clipboard-list"></i> Órdenes</a>
+                    <a href="/mantenimiento/repuestos" class="menu-item sub-item"><i class="fas fa-box"></i> Repuestos</a>
+                    <a href="/mantenimiento/preventivo" class="menu-item sub-item"><i class="fas fa-calendar-alt"></i> Preventivo</a>
+                </div>
+            </div>
+            {% endif %}
+
+            {% if puede_rrhh or session.user_rol in ['kiosco', 'tablet', 'fichaje', 'empleado'] %}
+    <div class="menu-categoria">
+                <div class="menu-categoria-header" onclick="toggleSubmenu(this)">
+                    <i class="fas fa-users"></i>
+                    <span>RRHH</span>
+                    <i class="fas fa-chevron-down flecha"></i>
+                </div>
+                <div class="submenu">
+                    {% if session.user_rol in ['kiosco', 'tablet', 'fichaje'] %}
+                    <a href="{{ url_for('rrhh.kiosco_fichaje') }}" class="menu-item sub-item">
+                        <i class="fas fa-tablet-alt"></i> Tablet fichaje
+                    </a>
+                    {% elif session.user_rol == 'empleado' %}
+                    <a href="{{ url_for('rrhh.portal_empleado') }}" class="menu-item sub-item">
+                        <i class="fas fa-fingerprint"></i> Mi jornada
+                    </a>
+                    {% else %}
+                    {% if puede_rrhh_admin %}
+                    <div class="submenu-label">Gestion de personas</div>
+                    <a href="{{ url_for('rrhh.panel_rrhh') }}" class="menu-item sub-item">
+                        <i class="fas fa-chart-line"></i> Panel RRHH
+                    </a>
+                    <a href="{{ url_for('rrhh.pendientes_rrhh') }}" class="menu-item sub-item">
+                        <i class="fas fa-inbox"></i> Pendientes RRHH
+                        {% if rrhh_pendientes_menu.total %}
+                        <span class="badge-alerta">{{ rrhh_pendientes_menu.total }}</span>
+                        {% endif %}
+                    </a>
+                    <a href="{{ url_for('rrhh.seleccion') }}" class="menu-item sub-item">
+                        <i class="fas fa-user-check"></i> Seleccion
+                    </a>
+                    <a href="{{ url_for('rrhh.lista_empleados') }}" class="menu-item sub-item">
+                        <i class="fas fa-user"></i> Personal
+                    </a>
+                    <a href="{{ url_for('rrhh.nuevo_empleado') }}" class="menu-item sub-item">
+                        <i class="fas fa-user-plus"></i> Nuevo empleado
+                    </a>
+                    <a href="{{ url_for('rrhh.lista_categorias') }}" class="menu-item sub-item">
+                        <i class="fas fa-id-badge"></i> Categorías laborales
+                    </a>
+                    <a href="{{ url_for('rrhh.lista_roles') }}" class="menu-item sub-item">
+                        <i class="fas fa-user-shield"></i> Roles y permisos
+                    </a>
+                    {% endif %}
+                    {% if puede_rrhh_cuadrantes or puede_rrhh_admin %}
+                    <div class="submenu-label">Cuadrantes y turnos</div>
+                    <a href="{{ url_for('rrhh.cuadrante_real') }}" class="menu-item sub-item">
+                        <i class="fas fa-calendar-week"></i> Cuadrante real
+                    </a>
+                    <a href="{{ url_for('rrhh.cuadrantes') }}" class="menu-item sub-item">
+                        <i class="fas fa-calendar-alt"></i> Cuadrante simple
+                    </a>
+                    {% endif %}
+                    {% if puede_rrhh_admin %}
+                    <div class="submenu-label">Estructura y necesidades</div>
+                    <a href="{{ url_for('rrhh.centros_trabajo') }}" class="menu-item sub-item">
+                        <i class="fas fa-hotel"></i> Centros
+                    </a>
+                    <a href="{{ url_for('rrhh.lista_puestos_operativos') }}" class="menu-item sub-item">
+                        <i class="fas fa-briefcase"></i> Puestos operativos
+                    </a>
+                    <a href="{{ url_for('rrhh.necesidades_operativas') }}" class="menu-item sub-item">
+                        <i class="fas fa-clipboard-list"></i> Necesidades operativas
+                    </a>
+                    <a href="{{ url_for('rrhh.plantilla_operativa') }}" class="menu-item sub-item">
+                        <i class="fas fa-users-cog"></i> Plantilla operativa
+                    </a>
+                    <a href="{{ url_for('rrhh.vacaciones') }}" class="menu-item sub-item">
+                        <i class="fas fa-user-clock"></i> Ausencias y permisos
+                    </a>
+                    <a href="{{ url_for('rrhh.alertas_rrhh') }}" class="menu-item sub-item">
+                        <i class="fas fa-bell"></i> Alertas RRHH
+                        {% if rrhh_alertas_admin_menu.total %}
+                        <span class="badge-alerta">{{ rrhh_alertas_admin_menu.total }}</span>
+                        {% endif %}
+                    </a>
+                    <div class="submenu-label">Prevencion y seguridad laboral</div>
+                    <a href="{{ url_for('rrhh.prl_operativa') }}" class="menu-item sub-item">
+                        <i class="fas fa-hard-hat"></i> PRL operativa
+                    </a>
+                    <div class="submenu-label">Fichajes y control</div>
+                    <a href="{{ url_for('rrhh.laboratorio_fichajes') }}" class="menu-item sub-item">
+                        <i class="fas fa-vial-circle-check"></i> Laboratorio fichajes
+                    </a>
+                    <a href="{{ url_for('rrhh.lista_fichajes') }}" class="menu-item sub-item">
+                        <i class="fas fa-clock"></i> Fichajes
+                    </a>
+                    <a href="{{ url_for('rrhh.jornada_mensual') }}" class="menu-item sub-item">
+                        <i class="fas fa-file-alt"></i> Jornada mensual
+                    </a>
+                    <a href="{{ url_for('rrhh.auditoria_portal_empleado') }}" class="menu-item sub-item">
+                        <i class="fas fa-shield-alt"></i> Auditoria portal
+                    </a>
+                    <a href="{{ url_for('rrhh.lista_turnos') }}" class="menu-item sub-item">
+                        <i class="fas fa-calendar-check"></i> Turnos
+                    </a>
+                    <div class="submenu-label">Nomina y documentacion</div>
+                    <a href="{{ url_for('rrhh.lista_prenomina') }}" class="menu-item sub-item">
+                        <i class="fas fa-calculator"></i> Pre-nómina
+                    </a>
+                    <a href="{{ url_for('rrhh.coste_personal') }}" class="menu-item sub-item">
+                        <i class="fas fa-chart-pie"></i> Coste de personal
+                    </a>
+                    <a href="{{ url_for('rrhh.lista_variables_prenomina') }}" class="menu-item sub-item">
+                        <i class="fas fa-plus-minus"></i> Variables pre-nómina
+                    </a>
+                    <a href="{{ url_for('rrhh.lista_embargos_rrhh') }}" class="menu-item sub-item">
+                        <i class="fas fa-balance-scale"></i> Embargos
+                    </a>
+                    <a href="{{ url_for('rrhh.lista_contratos') }}" class="menu-item sub-item">
+                        <i class="fas fa-file-contract"></i> Contratos
+                    </a>
+                    <a href="{{ url_for('rrhh.lista_nominas') }}" class="menu-item sub-item">
+                        <i class="fas fa-file-invoice-dollar"></i> Nóminas
+                    </a>
+                    <a href="{{ url_for('rrhh.lista_documentos') }}" class="menu-item sub-item">
+                        <i class="fas fa-folder-open"></i> Documentación RRHH
+                    </a>
+                    <a href="{{ url_for('rrhh.seguridad_social_ficheros') }}" class="menu-item sub-item">
+                        <i class="fas fa-share-alt"></i> Seguridad Social
+                    </a>
+                    <a href="{{ url_for('rrhh.importar_excel_rrhh') }}" class="menu-item sub-item">
+                        <i class="fas fa-file-excel"></i> Importar Excel RRHH
+                    </a>
+                    <a href="{{ url_for('rrhh.historial_rrhh') }}" class="menu-item sub-item">
+                        <i class="fas fa-history"></i> Historial RRHH
+                    </a>
+                    {% endif %}
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+
+            {% if puede_recepcion %}
+    <div class="menu-categoria">
+    <div class="menu-categoria-header" onclick="toggleSubmenu(this)">
+        <i class="fas fa-bed"></i>
+        <span>Recepción</span>
+        <i class="fas fa-chevron-down flecha"></i>
+    </div>
+    <div class="submenu">
+        <div class="submenu-label">Operacion diaria</div>
+        <a href="{{ url_for('recepcion.dashboard') }}" class="menu-item sub-item"><i class="fas fa-concierge-bell"></i> Panel recepcion</a>
+        <a href="{{ url_for('recepcion.reservas') }}" class="menu-item sub-item"><i class="fas fa-calendar-check"></i> Reservas</a>
+        <a href="{{ url_for('recepcion.reserva_form') }}" class="menu-item sub-item"><i class="fas fa-plus-circle"></i> Nueva reserva</a>
+        <a href="{{ url_for('recepcion.ocupacion') }}" class="menu-item sub-item"><i class="fas fa-th"></i> Ocupacion</a>
+        <a href="{{ url_for('recepcion.overbooking_control') }}" class="menu-item sub-item"><i class="fas fa-shield-halved"></i> Control overbooking</a>
+        <a href="{{ url_for('recepcion.prevision_servicios') }}" class="menu-item sub-item"><i class="fas fa-utensils"></i> Prevision cocina</a>
+        <a href="{{ url_for('recepcion.restaurante_reservas') }}" class="menu-item sub-item"><i class="fas fa-chair"></i> Restaurante</a>
+        <div class="submenu-label">Cliente y documentacion</div>
+        <a href="{{ url_for('recepcion.registro_viajeros') }}" class="menu-item sub-item"><i class="fas fa-id-card"></i> Registro viajeros</a>
+        <a href="{{ url_for('recepcion.textos_checkin') }}" class="menu-item sub-item"><i class="fas fa-language"></i> Textos check-in</a>
+        <a href="{{ url_for('recepcion.facturas') }}" class="menu-item sub-item"><i class="fas fa-file-invoice-dollar"></i> Facturacion</a>
+        <a href="{{ url_for('recepcion.caja_recepcion') }}" class="menu-item sub-item"><i class="fas fa-cash-register"></i> Caja</a>
+        <a href="{{ url_for('recepcion.impuestos') }}" class="menu-item sub-item"><i class="fas fa-percent"></i> Impuestos</a>
+        <a href="{{ url_for('recepcion.fiscalidad') }}" class="menu-item sub-item"><i class="fas fa-balance-scale"></i> Fiscalidad</a>
+        <div class="submenu-label">Configuracion comercial</div>
+        <a href="{{ url_for('recepcion.canales_reserva') }}" class="menu-item sub-item"><i class="fas fa-cloud"></i> Canales</a>
+        <a href="{{ url_for('recepcion.avisos') }}" class="menu-item sub-item"><i class="fas fa-bell"></i> Avisos</a>
+        <a href="{{ url_for('recepcion.bloqueos') }}" class="menu-item sub-item"><i class="fas fa-ban"></i> Bloqueos</a>
+        <a href="{{ url_for('recepcion.regimenes') }}" class="menu-item sub-item"><i class="fas fa-clipboard-list"></i> Regimenes</a>
+        <a href="{{ url_for('recepcion.tarifas') }}" class="menu-item sub-item"><i class="fas fa-euro-sign"></i> Tarifas</a>
+        <a href="{{ url_for('recepcion.reglas_precio') }}" class="menu-item sub-item"><i class="fas fa-chart-line"></i> Reglas precio</a>
+        <a href="{{ url_for('recepcion.tipos_habitacion') }}" class="menu-item sub-item"><i class="fas fa-tags"></i> Tipos habitacion</a>
+        <a href="{{ url_for('recepcion.habitaciones') }}" class="menu-item sub-item"><i class="fas fa-bed"></i> Habitaciones</a>
+    </div>
+</div>
+            {% endif %}
+
+            {% if puede_experiencia %}
+    <div class="menu-categoria">
+    <div class="menu-categoria-header" onclick="toggleSubmenu(this)">
+        <i class="fas fa-user-tie"></i>
+        <span>Experiencia cliente</span>
+        <i class="fas fa-chevron-down flecha"></i>
+    </div>
+    <div class="submenu">
+        <a href="{{ url_for('experiencia.dashboard') }}" class="menu-item sub-item"><i class="fas fa-chart-line"></i> Panel RRPP</a>
+        <a href="{{ url_for('experiencia.quejas') }}" class="menu-item sub-item"><i class="fas fa-comments"></i> Quejas y seguimiento</a>
+        <a href="{{ url_for('experiencia.nueva_queja') }}" class="menu-item sub-item"><i class="fas fa-plus-circle"></i> Nueva queja</a>
+        <a href="{{ url_for('experiencia.cliente_360') }}" class="menu-item sub-item"><i class="fas fa-address-card"></i> Cliente 360</a>
+        <a href="{{ url_for('experiencia.publico_cliente') }}" class="menu-item sub-item" target="_blank"><i class="fas fa-link"></i> Enlace cliente</a>
+    </div>
+</div>
+            {% endif %}
+
+            {% if puede_animacion %}
+    <div class="menu-categoria">
+    <div class="menu-categoria-header" onclick="toggleSubmenu(this)">
+        <i class="fas fa-star"></i>
+        <span>Animacion</span>
+        <i class="fas fa-chevron-down flecha"></i>
+    </div>
+    <div class="submenu">
+        <a href="{{ url_for('animacion.dashboard') }}" class="menu-item sub-item"><i class="fas fa-calendar-alt"></i> Agenda y asistencia</a>
+        {% if tiene_permiso('animacion_gestionar') %}
+        <a href="{{ url_for('animacion.nueva_actividad') }}" class="menu-item sub-item"><i class="fas fa-plus-circle"></i> Nueva actividad</a>
+        {% endif %}
+    </div>
+</div>
+            {% endif %}
+
+            {% if puede_pisos %}
+    <div class="menu-categoria">
+    <div class="menu-categoria-header" onclick="toggleSubmenu(this)">
+        <i class="fas fa-broom"></i>
+        <span>Pisos</span>
+        <i class="fas fa-chevron-down flecha"></i>
+    </div>
+    <div class="submenu">
+        <a href="{{ url_for('pisos.habitaciones') }}" class="menu-item sub-item"><i class="fas fa-bed"></i> Habitaciones</a>
+        <a href="{{ url_for('pisos.panel') }}" class="menu-item sub-item"><i class="fas fa-chart-line"></i> Panel gobernanta</a>
+        <a href="{{ url_for('pisos.dashboard') }}" class="menu-item sub-item"><i class="fas fa-list"></i> Partes de limpieza</a>
+        <a href="{{ url_for('pisos.asignacion') }}" class="menu-item sub-item"><i class="fas fa-user-check"></i> Asignacion</a>
+        <a href="{{ url_for('pisos.tablet') }}" class="menu-item sub-item"><i class="fas fa-tablet-alt"></i> Tablet</a>
+        <a href="{{ url_for('pisos.configuracion') }}" class="menu-item sub-item"><i class="fas fa-cog"></i> Reglas y zonas</a>
+        <a href="{{ url_for('pisos.productos') }}" class="menu-item sub-item"><i class="fas fa-boxes"></i> Stock pisos</a>
+        <a href="{{ url_for('pisos.consumos') }}" class="menu-item sub-item"><i class="fas fa-clipboard-list"></i> Consumos</a>
+        <a href="{{ url_for('pisos.pedidos') }}" class="menu-item sub-item"><i class="fas fa-shopping-cart"></i> Pedidos internos</a>
+        <a href="{{ url_for('pisos.objetos_perdidos') }}" class="menu-item sub-item"><i class="fas fa-key"></i> Objetos perdidos</a>
+        <a href="{{ url_for('pisos.lenceria') }}" class="menu-item sub-item"><i class="fas fa-tshirt"></i> Lenceria</a>
+        <a href="{{ url_for('pisos.lavanderia') }}" class="menu-item sub-item"><i class="fas fa-soap"></i> Lavanderia</a>
+        <a href="{{ url_for('pisos.trazabilidad') }}" class="menu-item sub-item"><i class="fas fa-history"></i> Trazabilidad</a>
+    </div>
+</div>
+            {% endif %}
+
+            {% if puede_contabilidad %}
+            <div class="menu-categoria">
+                <div class="menu-categoria-header" onclick="toggleSubmenu(this)">
+                    <i class="fas fa-balance-scale"></i>
+                    <span>Control economico</span>
+                    <i class="fas fa-chevron-down flecha"></i>
+                </div>
+                <div class="submenu">
+                    <a href="{{ url_for('contabilidad.dashboard') }}" class="menu-item sub-item">
+                        <i class="fas fa-chart-line"></i> Panel economico
+                    </a>
+                    <a href="{{ url_for('contabilidad.documentos') }}" class="menu-item sub-item">
+                        <i class="fas fa-file-invoice-dollar"></i> Documentos
+                    </a>
+                    <a href="{{ url_for('contabilidad.nueva_factura_proveedor') }}" class="menu-item sub-item">
+                        <i class="fas fa-file-signature"></i> Factura proveedor
+                    </a>
+                    <a href="{{ url_for('contabilidad.recurrentes') }}" class="menu-item sub-item">
+                        <i class="fas fa-calendar-check"></i> Recurrentes
+                    </a>
+                    <a href="{{ url_for('contabilidad.presupuesto') }}" class="menu-item sub-item">
+                        <i class="fas fa-calculator"></i> Presupuesto operativo
+                    </a>
+                    <a href="{{ url_for('contabilidad.explotacion') }}" class="menu-item sub-item">
+                        <i class="fas fa-chart-pie"></i> Explotacion
+                    </a>
+                    <a href="{{ url_for('contabilidad.pagos') }}" class="menu-item sub-item">
+                        <i class="fas fa-cash-register"></i> Pagos y caja
+                    </a>
+                    <a href="{{ url_for('pagos.dashboard') }}" class="menu-item sub-item">
+                        <i class="fas fa-credit-card"></i> Pasarelas
+                    </a>
+                    <a href="{{ url_for('contabilidad.impuestos') }}" class="menu-item sub-item">
+                        <i class="fas fa-percent"></i> Impuestos
+                    </a>
+                    <a href="{{ url_for('contabilidad.nuevo_documento') }}" class="menu-item sub-item">
+                        <i class="fas fa-plus-circle"></i> Nuevo documento
+                    </a>
+                    <a href="{{ url_for('contabilidad.terceros') }}" class="menu-item sub-item">
+                        <i class="fas fa-address-book"></i> Terceros
+                    </a>
+                    <a href="{{ url_for('contabilidad.cuentas') }}" class="menu-item sub-item">
+                        <i class="fas fa-list-ol"></i> Cuentas sugeridas
+                    </a>
+                </div>
+            </div>
+            {% endif %}
+
+            {% if puede_informes %}
+            <div class="menu-categoria">
+                <div class="menu-categoria-header" onclick="toggleSubmenu(this)">
+                    <i class="fas fa-chart-pie"></i>
+                    <span>Informes</span>
+                    <i class="fas fa-chevron-down flecha"></i>
+                </div>
+                <div class="submenu">
+                    <div class="submenu-label">Decision</div>
+                    <a href="/informes/ejecutivo" class="menu-item sub-item"><i class="fas fa-chart-line"></i> Ejecutivo</a>
+                    <div class="submenu-label">Detalle operativo</div>
+                    <a href="/informes/compras" class="menu-item sub-item"><i class="fas fa-shopping-cart"></i> Compras</a>
+                    <a href="/informes/stock" class="menu-item sub-item"><i class="fas fa-boxes"></i> Stock</a>
+                    <a href="/informes/produccion" class="menu-item sub-item"><i class="fas fa-fire"></i> Producción</a>
+                    <div class="submenu-label">Seguimiento</div>
+                    <a href="/incidencias" class="menu-item sub-item"><i class="fas fa-exclamation-triangle"></i> Incidencias</a>
+                    <a href="/importar" class="menu-item sub-item"><i class="fas fa-file-import"></i> Importar</a>
+                </div>
+            </div>
+            {% endif %}
+
+            {% if puede_admin %}
+            <div class="menu-categoria">
+                <div class="menu-categoria-header" onclick="toggleSubmenu(this)">
+                    <i class="fas fa-cogs"></i>
+                    <span>Administración</span>
+                    <i class="fas fa-chevron-down flecha"></i>
+                </div>
+                <div class="submenu">
+                    {% if tiene_permiso('gestionar_empresas') %}
+                    <a href="{{ url_for('empresas.listar_empresas') }}" class="menu-item sub-item">
+                        <i class="fas fa-building"></i> Empresas
+                    </a>
+                    {% endif %}
+                    {% if tiene_permiso('gestionar_usuarios') %}
+                    <a href="{{ url_for('auth.listar_usuarios') }}" class="menu-item sub-item">
+                        <i class="fas fa-users-cog"></i> Usuarios
+                    </a>
+                    <a href="{{ url_for('auth.auditoria_permisos') }}" class="menu-item sub-item">
+                        <i class="fas fa-user-shield"></i> Auditoria permisos
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+
+            <div class="menu-divider"></div>
+
+            <a href="{{ url_for('auth.perfil') }}" class="menu-item">
+                <i class="fas fa-user"></i>
+                <span>Mi Perfil</span>
+            </a>
+            <a href="{{ url_for('auth.logout') }}" class="menu-item">
+                <i class="fas fa-sign-out-alt"></i>
+                <span>Cerrar sesión</span>
+            </a>
+        </div>
+    </div>
+    {% endif %}
+
+    <div class="main-content" id="mainContent">
+        {% if not modo_pantalla_operativa %}
+        <div class="topbar">
+            <div class="topbar-left">
+                <i class="fas fa-bars toggle-sidebar" id="mobileToggle"></i>
+                <div class="breadcrumb">
+                    <a href="/">Inicio</a> / {% block breadcrumb %}{% endblock %}
+                </div>
+            </div>
+
+            <div class="topbar-right">
+                {% if puede_asistente and puede_ia_estrategica %}
+                <form class="brain-command" method="post" action="{{ url_for('asistente.cerebro_operativo') }}">
+                    <input id="brainCommandInput" name="peticion" placeholder="Pide al cerebro operativo..." aria-label="Pedir al cerebro operativo">
+                    <input type="hidden" name="origen_pantalla" value="{{ request.path }}">
+                    <button type="submit" title="Enviar al cerebro operativo" aria-label="Enviar al cerebro operativo"><i class="fas fa-paper-plane"></i></button>
+                    <a href="{{ url_for('asistente.cerebro_operativo') }}" title="Abrir cerebro operativo" aria-label="Abrir cerebro operativo"><i class="fas fa-brain"></i></a>
+                </form>
+                <a id="brainStatus" class="brain-status" href="{{ url_for('asistente.cerebro_operativo', peticion='Revisa esta pantalla', origen_pantalla=request.path) }}" title="Salud operativa IA">
+                    <i class="fas fa-brain"></i> <span>IA</span>
+                </a>
+                {% endif %}
+                {% if empresas_disponibles|length > 1 %}
+                <form method="POST" action="{{ url_for('auth.cambiar_empresa') }}" style="margin:0;display:flex;align-items:center;">
+                    <label for="empresaSelector" class="sr-only">Empresa</label>
+                    <select id="empresaSelector" name="empresa_id" onchange="this.form.submit()" title="Cambiar empresa activa" style="height:34px;border:1px solid var(--border-color);border-radius:999px;padding:0 28px 0 12px;background:var(--surface-bg);color:var(--text-color);font-size:13px;max-width:190px;">
+                        {% for empresa in empresas_disponibles %}
+                        <option value="{{ empresa.id }}" {% if session.get('user_empresa_id') == empresa.id %}selected{% endif %}>{{ empresa.nombre }}</option>
+                        {% endfor %}
+                    </select>
+                </form>
+                {% elif empresa_activa %}
+                <div style="border:1px solid var(--border-color);border-radius:999px;padding:7px 11px;background:var(--surface-bg);font-size:13px;">
+                    <i class="fas fa-layer-group"></i> {{ empresa_activa.nombre }}
+                </div>
+                {% endif %}
+                {% if session.get('user_centro_bloqueado') %}
+                <span style="text-decoration:none;color:inherit;">
+                {% else %}
+                <a href="{{ url_for('rrhh.centro_empresa_general') }}" style="text-decoration:none;color:inherit;">
+                {% endif %}
+                    <div style="border:1px solid #cbd5e1;border-radius:999px;padding:7px 11px;background:#fff;font-size:13px;">
+                        <i class="fas fa-building"></i>
+                        {% if centro_activo %}
+                            {{ centro_activo.nombre }}
+                        {% else %}
+                            Empresa completa
+                        {% endif %}
+                    </div>
+                {% if session.get('user_centro_bloqueado') %}
+                </span>
+                {% else %}
+                </a>
+                {% endif %}
+                <button type="button" class="theme-toggle" id="themeToggle" title="Cambiar tema" aria-label="Cambiar tema">
+                    <i class="fas fa-sun"></i>
+                </button>
+                <div class="user-info">
+                    <div class="user-details">
+                        <div class="user-name">{{ session.get('user_nombre', 'Invitado') }}</div>
+                        <div class="user-role">{{ session.get('user_rol', 'usuario') }}</div>
+                    </div>
+                    <div class="user-avatar">
+                        <i class="fas fa-user"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <div class="content-container">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+            {% for category, message in messages %}
+            <div class="alert alert-{{ category }}">
+                {{ message }}
+            </div>
+            {% endfor %}
+            {% endif %}
+            {% endwith %}
+
+            {% block content %}{% endblock %}
+        </div>
+    </div>
+
+    <script>
+        function setTheme(theme) {
+            const selected = theme === 'dark' ? 'theme-dark' : 'theme-light';
+            document.body.classList.remove('theme-light', 'theme-dark');
+            document.body.classList.add(selected);
+            localStorage.setItem('elRacoTheme', selected);
+            localStorage.setItem('elRacoThemeChoice', 'manual');
+            localStorage.setItem('elRacoThemeVersion', '2026-05-contrast');
+            const icon = document.querySelector('#themeToggle i');
+            if (icon) {
+                icon.className = selected === 'theme-light' ? 'fas fa-sun' : 'fas fa-moon';
+            }
+        }
+
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const main = document.getElementById('mainContent');
+            if (!sidebar || !main) return;
+            sidebar.classList.toggle('collapsed');
+            main.classList.toggle('expanded');
+        }
+
+        function toggleSubmenu(header) {
+            header.classList.toggle('open');
+            header.setAttribute('aria-expanded', header.classList.contains('open') ? 'true' : 'false');
+        }
+        window.toggleSubmenu = toggleSubmenu;
+
+        function parseMoneyInput(value) {
+            let text = String(value || '').replace(/€/g, '').replace(/\s/g, '').trim();
+            text = text.replace(/[^0-9,.-]/g, '');
+            if (!text) return null;
+            const comma = text.lastIndexOf(',');
+            const dot = text.lastIndexOf('.');
+            if (comma >= 0 && dot >= 0) {
+                const decimal = comma > dot ? ',' : '.';
+                const thousands = decimal === ',' ? '.' : ',';
+                text = text.split(thousands).join('').replace(decimal, '.');
+            } else if (comma >= 0) {
+                text = text.replace(/\./g, '').replace(',', '.');
+            } else if ((text.match(/\./g) || []).length > 1) {
+                const parts = text.split('.');
+                text = parts.slice(0, -1).join('') + '.' + parts[parts.length - 1];
+            }
+            const number = Number(text);
+            return Number.isFinite(number) ? number : null;
+        }
+
+        function formatMoneyInput(input) {
+            const number = parseMoneyInput(input.value);
+            if (number === null) return;
+            input.value = new Intl.NumberFormat('es-ES', {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            }).format(number) + '€';
+        }
+
+        function normalizeMoneyInputs(form) {
+            form.querySelectorAll('[data-money-input]').forEach(input => {
+                const number = parseMoneyInput(input.value);
+                if (number !== null) input.value = number.toFixed(2);
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', function () {
+            const themeVersion = '2026-05-contrast';
+            if (localStorage.getItem('elRacoThemeVersion') !== themeVersion && localStorage.getItem('elRacoThemeChoice') !== 'manual') {
+                localStorage.setItem('elRacoTheme', 'theme-light');
+                localStorage.setItem('elRacoThemeVersion', themeVersion);
+            }
+            const savedTheme = localStorage.getItem('elRacoTheme') || 'theme-light';
+            setTheme(savedTheme === 'theme-dark' ? 'dark' : 'light');
+
+            const sidebarToggle = document.getElementById('toggleSidebar');
+            const mobileToggle = document.getElementById('mobileToggle');
+            const themeToggle = document.getElementById('themeToggle');
+            if (sidebarToggle) sidebarToggle.addEventListener('click', toggleSidebar);
+            if (mobileToggle) mobileToggle.addEventListener('click', toggleSidebar);
+            if (themeToggle) {
+                themeToggle.addEventListener('click', function () {
+                    const isLight = document.body.classList.contains('theme-light');
+                    setTheme(isLight ? 'dark' : 'light');
+                });
+            }
+            document.addEventListener('keydown', function (event) {
+                if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k') {
+                    const brainInput = document.getElementById('brainCommandInput');
+                    if (brainInput && brainInput.offsetParent !== null) {
+                        event.preventDefault();
+                        brainInput.focus();
+                        brainInput.select();
+                    }
+                }
+            });
+
+            const brainStatus = document.getElementById('brainStatus');
+            if (brainStatus) {
+                const brainContextUrl = '{{ url_for("asistente.cerebro_operativo_api_contexto") }}' + '?origen_pantalla=' + encodeURIComponent(window.location.pathname);
+                fetch(brainContextUrl, { headers: { 'Accept': 'application/json' } })
+                    .then(response => response.ok ? response.json() : null)
+                    .then(data => {
+                        if (!data || !data.ok || !data.brief) return;
+                        const estado = data.brief.estado || '';
+                        const score = data.brief.score;
+                        brainStatus.classList.remove('verde', 'ambar', 'rojo');
+                        if (estado) brainStatus.classList.add(estado);
+                        brainStatus.innerHTML = '<i class="fas fa-brain"></i> <span>IA</span> ' + score;
+                        const sugerencia = data.sugerencia ? ' · ' + data.sugerencia.modulo + ': ' + data.sugerencia.intencion.replaceAll('_', ' ') : '';
+                        const tareas = data.diagnosticos && data.diagnosticos.tareas ? ' · tareas criticas ' + data.diagnosticos.tareas.criticas + ', bloqueadas ' + data.diagnosticos.tareas.bloqueadas : '';
+                        const causa = data.brief.causas && data.brief.causas.length ? ' · causa: ' + data.brief.causas[0].modulo : '';
+                        const tendencia = data.tendencia && data.tendencia.lectura ? ' · ' + data.tendencia.lectura : '';
+                        brainStatus.title = (data.centro || 'Centro') + ': ' + (data.brief.lectura || '') + causa + tendencia + tareas + sugerencia;
+                    })
+                    .catch(() => {});
+            }
+
+            window.elRacoEmitirSenalIA = function (senal) {
+                return fetch('{{ url_for("asistente.cerebro_operativo_api_senales") }}', {
+                    method: 'POST',
+                    headers: {
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(Object.assign({
+                        origen_pantalla: window.location.pathname
+                    }, senal || {}))
+                }).then(response => response.json());
+            };
+
+            document.querySelectorAll('.menu-categoria-header').forEach(header => {
+                header.setAttribute('role', 'button');
+                header.setAttribute('tabindex', '0');
+                header.setAttribute('aria-expanded', header.classList.contains('open') ? 'true' : 'false');
+                header.addEventListener('keydown', function (event) {
+                    if (event.key === 'Enter' || event.key === ' ') {
+                        event.preventDefault();
+                        toggleSubmenu(header);
+                    }
+                });
+            });
+
+            const currentUrl = window.location.pathname;
+            document.querySelectorAll('.submenu .menu-item').forEach(link => {
+                if (link.getAttribute('href') === currentUrl) {
+                    const parent = link.closest('.menu-categoria');
+                    if (parent) {
+                        parent.querySelector('.menu-categoria-header').classList.add('open');
+                    }
+                }
+            });
+
+            document.querySelectorAll('[data-money-input]').forEach(input => {
+                formatMoneyInput(input);
+            });
+
+            const usuarioActivo = {{ 'true' if session.get('user_id') else 'false' }};
+            const alertaSpan = document.getElementById('alerta-count');
+            if (usuarioActivo && alertaSpan) {
+                fetch('/api/alertas/descongelados', { headers: { 'Accept': 'application/json' } })
+                    .then(response => response.ok ? response.json() : { total: 0 })
+                    .then(data => {
+                        if (data.total > 0) {
+                            alertaSpan.textContent = data.total;
+                            alertaSpan.style.display = 'inline-block';
+                        } else {
+                            alertaSpan.style.display = 'none';
+                        }
+                    })
+                    .catch(() => {
+                        alertaSpan.style.display = 'none';
+                    });
+            }
+        });
+
+        document.addEventListener('blur', function (event) {
+            if (event.target && event.target.matches('[data-money-input]')) {
+                formatMoneyInput(event.target);
+            }
+        }, true);
+
+        document.addEventListener('focus', function (event) {
+            if (event.target && event.target.matches('[data-money-input]')) {
+                const number = parseMoneyInput(event.target.value);
+                if (number !== null) event.target.value = number.toString().replace('.', ',');
+            }
+        }, true);
+
+        document.addEventListener('submit', function (event) {
+            if (event.target && event.target.querySelectorAll) {
+                normalizeMoneyInputs(event.target);
+            }
+        }, true);
+    </script>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    {% block scripts %}{% endblock %}
+</body>
+</html>

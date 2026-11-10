@@ -1,0 +1,220 @@
+{% extends "base.html" %}
+{% block breadcrumb %}Contabilidad / Presupuesto operativo{% endblock %}
+{% block content %}
+
+<div class="card">
+    <div class="card-header">
+        <div>
+            <h2><i class="fas fa-calculator"></i> Presupuesto operativo</h2>
+            <div style="font-size:13px;opacity:.8;">
+                Vision orientativa desde reservas, RRHH, menus, ocupacion, recurrentes y costes fijos.
+                {% if centro %}Centro: <strong>{{ centro.nombre }}</strong>{% endif %}
+            </div>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:end;">
+            <form method="GET" action="{{ url_for('contabilidad.presupuesto') }}" style="display:flex;gap:8px;align-items:end;">
+                <div>
+                    <label style="font-size:12px;">Anio</label>
+                    <input class="form-control" type="number" name="anio" value="{{ anio }}" style="width:110px;">
+                </div>
+                <button class="btn btn-info"><i class="fas fa-search"></i> Ver</button>
+            </form>
+            <form method="POST" action="{{ url_for('contabilidad.generar_presupuesto') }}">
+                <input type="hidden" name="anio" value="{{ anio }}">
+                <button class="btn btn-success" onclick="return confirm('Regenerar el presupuesto operativo de {{ anio }}? Se sustituiran las lineas anteriores.')">
+                    <i class="fas fa-sync-alt"></i> Generar
+                </button>
+            </form>
+            <a href="{{ url_for('contabilidad.recurrentes') }}" class="btn btn-warning">
+                <i class="fas fa-calendar-check"></i> Recurrentes
+            </a>
+        </div>
+    </div>
+
+    {% if not presupuesto %}
+    <div style="border:1px dashed #6c757d;border-radius:8px;padding:18px;margin-bottom:18px;">
+        No hay presupuesto generado para {{ anio }}. Pulsa <strong>Generar</strong> para construirlo con los datos disponibles.
+    </div>
+    {% endif %}
+
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px;margin-bottom:18px;">
+        <div style="background:#20252a;border:1px solid #344150;border-radius:8px;padding:14px;">
+            <div style="font-size:12px;opacity:.75;">Ingresos previstos</div>
+            <div style="font-size:24px;font-weight:700;color:#51cf66;">{{ resumen.ingresos|euros }}</div>
+        </div>
+        <div style="background:#20252a;border:1px solid #344150;border-radius:8px;padding:14px;">
+            <div style="font-size:12px;opacity:.75;">Gastos previstos</div>
+            <div style="font-size:24px;font-weight:700;">{{ resumen.gastos|euros }}</div>
+        </div>
+        <div style="background:#20252a;border:1px solid #344150;border-radius:8px;padding:14px;">
+            <div style="font-size:12px;opacity:.75;">Resultado previsto</div>
+            <div style="font-size:24px;font-weight:700;{% if resumen.resultado < 0 %}color:#ff6b6b;{% else %}color:#51cf66;{% endif %}">
+                {{ resumen.resultado|euros }}
+            </div>
+        </div>
+        <div style="background:#20252a;border:1px solid #344150;border-radius:8px;padding:14px;">
+            <div style="font-size:12px;opacity:.75;">Lineas pendientes</div>
+            <div style="font-size:24px;font-weight:700;color:#ffc107;">{{ resumen.pendientes or 0 }}</div>
+        </div>
+        <div style="background:#20252a;border:1px solid #344150;border-radius:8px;padding:14px;">
+            <div style="font-size:12px;opacity:.75;">Lineas supuestas</div>
+            <div style="font-size:24px;font-weight:700;color:#0dcaf0;">{{ resumen.supuestos or 0 }}</div>
+        </div>
+    </div>
+
+    <div style="border:1px solid #344150;border-radius:8px;padding:12px;margin-bottom:18px;background:rgba(255,193,7,.08);">
+        <strong>Lectura:</strong> lo configurado viene de recurrentes reales, lo estimado viene de reservas/segmentos/RRHH,
+        lo supuesto son costes fijos orientativos y lo pendiente indica datos que faltan, como contratos o prenominas.
+    </div>
+
+    <h3 style="color:#ff6b00;">Mes a mes</h3>
+    <div class="table-container" style="margin-bottom:18px;">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Mes</th>
+                    <th style="text-align:right;">Ingresos</th>
+                    <th style="text-align:right;">Gastos</th>
+                    <th style="text-align:right;">Resultado</th>
+                    <th style="text-align:right;">Supuestos</th>
+                    <th style="text-align:right;">Pendientes</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for m in meses %}
+                <tr>
+                    <td>{{ "%02d"|format(m.mes) }}/{{ anio }}</td>
+                    <td style="text-align:right;color:#51cf66;">{{ m.ingresos|euros }}</td>
+                    <td style="text-align:right;">{{ m.gastos|euros }}</td>
+                    <td style="text-align:right;{% if m.resultado < 0 %}color:#ff6b6b;{% else %}color:#51cf66;{% endif %}">{{ m.resultado|euros }}</td>
+                    <td style="text-align:right;">{{ m.supuestos }}</td>
+                    <td style="text-align:right;">{{ m.pendientes }}</td>
+                </tr>
+                {% else %}
+                <tr><td colspan="6" style="text-align:center;padding:20px;">Sin datos mensuales.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <div style="display:grid;grid-template-columns:minmax(0,.9fr) minmax(0,1.1fr);gap:16px;">
+        <div>
+            <h3 style="color:#ff6b00;">Bloques</h3>
+            <div class="table-container">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Tipo</th>
+                            <th>Bloque</th>
+                            <th style="text-align:right;">Importe</th>
+                            <th style="text-align:right;">Avisos</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for b in bloques %}
+                        <tr>
+                            <td><span class="badge {% if b.tipo == 'ingreso' %}badge-success{% else %}badge-warning{% endif %}">{{ b.tipo }}</span></td>
+                            <td>{{ b.bloque }}</td>
+                            <td style="text-align:right;">{{ b.importe|euros }}</td>
+                            <td style="text-align:right;">{{ b.pendientes + b.supuestos }}</td>
+                        </tr>
+                        {% else %}
+                        <tr><td colspan="4" style="text-align:center;padding:20px;">Sin bloques.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div>
+            <div style="display:flex;justify-content:space-between;gap:8px;align-items:center;flex-wrap:wrap;">
+                <h3 style="color:#ff6b00;margin:0;">Detalle</h3>
+                <div style="display:flex;gap:6px;flex-wrap:wrap;">
+                    <a class="btn btn-sm {% if detalle_mode != 'mensual' %}btn-primary{% else %}btn-secondary{% endif %}" href="{{ url_for('contabilidad.presupuesto', anio=anio) }}">
+                        Resumen anual
+                    </a>
+                    <a class="btn btn-sm {% if detalle_mode == 'mensual' %}btn-primary{% else %}btn-secondary{% endif %}" href="{{ url_for('contabilidad.presupuesto', anio=anio, detalle='mensual') }}">
+                        Mes a mes
+                    </a>
+                </div>
+            </div>
+            <div class="table-container" style="max-height:520px;overflow:auto;">
+                <table class="table">
+                    {% if detalle_mode == 'mensual' %}
+                    <thead>
+                        <tr>
+                            <th>Mes</th>
+                            <th>Bloque</th>
+                            <th>Concepto</th>
+                            <th>Fuente</th>
+                            <th>Fiabilidad</th>
+                            <th style="text-align:right;">Importe</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for l in lineas %}
+                        <tr>
+                            <td>{{ "%02d"|format(l.mes) }}</td>
+                            <td>{{ l.bloque }}</td>
+                            <td>
+                                {{ l.concepto }}
+                                {% if l.observaciones %}
+                                <div style="font-size:11px;opacity:.75;">{{ l.observaciones }}</div>
+                                {% endif %}
+                            </td>
+                            <td>{{ l.fuente }}</td>
+                            <td>
+                                <span class="badge {% if l.fiabilidad == 'pendiente' %}badge-danger{% elif l.fiabilidad == 'supuesto' %}badge-warning{% elif l.fiabilidad == 'configurado' %}badge-success{% else %}badge-info{% endif %}">
+                                    {{ l.fiabilidad }}
+                                </span>
+                            </td>
+                            <td style="text-align:right;{% if l.tipo == 'ingreso' %}color:#51cf66;{% endif %}">{{ l.importe|euros }}</td>
+                        </tr>
+                        {% else %}
+                        <tr><td colspan="6" style="text-align:center;padding:20px;">Sin lineas.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                    {% else %}
+                    <thead>
+                        <tr>
+                            <th>Tipo</th>
+                            <th>Bloque</th>
+                            <th>Concepto</th>
+                            <th>Meses</th>
+                            <th>Fuente</th>
+                            <th>Fiabilidad</th>
+                            <th style="text-align:right;">Total anual</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for l in lineas_resumen %}
+                        <tr>
+                            <td><span class="badge {% if l.tipo == 'ingreso' %}badge-success{% else %}badge-warning{% endif %}">{{ l.tipo }}</span></td>
+                            <td>{{ l.bloque }}</td>
+                            <td>
+                                {{ l.concepto }}
+                                {% if l.observaciones %}
+                                <div style="font-size:11px;opacity:.75;">{{ l.observaciones }}</div>
+                                {% endif %}
+                            </td>
+                            <td>{{ l.meses }}</td>
+                            <td>{{ l.fuente }}</td>
+                            <td>
+                                <span class="badge {% if l.fiabilidad == 'pendiente' %}badge-danger{% elif l.fiabilidad == 'supuesto' %}badge-warning{% elif l.fiabilidad == 'configurado' %}badge-success{% else %}badge-info{% endif %}">
+                                    {{ l.fiabilidad }}
+                                </span>
+                            </td>
+                            <td style="text-align:right;{% if l.tipo == 'ingreso' %}color:#51cf66;{% endif %}">{{ l.importe|euros }}</td>
+                        </tr>
+                        {% else %}
+                        <tr><td colspan="7" style="text-align:center;padding:20px;">Sin lineas.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                    {% endif %}
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

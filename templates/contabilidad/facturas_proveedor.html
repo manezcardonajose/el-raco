@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block breadcrumb %}Contabilidad / Facturas proveedor{% endblock %}
+{% block content %}
+
+<div class="card">
+    <div class="card-header">
+        <div>
+            <h2><i class="fas fa-file-signature"></i> Facturas agrupadas de proveedor</h2>
+            <div style="font-size:13px;opacity:.8;">Facturas creadas desde albaranes recepcionados y validados.</div>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <a href="{{ url_for('contabilidad.nueva_factura_proveedor') }}" class="btn btn-success"><i class="fas fa-plus"></i> Nueva factura</a>
+            <a href="{{ url_for('contabilidad.documentos', tipo='albaran', estado='pendiente_factura') }}" class="btn btn-info">Albaranes pendientes</a>
+            <a href="{{ url_for('contabilidad.dashboard') }}" class="btn btn-secondary">Panel</a>
+        </div>
+    </div>
+
+    <div class="table-container">
+        <table class="table table-hover">
+            <thead>
+                <tr>
+                    <th>Fecha</th>
+                    <th>Factura</th>
+                    <th>Proveedor</th>
+                    <th style="text-align:right;">Albaranes</th>
+                    <th style="text-align:right;">Suma albaranes</th>
+                    <th style="text-align:right;">Total factura</th>
+                    <th>Estado</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for f in facturas %}
+                <tr>
+                    <td>{{ f.fecha_documento|fecha_es }}</td>
+                    <td>{{ f.numero or ('Factura #' ~ f.id) }}</td>
+                    <td>{{ f.tercero_nombre or '-' }}</td>
+                    <td style="text-align:right;">{{ f.albaranes or 0 }}</td>
+                    <td style="text-align:right;">{{ f.total_albaranes|euros }}</td>
+                    <td style="text-align:right;">{{ f.total|euros }}</td>
+                    <td><span class="badge {% if f.estado == 'pagado' %}badge-success{% elif f.estado == 'pendiente_validar' %}badge-danger{% else %}badge-warning{% endif %}">{{ f.estado }}</span></td>
+                    <td><a class="btn btn-sm btn-info" href="{{ url_for('contabilidad.ver_documento', documento_id=f.id) }}">Ver</a></td>
+                </tr>
+                {% else %}
+                <tr><td colspan="8" style="text-align:center;padding:24px;">Todavia no hay facturas agrupadas.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{% endblock %}

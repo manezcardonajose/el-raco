@@ -1,0 +1,164 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="card">
+    <div class="card-header assign-head">
+        <div>
+            <h2><i class="fas fa-map-marker-alt"></i> Asignacion de tarjetas buffet</h2>
+            <div class="muted">Cada posicion fisica muestra el plato asignado para la fecha y servicio.</div>
+        </div>
+        <div class="assign-actions">
+            <a class="btn btn-warning" href="{{ url_for('produccion.tarjetas_servicio', fecha=fecha, servicio=servicio, idiomas='es,en,de') }}">Ver tarjetas</a>
+            <a class="btn btn-secondary" href="{{ url_for('produccion.produccion_index', fecha=fecha) }}">Volver</a>
+        </div>
+    </div>
+
+    <form method="GET" class="assign-filter">
+        <div>
+            <label>Fecha</label>
+            <input class="form-control" type="date" name="fecha" value="{{ fecha }}">
+        </div>
+        <div>
+            <label>Servicio</label>
+            <select class="form-control" name="servicio">
+                <option value="">Todos</option>
+                {% for s in servicios %}
+                <option value="{{ s.turno }}" {% if servicio == s.turno %}selected{% endif %}>{{ s.turno or 'Sin servicio' }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <button class="btn btn-primary">Filtrar</button>
+    </form>
+
+    <form method="POST">
+        <input type="hidden" name="fecha" value="{{ fecha }}">
+        <input type="hidden" name="servicio" value="{{ servicio }}">
+        <div class="assign-grid">
+            {% for l in lineas %}
+            <article class="assign-card">
+                <input type="hidden" name="linea_id[]" value="{{ l.id }}">
+                <div class="assign-card-top">
+                    <div>
+                        <strong>{{ l.receta_nombre }}</strong>
+                        <span>{{ l.zona }}{% if l.turno %} - {{ l.turno }}{% endif %}</span>
+                    </div>
+                    <span class="pos-current">{{ l.estacion_buffet or 'Sin posicion' }}</span>
+                </div>
+                <label>Posicion tarjeta</label>
+                <input class="form-control" name="posicion_{{ l.id }}" list="posiciones_buffet" value="{{ l.estacion_buffet or '' }}" placeholder="PS-01">
+                <div class="translations">
+                    {% if l.nombre_en %}<span>EN {{ l.nombre_en }}</span>{% endif %}
+                    {% if l.nombre_fr %}<span>FR {{ l.nombre_fr }}</span>{% endif %}
+                    {% if l.nombre_de %}<span>DE {{ l.nombre_de }}</span>{% endif %}
+                    {% if l.nombre_it %}<span>IT {{ l.nombre_it }}</span>{% endif %}
+                </div>
+                {% if l.estacion_buffet %}
+                <a class="btn btn-sm btn-info" target="_blank" href="{{ url_for('produccion.tarjeta_digital_buffet', codigo=l.estacion_buffet, fecha=fecha, servicio=servicio, idiomas='es,en,de') }}">
+                    Abrir digital
+                </a>
+                {% endif %}
+            </article>
+            {% else %}
+            <div class="empty">No hay platos planificados para este filtro.</div>
+            {% endfor %}
+        </div>
+        <datalist id="posiciones_buffet">
+            {% for p in posiciones %}
+            <option value="{{ p }}">
+            {% endfor %}
+        </datalist>
+        <div class="sticky-save">
+            <button class="btn btn-success"><i class="fas fa-save"></i> Guardar posiciones</button>
+        </div>
+    </form>
+</div>
+
+<style>
+.assign-head,
+.assign-actions,
+.assign-filter {
+    display:flex;
+    gap:10px;
+    flex-wrap:wrap;
+    justify-content:space-between;
+    align-items:flex-start;
+}
+.muted {
+    font-size:13px;
+    opacity:.75;
+}
+.assign-filter {
+    justify-content:flex-start;
+    align-items:end;
+    padding:14px;
+    border-bottom:1px solid #334155;
+}
+.assign-filter label,
+.assign-card label {
+    display:block;
+    font-size:12px;
+    color:#cbd5e1;
+    margin-bottom:4px;
+}
+.assign-grid {
+    display:grid;
+    grid-template-columns:repeat(auto-fit, minmax(280px, 1fr));
+    gap:12px;
+    padding:14px;
+}
+.assign-card {
+    background:#111827;
+    border:1px solid #334155;
+    border-left:4px solid #ff6b00;
+    border-radius:8px;
+    padding:12px;
+}
+.assign-card-top {
+    display:flex;
+    justify-content:space-between;
+    gap:10px;
+    margin-bottom:10px;
+}
+.assign-card-top strong,
+.assign-card-top span {
+    display:block;
+}
+.assign-card-top strong {
+    color:#fff;
+    font-size:17px;
+}
+.assign-card-top span {
+    color:#94a3b8;
+    font-size:12px;
+}
+.pos-current {
+    color:#111827 !important;
+    background:#fbbf24;
+    border-radius:999px;
+    padding:4px 8px;
+    font-weight:800;
+    white-space:nowrap;
+}
+.translations {
+    display:flex;
+    flex-direction:column;
+    gap:3px;
+    margin:8px 0;
+    color:#cbd5e1;
+    font-size:12px;
+}
+.sticky-save {
+    position:sticky;
+    bottom:0;
+    background:#111827;
+    border-top:1px solid #334155;
+    padding:12px 14px;
+    display:flex;
+    justify-content:flex-end;
+}
+.empty {
+    padding:24px;
+    color:#94a3b8;
+    text-align:center;
+}
+</style>
+{% endblock %}

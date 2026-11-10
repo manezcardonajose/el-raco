@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Sesamo">
+  <circle cx="32" cy="32" r="30" fill="#f08a24"/>
+  <g fill="#fff">
+    <ellipse cx="21" cy="24" rx="4" ry="8" transform="rotate(32 21 24)"/>
+    <ellipse cx="34" cy="20" rx="4" ry="8" transform="rotate(-18 34 20)"/>
+    <ellipse cx="45" cy="30" rx="4" ry="8" transform="rotate(42 45 30)"/>
+    <ellipse cx="28" cy="39" rx="4" ry="8" transform="rotate(-40 28 39)"/>
+    <ellipse cx="42" cy="45" rx="4" ry="8" transform="rotate(18 42 45)"/>
+  </g>
+</svg>

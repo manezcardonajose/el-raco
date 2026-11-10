@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+
+{% block title %}Brief ejecutivo{% endblock %}
+{% block breadcrumb %}<a href="{{ url_for('asistente.dashboard') }}">Asistente El Raco</a> / Brief ejecutivo{% endblock %}
+
+{% block content %}
+<style>
+    .brief-head { display:flex; justify-content:space-between; gap:16px; align-items:flex-start; margin-bottom:16px; }
+    .brief-head h1 { margin:0 0 6px; color:#ff6b00; font-size:28px; }
+    .brief-head p { margin:0; max-width:980px; color:var(--text-muted,#5f6b7a); line-height:1.45; }
+    .brief-actions { display:flex; gap:10px; flex-wrap:wrap; margin-bottom:16px; }
+    .brief-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:10px; margin-bottom:16px; }
+    .brief-kpi, .brief-panel {
+        border:1px solid var(--border-color,#d5dde7);
+        border-radius:8px;
+        background:var(--card-bg,#fff);
+        box-shadow:0 1px 2px rgba(0,0,0,.04);
+    }
+    .brief-kpi { padding:13px; }
+    .brief-kpi span { display:block; color:var(--text-muted,#5f6b7a); font-size:12px; margin-bottom:6px; }
+    .brief-kpi strong { display:block; color:var(--text-color,#16202a); font-size:22px; }
+    .brief-panels { display:grid; grid-template-columns:repeat(auto-fit,minmax(310px,1fr)); gap:14px; }
+    .brief-panel { padding:15px; }
+    .brief-panel h2 { margin:0 0 10px; color:#ff6b00; font-size:19px; }
+    .brief-panel p, .brief-panel li { color:var(--text-muted,#5f6b7a); line-height:1.45; }
+    .brief-list { display:grid; gap:10px; margin:0; padding:0; list-style:none; }
+    .brief-item { border-top:1px solid var(--border-color,#d5dde7); padding-top:8px; }
+    .brief-item strong { color:var(--text-color,#16202a); }
+    .brief-badge {
+        display:inline-flex;
+        border:1px solid var(--border-color,#d5dde7);
+        border-radius:999px;
+        padding:5px 9px;
+        font-size:12px;
+        font-weight:700;
+        background:rgba(148,163,184,.08);
+        color:var(--text-muted,#5f6b7a);
+    }
+    .brief-badge.alta, .brief-badge.critica { border-color:#f0a199; color:#b42318; }
+    .brief-badge.media { border-color:#f2c16d; color:#9a5b00; }
+    .brief-badge.info { border-color:#8fd3a2; color:#16803a; }
+</style>
+
+<div class="brief-head">
+    <div>
+        <h1><i class="fas fa-clipboard-list"></i> Brief ejecutivo</h1>
+        <p>Lectura corta de direccion para decidir donde mirar hoy: radar, tendencias, escenarios, alertas y decisiones que no conviene dejar enfriar.</p>
+    </div>
+    <span class="brief-badge">{{ fecha|fecha_es }}</span>
+</div>
+
+<div class="brief-actions">
+    <a class="btn btn-primary" href="{{ url_for('asistente.radar_estrategico') }}"><i class="fas fa-satellite-dish"></i> Radar</a>
+    <a class="btn btn-primary" href="{{ url_for('asistente.tendencias_estrategicas') }}"><i class="fas fa-wave-square"></i> Tendencias</a>
+    <a class="btn btn-primary" href="{{ url_for('asistente.chat_estrategico') }}"><i class="fas fa-comments"></i> Chat</a>
+    <a class="btn btn-secondary" href="{{ url_for('asistente.simulador_decision') }}"><i class="fas fa-chart-line"></i> Simulador</a>
+</div>
+
+<div class="brief-grid">
+    <div class="brief-kpi"><span>Lectura</span><strong>{{ brief.lectura }}</strong></div>
+    <div class="brief-kpi"><span>Salud</span><strong>{{ brief.salud }}%</strong></div>
+    <div class="brief-kpi"><span>Margen aprox.</span><strong>{{ (brief.metricas.margen or 0)|euros }}</strong></div>
+    <div class="brief-kpi"><span>Ocupacion</span><strong>{{ brief.metricas.ocupacion_pct or 0 }}%</strong></div>
+    <div class="brief-kpi"><span>Tendencias</span><strong>{{ brief.metricas.tendencias }}</strong></div>
+    <div class="brief-kpi"><span>Escenarios</span><strong>{{ brief.metricas.escenarios }}</strong></div>
+</div>
+
+<div class="brief-panels">
+    <section class="brief-panel">
+        <h2>Alertas</h2>
+        <ul class="brief-list">
+            {% for alerta in brief.alertas %}
+            <li class="brief-item">{{ alerta }}</li>
+            {% else %}
+            <li class="brief-item">Sin alertas fuertes con los datos actuales.</li>
+            {% endfor %}
+        </ul>
+    </section>
+
+    <section class="brief-panel">
+        <h2>Decisiones del dia</h2>
+        <ul class="brief-list">
+            {% for d in brief.decisiones_hoy %}
+            <li class="brief-item">
+                <span class="brief-badge {{ d.prioridad }}">{{ d.origen }}</span><br>
+                <strong>{{ d.titulo }}</strong>
+                <p>{{ d.accion }}</p>
+            </li>
+            {% else %}
+            <li class="brief-item">No hay decisiones destacadas. Alimenta fuentes, escenarios o memoria.</li>
+            {% endfor %}
+        </ul>
+    </section>
+
+    <section class="brief-panel">
+        <h2>Tendencias calientes</h2>
+        <ul class="brief-list">
+            {% for t in tendencias %}
+            <li class="brief-item">
+                <span class="brief-badge {{ t.prioridad }}">{{ t.senales }} senales</span><br>
+                <strong>{{ t.titulo }}</strong>
+                <p>{{ t.accion }}</p>
+            </li>
+            {% else %}
+            <li class="brief-item">Todavia no hay tendencias suficientes.</li>
+            {% endfor %}
+        </ul>
+    </section>
+</div>
+{% endblock %}

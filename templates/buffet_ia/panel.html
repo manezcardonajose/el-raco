@@ -1,0 +1,145 @@
+{% extends "base.html" %}
+{% block title %}IA montaje buffet{% endblock %}
+{% block breadcrumb %}IA Buffet / Montaje{% endblock %}
+{% block content %}
+<style>
+    .buffet-grid{display:grid;grid-template-columns:1.1fr .9fr;gap:18px;align-items:start}
+    .buffet-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:14px 0}
+    .buffet-kpi{border:1px solid var(--border-color);border-radius:6px;padding:12px;background:var(--card-bg)}
+    .buffet-kpi span{display:block;color:var(--text-muted);font-size:12px}
+    .buffet-kpi strong{font-size:24px}
+    .buffet-list{display:grid;gap:8px}
+    .buffet-line{border:1px solid var(--border-color);border-radius:6px;padding:10px;background:var(--card-bg)}
+    .asset-block{border:1px solid var(--border-color);border-radius:6px;padding:12px;background:var(--card-bg);margin-bottom:10px}
+    .asset-block h4{margin:0 0 8px;color:#ff6b00}
+    .asset-item{display:grid;grid-template-columns:1fr auto;gap:10px;border-top:1px solid var(--border-color);padding:8px 0;font-size:13px}
+    .asset-item:first-of-type{border-top:0}
+    .asset-item small{display:block;color:var(--text-muted)}
+    .asset-temp{color:#0ea5e9;font-weight:700;white-space:nowrap}
+    @media(max-width:1100px){.buffet-grid{grid-template-columns:1fr}}
+</style>
+
+<div class="card">
+    <div class="card-header">
+        <h2><i class="fas fa-store"></i> IA de escaparatismo y montaje de buffet</h2>
+    </div>
+    <div class="alert alert-info">
+        Genera una propuesta operativa desde un menu diario, cruzando lineas, huecos, menaje, reposicion y alertas APPCC.
+    </div>
+    <div class="alert alert-warning">
+        {{ contexto_fisico }}
+    </div>
+
+    <div class="buffet-kpis">
+        <div class="buffet-kpi"><span>Lineas activas</span><strong>{{ lineas|length }}</strong></div>
+        <div class="buffet-kpi"><span>Menaje disponible</span><strong>{{ menajes|length }}</strong></div>
+        <div class="buffet-kpi"><span>Menus recientes</span><strong>{{ menus|length }}</strong></div>
+        <div class="buffet-kpi"><span>Montajes generados</span><strong>{{ montajes|length }}</strong></div>
+    </div>
+
+    <div class="buffet-grid">
+        <div class="card" style="padding:16px;">
+            <h3 style="margin-top:0;color:#ff6b00;">Generar montaje</h3>
+            <form method="post">
+                <div class="form-group">
+                    <label class="form-label">Menu diario</label>
+                    <select name="menu_diario_id" class="form-control" required>
+                        <option value="">Seleccionar menu...</option>
+                        {% for m in menus %}
+                        <option value="{{ m.id }}">{{ m.fecha }} - {{ m.tipo_nombre }} - {{ m.platos }} platos</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Servicio</label>
+                    <select name="servicio" class="form-control">
+                        <option value="desayuno">Desayuno</option>
+                        <option value="almuerzo">Almuerzo</option>
+                        <option value="cena">Cena</option>
+                        <option value="buffet">Buffet general</option>
+                    </select>
+                </div>
+                <button class="btn btn-success"><i class="fas fa-magic"></i> Proponer montaje</button>
+            </form>
+        </div>
+
+        <div class="card" style="padding:16px;">
+            <h3 style="margin-top:0;color:#ff6b00;">Base fisica detectada</h3>
+            <div class="buffet-list">
+                {% for l in lineas %}
+                <div class="buffet-line">
+                    <strong>{{ l.nombre }}</strong>
+                    <div style="color:var(--text-muted);font-size:12px;">{{ l.tipo }} &middot; {{ l.ubicacion }} &middot; prioridad {{ l.prioridad_visual }}</div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    {% if activos_fisicos %}
+    <h3 style="color:#ff6b00;margin-top:22px;">Equipamiento real detectado</h3>
+    <div class="buffet-grid">
+        {% for bloque in activos_fisicos %}
+        <div class="asset-block">
+            <h4>{{ bloque.titulo }}</h4>
+            {% for item in bloque["items"] %}
+            <div class="asset-item">
+                <div>
+                    <strong>{{ item.nombre or item.codigo or ('Registro ' ~ item.id) }}</strong>
+                    <small>{{ item.tipo or '-' }} &middot; {{ item.ubicacion or 'sin ubicacion' }}{% if item.responsable %} &middot; {{ item.responsable }}{% endif %}</small>
+                </div>
+                <div class="asset-temp">
+                    {% if item.rango_min is not none and item.rango_max is not none %}
+                        {{ item.rango_min|int }} / {{ item.rango_max|int }} C
+                    {% elif item.cantidad_total is not none %}
+                        {{ "%.0f"|format(item.cantidad_total or 0) }} ud
+                    {% elif item.codigo %}
+                        {{ item.codigo }}
+                    {% else %}
+                        -
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <h3 style="color:#ff6b00;margin-top:22px;">Ultimos montajes</h3>
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>Fecha</th>
+                    <th>Servicio</th>
+                    <th>Menu</th>
+                    <th>Estado</th>
+                    <th>Scores</th>
+                    <th>Resumen</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for m in montajes %}
+                <tr>
+                    <td>{{ m.fecha }}</td>
+                    <td>{{ m.servicio }}</td>
+                    <td>{{ m.tipo_menu or '-' }}</td>
+                    <td><span class="badge badge-info">{{ m.estado }}</span></td>
+                    <td>
+                        Visual {{ m.score_visual or 0 }}<br>
+                        APPCC {{ m.score_appcc or 0 }}<br>
+                        Flujo {{ m.score_flujo or 0 }}
+                    </td>
+                    <td>{{ m.resumen }}</td>
+                    <td><a class="btn btn-sm btn-primary" href="{{ url_for('buffet_ia.ver_montaje', montaje_id=m.id) }}"><i class="fas fa-eye"></i> Ver</a></td>
+                </tr>
+                {% else %}
+                <tr><td colspan="7">Aun no hay montajes generados.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

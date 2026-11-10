@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<div class="card">
+    <div class="card-header" style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;">
+        <h3 style="margin:0;">
+            <i class="fas fa-file-alt"></i> Documento de compra
+        </h3>
+
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <a href="{{ url_for('compras.ver_documento_compra', documento_id=documento.id) }}"
+               target="_blank"
+               class="btn btn-outline-primary btn-sm">
+                Ver archivo original
+            </a>
+
+            <form method="post" action="{{ url_for('compras.procesar_documento_compra', documento_id=documento.id) }}" style="display:inline;">
+                <button type="submit" class="btn btn-warning btn-sm">
+                    Procesar documento
+                </button>
+            </form>
+
+            <a href="{{ url_for('compras.revisar_lineas_detectadas', documento_id=documento.id) }}"
+               class="btn btn-info btn-sm">
+                Líneas IA
+            </a>
+
+            <a href="{{ url_for('compras.validar_recepciones') }}"
+               class="btn btn-secondary btn-sm">
+                Volver
+            </a>
+        </div>
+    </div>
+
+    <div class="card-body">
+
+        <p><strong>Archivo:</strong> {{ documento.nombre_archivo }}</p>
+        <p><strong>Tipo:</strong> {{ documento.tipo_documento or '-' }}</p>
+        <p><strong>Origen:</strong> {{ documento.origen_subida or '-' }}</p>
+
+        <p>
+            <strong>Procesado IA:</strong>
+            {% if documento.procesado_ia %}
+                <span class="badge bg-success">Sí</span>
+            {% else %}
+                <span class="badge bg-warning text-dark">Pendiente</span>
+            {% endif %}
+        </p>
+
+        <hr>
+
+        <div class="card">
+            <div class="card-header">
+                Texto extraído
+            </div>
+
+            <div class="card-body"
+                 style="white-space:pre-wrap;max-height:520px;overflow:auto;background:#111;color:#00ff66;font-family:monospace;">
+                {{ documento.texto_extraido or 'Sin texto extraído todavía. Pulsa “Procesar documento”.' }}
+            </div>
+        </div>
+
+    </div>
+</div>
+
+{% endblock %}

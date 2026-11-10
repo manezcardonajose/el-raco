@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;">
+        <div>
+            <h2 style="margin:0;color:#ff6b00;">Hoja de conformidad de recepción</h2>
+            <div style="margin-top:6px;">
+                Recepción nº {{ recepcion.id }}
+                {% if recepcion.numero_pedido %} · Pedido {{ recepcion.numero_pedido }}{% else %} · Recepción directa{% endif %}
+            </div>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <button onclick="window.print()" class="btn btn-primary"><i class="fas fa-print"></i> Imprimir conformidad</button>
+            <a href="{{ url_for('compras.hoja_incidencias_recepcion_id', recepcion_id=recepcion.id) }}" class="btn btn-danger">
+                <i class="fas fa-exclamation-triangle"></i> Imprimir incidencias
+            </a>
+            <a href="{{ url_for('compras.recepcion_pedido') }}" class="btn btn-secondary">Volver recepción</a>
+        </div>
+    </div>
+
+    <div style="background:linear-gradient(135deg,#2b2f33 0%,#3a3f44 100%);padding:18px;border-radius:8px;margin:18px 0;">
+        <div style="display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap;">
+            <div>
+                <h3 style="margin:0;color:#ff6b00;">NEXORA KITCHEN</h3>
+                <p style="margin:6px 0 0 0;">Documento operativo de recepción</p>
+            </div>
+            <div style="text-align:right;">
+                <p><strong>Fecha recepción:</strong> {{ recepcion.fecha_recepcion or '-' }}</p>
+                <p><strong>Nº pedido:</strong> {{ recepcion.numero_pedido or 'Directa' }}</p>
+                <p><strong>Nº albarán:</strong> {{ recepcion.numero_albaran or '-' }}</p>
+            </div>
+        </div>
+    </div>
+
+    <div style="background:#3a3f44;padding:15px;border-radius:6px;margin:18px 0;">
+        <h4 style="margin-top:0;">Proveedor</h4>
+        <p><strong>{{ recepcion.proveedor_nombre or '-' }}</strong></p>
+        <p>NIF: {{ recepcion.nif or '-' }} · Email: {{ recepcion.email or '-' }} · Tel: {{ recepcion.telefono or '-' }}</p>
+        <p><strong>Recibido por:</strong> {{ recepcion.recibido_por or '-' }}</p>
+    </div>
+
+    <table style="width:100%;">
+        <thead>
+            <tr>
+                <th>Código</th>
+                <th>Producto</th>
+                <th>Recibido</th>
+                <th>Lote</th>
+                <th>Caducidad</th>
+                <th>Estado</th>
+                <th>Observación</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for l in lineas %}
+            <tr>
+                <td>{{ l.codigo or '-' }}</td>
+                <td>{{ l.producto_nombre }}</td>
+                <td>{{ l.cantidad_recibida }}</td>
+                <td>{{ l.lote or '-' }}</td>
+                <td>{{ l.fecha_caducidad or '-' }}</td>
+                <td>
+                    {% if l.aceptado %}
+                        CONFORME
+                    {% else %}
+                        INCIDENCIA
+                    {% endif %}
+                </td>
+                <td>{{ l.motivo_rechazo or '-' }}</td>
+            </tr>
+            {% else %}
+            <tr><td colspan="7" style="text-align:center;">Sin líneas registradas.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <div style="margin-top:28px;display:grid;grid-template-columns:1fr 1fr;gap:40px;">
+        <div style="border-top:1px solid #999;padding-top:8px;text-align:center;">Firma recepción</div>
+        <div style="border-top:1px solid #999;padding-top:8px;text-align:center;">Firma proveedor / transportista</div>
+    </div>
+
+    <div style="margin-top:18px;font-size:12px;opacity:.75;">
+        Impreso: {{ now.strftime('%d/%m/%Y %H:%M') if now else '' }}
+    </div>
+</div>
+{% endblock %}

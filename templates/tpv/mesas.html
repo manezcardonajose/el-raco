@@ -1,0 +1,372 @@
+{% extends 'base.html' %}
+{% block title %}Mesas TPV{% endblock %}
+{% block breadcrumb %}TPV / Mesas{% endblock %}
+{% block content %}
+<style>
+  .tpv-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
+  .tpv-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;align-items:end;}
+  .tpv-note{color:#94a3b8;font-size:12px;line-height:1.35;}
+  .mesa-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;}
+  .mesa-card{border:1px solid #334155;border-radius:8px;background:#111827;padding:12px;}
+  .mesa-card strong{font-size:18px;}
+  .mesa-pill{display:inline-block;border:1px solid #475569;border-radius:4px;background:#0f172a;padding:2px 6px;font-size:12px;margin-top:4px;}
+  .mapa-sala{position:relative;height:min(68vh,680px);min-height:420px;border:1px solid #334155;border-radius:8px;background:#0f172a;overflow:hidden;}
+  .mapa-sala::before{content:"";position:absolute;inset:0;background-image:linear-gradient(rgba(148,163,184,.08) 1px,transparent 1px),linear-gradient(90deg,rgba(148,163,184,.08) 1px,transparent 1px);background-size:40px 40px;pointer-events:none;}
+  .mapa-mesa{position:absolute;width:110px;min-height:72px;border:1px solid #475569;border-radius:8px;background:#111827;color:#e5e7eb;padding:8px;cursor:grab;text-align:center;touch-action:none;}
+  .mapa-mesa:active{cursor:grabbing;border-color:#38bdf8;}
+  .mapa-mesa strong{display:block;font-size:15px;}
+  .mapa-mesa small{display:block;color:#94a3b8;}
+  .mapa-elemento{position:absolute;border:1px solid #475569;border-radius:6px;background:rgba(51,65,85,.45);color:#e5e7eb;display:flex;align-items:center;justify-content:center;text-align:center;font-size:12px;font-weight:700;cursor:move;touch-action:none;}
+  .mapa-elemento.is-selected,.mapa-mesa.is-selected{outline:3px solid #38bdf8;z-index:5;}
+  .mapa-elemento.barra{background:#3f2f1f;border-color:#f59e0b;color:#fde68a;}
+  .mapa-elemento.taburete{border-radius:999px;background:#422006;border-color:#f97316;color:#fed7aa;}
+  .mapa-elemento.sofa{background:#312e81;border-color:#818cf8;color:#e0e7ff;}
+  .mapa-elemento.pared{background:#64748b;border-color:#94a3b8;color:#111827;}
+  .mapa-elemento.puerta{background:#064e3b;border-color:#34d399;color:#d1fae5;}
+  .mapa-elemento.ventana{background:#075985;border-color:#38bdf8;color:#e0f2fe;}
+  .mapa-elemento.planta{border-radius:999px;background:#14532d;border-color:#22c55e;color:#dcfce7;}
+  .mapa-elemento.columna{border-radius:999px;background:#52525b;border-color:#d4d4d8;color:#fafafa;}
+  .mapa-elemento.caja{background:#581c87;border-color:#c084fc;color:#f3e8ff;}
+  .mapa-elemento.cocina{background:#7f1d1d;border-color:#f87171;color:#fee2e2;}
+  .mapa-elemento.bano{background:#164e63;border-color:#67e8f9;color:#ecfeff;}
+  .mapa-elemento.escalera{background:#292524;border-color:#a8a29e;color:#fafaf9;}
+  .mapa-elemento .resize{position:absolute;right:2px;bottom:2px;width:14px;height:14px;border-radius:4px;background:#e5e7eb;color:#0f172a;font-size:10px;line-height:14px;cursor:nwse-resize;}
+  .mapa-elemento .delete-element{position:absolute;right:2px;top:2px;width:18px;height:18px;border:0;border-radius:5px;background:#dc2626;color:#fff;font-size:13px;line-height:18px;padding:0;cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.35);}
+  .mapa-elemento .delete-element:hover{background:#991b1b;}
+  .map-tools{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;align-items:end;margin-top:12px;}
+  .tool-palette{display:grid;grid-template-columns:repeat(auto-fill,minmax(118px,1fr));gap:8px;margin-bottom:12px;}
+  .tool-chip{border:1px solid #334155;border-radius:8px;background:#0f172a;color:#e5e7eb;padding:10px;min-height:58px;cursor:pointer;text-align:left;}
+  .tool-chip i{display:block;margin-bottom:5px;color:#38bdf8;}
+  .tool-chip.is-active{border-color:#38bdf8;background:#123047;}
+  .map-selected{display:none;grid-template-columns:1fr repeat(3,auto);gap:8px;align-items:center;border:1px solid #334155;border-radius:8px;background:#0f172a;padding:10px;margin-top:10px;}
+  .map-selected.is-visible{display:grid;}
+  .map-selected strong{color:#fff;}
+</style>
+
+<div class="card">
+  <div class="card-header">
+    <h2><i class="fas fa-chair"></i> Mesas - {{ punto.nombre }}</h2>
+    <div class="tpv-actions">
+      <a class="btn btn-secondary" href="{{ url_for('tpv.dashboard') }}"><i class="fas fa-cash-register"></i> TPV</a>
+      <a class="btn btn-secondary" href="{{ url_for('tpv.punto_config', punto_venta_id=punto.id) }}"><i class="fas fa-cog"></i> Config</a>
+      <a class="btn btn-secondary" href="{{ url_for('tpv.catalogo', punto_venta_id=punto.id) }}"><i class="fas fa-th-large"></i> Carta</a>
+    </div>
+  </div>
+
+  <form method="post" class="tpv-grid">
+    <input type="hidden" name="accion" value="lote">
+    <div class="form-group"><label class="form-label">Zona</label><input class="form-control" name="zona" value="Sala"></div>
+    <div class="form-group"><label class="form-label">Prefijo</label><input class="form-control" name="prefijo" value="M"></div>
+    <div class="form-group"><label class="form-label">Desde</label><input class="form-control" name="desde" type="number" min="1" value="1"></div>
+    <div class="form-group"><label class="form-label">Hasta</label><input class="form-control" name="hasta" type="number" min="1" value="10"></div>
+    <div class="form-group"><label class="form-label">Capacidad</label><input class="form-control" name="capacidad" type="number" min="1" value="2"></div>
+    <button class="btn btn-success" type="submit"><i class="fas fa-magic"></i> Crear lote</button>
+  </form>
+</div>
+
+<div class="card">
+  <div class="card-header"><h2><i class="fas fa-drafting-compass"></i> Herramientas de plano</h2></div>
+  <div class="tool-palette" id="tool-palette">
+    <button class="tool-chip is-active" type="button" data-tool="mesa"><i class="fas fa-chair"></i>Mesa</button>
+    <button class="tool-chip" type="button" data-tool="barra"><i class="fas fa-glass-martini-alt"></i>Barra</button>
+    <button class="tool-chip" type="button" data-tool="taburete"><i class="fas fa-circle"></i>Taburete</button>
+    <button class="tool-chip" type="button" data-tool="sofa"><i class="fas fa-couch"></i>Sofa</button>
+    <button class="tool-chip" type="button" data-tool="pared"><i class="fas fa-grip-lines"></i>Pared</button>
+    <button class="tool-chip" type="button" data-tool="puerta"><i class="fas fa-door-open"></i>Puerta</button>
+    <button class="tool-chip" type="button" data-tool="ventana"><i class="far fa-window-maximize"></i>Ventana</button>
+    <button class="tool-chip" type="button" data-tool="zona"><i class="fas fa-border-all"></i>Zona</button>
+    <button class="tool-chip" type="button" data-tool="planta"><i class="fas fa-seedling"></i>Planta</button>
+    <button class="tool-chip" type="button" data-tool="columna"><i class="fas fa-circle-notch"></i>Columna</button>
+    <button class="tool-chip" type="button" data-tool="caja"><i class="fas fa-cash-register"></i>Caja</button>
+    <button class="tool-chip" type="button" data-tool="texto"><i class="fas fa-font"></i>Texto</button>
+  </div>
+  <form method="post" class="map-tools" id="tool-form">
+    <input type="hidden" name="accion" value="crear_elemento">
+    <div class="form-group"><label class="form-label">Elemento</label><select class="form-control" name="tipo" id="tool-tipo">
+      <option value="mesa">Mesa real</option>
+      <option value="zona">Zona</option>
+      <option value="barra">Barra</option>
+      <option value="taburete">Taburete</option>
+      <option value="sofa">Sofa</option>
+      <option value="pared">Pared / separador</option>
+      <option value="puerta">Puerta</option>
+      <option value="ventana">Ventana</option>
+      <option value="planta">Planta</option>
+      <option value="columna">Columna</option>
+      <option value="caja">Caja</option>
+      <option value="cocina">Cocina</option>
+      <option value="bano">Bano</option>
+      <option value="escalera">Escalera</option>
+      <option value="texto">Texto</option>
+    </select></div>
+    <div class="form-group"><label class="form-label">Etiqueta / nombre</label><input class="form-control" name="etiqueta" id="tool-etiqueta" placeholder="Mesa ventana, barra, entrada..."></div>
+    <div class="form-group" data-mesa-field><label class="form-label">Numero mesa</label><input class="form-control" name="numero" id="tool-numero" placeholder="Auto"></div>
+    <div class="form-group" data-mesa-field><label class="form-label">Pax</label><input class="form-control" name="capacidad" id="tool-capacidad" type="number" min="1" value="2"></div>
+    <div class="form-group"><label class="form-label">Ancho %</label><input class="form-control" name="ancho" id="tool-ancho" type="number" step="0.5" min="3" max="100" value="12"></div>
+    <div class="form-group"><label class="form-label">Alto %</label><input class="form-control" name="alto" id="tool-alto" type="number" step="0.5" min="3" max="100" value="8"></div>
+    <div class="form-group"><label class="form-label">Giro</label><input class="form-control" name="rotacion" id="tool-rotacion" type="number" step="15" min="0" max="359" value="0"></div>
+    <div class="form-group"><label class="form-label">Color</label><input class="form-control" name="color" id="tool-color" type="color" value="#334155"></div>
+    <input type="hidden" name="x" id="tool-x" value="8">
+    <input type="hidden" name="y" id="tool-y" value="8">
+    <button class="btn btn-primary" type="submit"><i class="fas fa-plus"></i> Insertar</button>
+  </form>
+  <div class="map-selected" id="map-selected">
+    <div>
+      <span class="tpv-note">Seleccionado</span>
+      <strong id="selected-map-label">-</strong>
+    </div>
+    <button class="btn btn-secondary" type="button" id="rotate-left"><i class="fas fa-undo"></i> Girar</button>
+    <button class="btn btn-secondary" type="button" id="rotate-right"><i class="fas fa-redo"></i> Girar</button>
+    <form method="post" id="delete-element-form">
+      <input type="hidden" name="accion" value="borrar_elemento">
+      <input type="hidden" name="elemento_id" id="delete-element-id">
+      <button class="btn btn-danger" type="submit"><i class="fas fa-trash"></i> Eliminar</button>
+    </form>
+  </div>
+  <div class="tpv-note" style="margin-top:8px;">Click para seleccionar. Arrastra para mover, usa la esquina para redimensionar, pulsa la X roja para eliminar elementos, gira paredes/barra/elementos desde el panel y guarda el mapa.</div>
+</div>
+
+<div class="card">
+  <div class="card-header"><h2><i class="fas fa-plus-circle"></i> Mesa individual</h2></div>
+  <form method="post" class="tpv-grid">
+    <input type="hidden" name="accion" value="crear">
+    <div class="form-group"><label class="form-label">Zona</label><input class="form-control" name="zona" value="Sala"></div>
+    <div class="form-group"><label class="form-label">Numero</label><input class="form-control" name="numero" placeholder="M01"></div>
+    <div class="form-group"><label class="form-label">Nombre</label><input class="form-control" name="nombre" placeholder="Mesa ventana"></div>
+    <div class="form-group"><label class="form-label">Capacidad</label><input class="form-control" name="capacidad" type="number" min="1" value="2"></div>
+    <button class="btn btn-primary" type="submit"><i class="fas fa-plus"></i> Anadir</button>
+  </form>
+</div>
+
+<div class="card">
+  <div class="card-header">
+    <h2><i class="fas fa-map"></i> Mapa de sala</h2>
+    <div class="tpv-actions">
+      <button class="btn btn-success" form="mapa-form" type="submit"><i class="fas fa-save"></i> Guardar mapa</button>
+    </div>
+  </div>
+  <form id="mapa-form" method="post">
+    <input type="hidden" name="accion" value="guardar_mapa">
+    <input type="hidden" name="mesas_json" id="mesas_json">
+    <input type="hidden" name="elementos_json" id="elementos_json">
+  </form>
+  <div class="mapa-sala" id="mapa-sala">
+    {% for e in elementos %}
+    <div class="mapa-elemento {{ e.tipo or 'zona' }}" data-map-elemento data-id="{{ e.id }}"
+         data-tipo="{{ e.tipo or 'zona' }}" data-label="{{ e.etiqueta or e.tipo }}"
+         style="left:{{ e.x or 0 }}%;top:{{ e.y or 0 }}%;width:{{ e.ancho or 12 }}%;height:{{ e.alto or 8 }}%;background-color:{{ e.color or '' }};transform:rotate({{ e.rotacion or 0 }}deg);">
+      <span>{{ e.etiqueta or e.tipo }}</span>
+      <button class="delete-element" type="button" data-delete-element title="Eliminar">x</button>
+      <span class="resize" data-resize>↘</span>
+    </div>
+    {% endfor %}
+    {% for m in mesas if m.activo %}
+    <button class="mapa-mesa" type="button" data-map-mesa data-id="{{ m.id }}"
+            data-label="{{ m.nombre or m.numero }}"
+            style="left:{{ m.x or ((loop.index0 % 6) * 14 + 4) }}%;top:{{ m.y or ((loop.index0 // 6) * 14 + 4) }}%;">
+      <strong>{{ m.nombre or m.numero }}</strong>
+      <small>{{ m.capacidad or 0 }} pax</small>
+    </button>
+    {% endfor %}
+  </div>
+</div>
+
+<div class="mesa-grid">
+  {% for m in mesas %}
+  <div class="mesa-card">
+    <form method="post" class="tpv-grid">
+      <input type="hidden" name="accion" value="editar">
+      <input type="hidden" name="mesa_id" value="{{ m.id }}">
+      <div class="form-group"><label class="form-label">Nombre</label><input class="form-control" name="nombre" value="{{ m.nombre or '' }}"></div>
+      <div class="form-group"><label class="form-label">Numero</label><input class="form-control" name="numero" value="{{ m.numero or '' }}"></div>
+      <div class="form-group"><label class="form-label">Zona</label><input class="form-control" name="zona" value="{{ m.zona or 'Sala' }}"></div>
+      <div class="form-group"><label class="form-label">Pax</label><input class="form-control" name="capacidad" type="number" min="1" value="{{ m.capacidad or 2 }}"></div>
+      <button class="btn btn-sm btn-primary" type="submit">Guardar</button>
+    </form>
+    <span class="mesa-pill">{{ m.estado or 'libre' }}</span>
+    {% if not m.activo %}<span class="mesa-pill">Inactiva</span>{% endif %}
+    <div class="tpv-actions" style="margin-top:10px;">
+      <form method="post">
+        <input type="hidden" name="accion" value="liberar">
+        <input type="hidden" name="mesa_id" value="{{ m.id }}">
+        <button class="btn btn-sm btn-secondary" type="submit">Libre</button>
+      </form>
+      <form method="post">
+        <input type="hidden" name="accion" value="toggle">
+        <input type="hidden" name="mesa_id" value="{{ m.id }}">
+        <button class="btn btn-sm btn-secondary" type="submit">{% if m.activo %}Ocultar{% else %}Activar{% endif %}</button>
+      </form>
+    </div>
+  </div>
+  {% else %}
+  <div class="mesa-card">No hay mesas creadas.</div>
+  {% endfor %}
+</div>
+<script>
+(() => {
+  const presets = {
+    mesa: { etiqueta: '', color: '#111827', ancho: 12, alto: 8, capacidad: 2 },
+    barra: { etiqueta: 'Barra', color: '#3f2f1f', ancho: 28, alto: 7, capacidad: 1 },
+    taburete: { etiqueta: 'Taburete', color: '#422006', ancho: 4, alto: 5, capacidad: 1 },
+    sofa: { etiqueta: 'Sofa', color: '#312e81', ancho: 16, alto: 7, capacidad: 1 },
+    pared: { etiqueta: 'Pared', color: '#64748b', ancho: 32, alto: 3, capacidad: 1 },
+    puerta: { etiqueta: 'Puerta', color: '#064e3b', ancho: 10, alto: 5, capacidad: 1 },
+    ventana: { etiqueta: 'Ventana', color: '#075985', ancho: 14, alto: 4, capacidad: 1 },
+    zona: { etiqueta: 'Zona', color: '#334155', ancho: 24, alto: 14, capacidad: 1 },
+    planta: { etiqueta: 'Planta', color: '#14532d', ancho: 5, alto: 6, capacidad: 1 },
+    columna: { etiqueta: 'Columna', color: '#52525b', ancho: 5, alto: 6, capacidad: 1 },
+    caja: { etiqueta: 'Caja', color: '#581c87', ancho: 12, alto: 7, capacidad: 1 },
+    cocina: { etiqueta: 'Cocina', color: '#7f1d1d', ancho: 18, alto: 10, capacidad: 1 },
+    bano: { etiqueta: 'Bano', color: '#164e63', ancho: 12, alto: 9, capacidad: 1 },
+    escalera: { etiqueta: 'Escalera', color: '#292524', ancho: 14, alto: 8, capacidad: 1 },
+    texto: { etiqueta: 'Texto', color: '#334155', ancho: 12, alto: 5, capacidad: 1 }
+  };
+  const toolTipo = document.getElementById('tool-tipo');
+  const toolEtiqueta = document.getElementById('tool-etiqueta');
+  const toolColor = document.getElementById('tool-color');
+  const toolAncho = document.getElementById('tool-ancho');
+  const toolAlto = document.getElementById('tool-alto');
+  const toolRotacion = document.getElementById('tool-rotacion');
+  const toolCapacidad = document.getElementById('tool-capacidad');
+  const mesaFields = Array.from(document.querySelectorAll('[data-mesa-field]'));
+  function applyTool(tipo){
+    const preset = presets[tipo] || presets.zona;
+    if (toolTipo) toolTipo.value = tipo;
+    if (toolEtiqueta) toolEtiqueta.value = preset.etiqueta;
+    if (toolColor) toolColor.value = preset.color;
+    if (toolAncho) toolAncho.value = preset.ancho;
+    if (toolAlto) toolAlto.value = preset.alto;
+    if (toolRotacion) toolRotacion.value = tipo === 'pared' ? 0 : 0;
+    if (toolCapacidad) toolCapacidad.value = preset.capacidad;
+    mesaFields.forEach(field => { field.style.display = tipo === 'mesa' ? '' : 'none'; });
+    document.querySelectorAll('[data-tool]').forEach(btn => btn.classList.toggle('is-active', btn.dataset.tool === tipo));
+  }
+  document.querySelectorAll('[data-tool]').forEach(btn => {
+    btn.addEventListener('click', () => applyTool(btn.dataset.tool || 'zona'));
+  });
+  if (toolTipo) toolTipo.addEventListener('change', () => applyTool(toolTipo.value || 'zona'));
+  applyTool((toolTipo && toolTipo.value) || 'mesa');
+
+  const mapa = document.getElementById('mapa-sala');
+  const input = document.getElementById('mesas_json');
+  const inputElementos = document.getElementById('elementos_json');
+  if (!mapa || !input || !inputElementos) return;
+  let active = null;
+  let resizing = null;
+  let selectedEl = null;
+  const selectedPanel = document.getElementById('map-selected');
+  const selectedLabel = document.getElementById('selected-map-label');
+  const deleteElementId = document.getElementById('delete-element-id');
+  const deleteForm = document.getElementById('delete-element-form');
+  function rotationOf(el) {
+    return parseFloat(el.dataset.rotacion || '0') || 0;
+  }
+  function setRotation(el, value) {
+    const rot = ((value % 360) + 360) % 360;
+    el.dataset.rotacion = String(rot);
+    el.style.transform = `rotate(${rot}deg)`;
+    saveState();
+  }
+  function selectMapItem(el) {
+    mapa.querySelectorAll('.is-selected').forEach(item => item.classList.remove('is-selected'));
+    selectedEl = el;
+    if (!el) {
+      selectedPanel.classList.remove('is-visible');
+      return;
+    }
+    el.classList.add('is-selected');
+    const isElemento = el.hasAttribute('data-map-elemento');
+    selectedPanel.classList.add('is-visible');
+    selectedLabel.textContent = el.dataset.label || (isElemento ? 'Elemento' : 'Mesa');
+    if (deleteForm) deleteForm.style.display = isElemento ? '' : 'none';
+    if (deleteElementId) deleteElementId.value = isElemento ? el.dataset.id : '';
+  }
+  function deleteMapElement(el) {
+    if (!el || !el.hasAttribute('data-map-elemento') || !deleteElementId || !deleteForm) return;
+    const label = el.dataset.label || 'elemento';
+    if (!window.confirm(`Eliminar ${label}?`)) return;
+    deleteElementId.value = el.dataset.id || '';
+    deleteForm.submit();
+  }
+  function saveState(){
+    const data = Array.from(mapa.querySelectorAll('[data-map-mesa]')).map(el => ({
+      id: el.dataset.id,
+      x: parseFloat(el.style.left) || 0,
+      y: parseFloat(el.style.top) || 0
+    }));
+    input.value = JSON.stringify(data);
+    const elementos = Array.from(mapa.querySelectorAll('[data-map-elemento]')).map(el => ({
+      id: el.dataset.id,
+      x: parseFloat(el.style.left) || 0,
+      y: parseFloat(el.style.top) || 0,
+      ancho: parseFloat(el.style.width) || 12,
+      alto: parseFloat(el.style.height) || 8,
+      rotacion: rotationOf(el)
+    }));
+    inputElementos.value = JSON.stringify(elementos);
+  }
+  function move(el, clientX, clientY){
+    const rect = mapa.getBoundingClientRect();
+    const x = Math.min(Math.max(((clientX - rect.left) / rect.width) * 100, 0), 92);
+    const y = Math.min(Math.max(((clientY - rect.top) / rect.height) * 100, 0), 90);
+    el.style.left = x.toFixed(2) + '%';
+    el.style.top = y.toFixed(2) + '%';
+    saveState();
+  }
+  function resize(el, clientX, clientY){
+    const rect = mapa.getBoundingClientRect();
+    const left = parseFloat(el.style.left) || 0;
+    const top = parseFloat(el.style.top) || 0;
+    const ancho = Math.min(Math.max(((clientX - rect.left) / rect.width) * 100 - left, 3), 100 - left);
+    const alto = Math.min(Math.max(((clientY - rect.top) / rect.height) * 100 - top, 3), 100 - top);
+    el.style.width = ancho.toFixed(2) + '%';
+    el.style.height = alto.toFixed(2) + '%';
+    saveState();
+  }
+  mapa.querySelectorAll('[data-map-mesa], [data-map-elemento]').forEach(el => {
+    el.addEventListener('pointerdown', ev => {
+      if (ev.target && ev.target.matches('[data-delete-element]')) return;
+      selectMapItem(el);
+      if (ev.target && ev.target.matches('[data-resize]')) {
+        resizing = el;
+        el.setPointerCapture(ev.pointerId);
+        resize(el, ev.clientX, ev.clientY);
+        return;
+      }
+      active = el;
+      el.setPointerCapture(ev.pointerId);
+      move(el, ev.clientX, ev.clientY);
+    });
+    el.addEventListener('pointermove', ev => {
+      if (resizing === el) resize(el, ev.clientX, ev.clientY);
+      if (active === el) move(el, ev.clientX, ev.clientY);
+    });
+    el.addEventListener('pointerup', () => { active = null; resizing = null; saveState(); });
+  });
+  mapa.querySelectorAll('[data-delete-element]').forEach(btn => {
+    btn.addEventListener('click', ev => {
+      ev.preventDefault();
+      ev.stopPropagation();
+      deleteMapElement(btn.closest('[data-map-elemento]'));
+    });
+  });
+  document.addEventListener('keydown', ev => {
+    if ((ev.key === 'Delete' || ev.key === 'Backspace') && selectedEl && selectedEl.hasAttribute('data-map-elemento')) {
+      ev.preventDefault();
+      deleteMapElement(selectedEl);
+    }
+  });
+  document.getElementById('rotate-left')?.addEventListener('click', () => {
+    if (selectedEl && selectedEl.hasAttribute('data-map-elemento')) setRotation(selectedEl, rotationOf(selectedEl) - 15);
+  });
+  document.getElementById('rotate-right')?.addEventListener('click', () => {
+    if (selectedEl && selectedEl.hasAttribute('data-map-elemento')) setRotation(selectedEl, rotationOf(selectedEl) + 15);
+  });
+  mapa.querySelectorAll('[data-map-elemento]').forEach(el => {
+    const match = (el.style.transform || '').match(/rotate\(([-0-9.]+)deg\)/);
+    el.dataset.rotacion = match ? match[1] : '0';
+  });
+  saveState();
+})();
+</script>
+{% endblock %}

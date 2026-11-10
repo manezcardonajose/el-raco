@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+
+{% block title %}Menu TPV{% endblock %}
+{% block breadcrumb %}Puntos de venta / Menu{% endblock %}
+
+{% block content %}
+<style>
+  .pv-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
+  .pv-grid{display:grid;grid-template-columns:minmax(240px,1fr) 150px auto;gap:10px;align-items:end;}
+  .pv-note{color:#94a3b8;font-size:12px;line-height:1.35;}
+  .pv-pill{display:inline-block;border:1px solid #475569;border-radius:4px;background:#0f172a;padding:2px 6px;font-size:12px;}
+  @media (max-width:760px){.pv-grid{grid-template-columns:1fr;}}
+</style>
+
+<div class="card">
+  <div class="card-header">
+    <div>
+      <h2><i class="fas fa-utensils"></i> Menu TPV de {{ punto.nombre }}</h2>
+      <div class="pv-note">Las recetas que anadas aqui salen como botones en el terminal del punto de venta.</div>
+    </div>
+    <div class="pv-actions">
+      <a href="{{ url_for('puntos_venta.listar_puntos_venta') }}" class="btn btn-secondary">Puntos venta</a>
+      <a href="{{ url_for('tpv.catalogo', punto_venta_id=punto.id) }}" class="btn btn-secondary">Carta TPV</a>
+      <a href="{{ url_for('tpv.punto_config', punto_venta_id=punto.id) }}" class="btn btn-secondary">Config TPV</a>
+    </div>
+  </div>
+
+  <form method="POST" action="{{ url_for('puntos_venta.anadir_receta_menu_punto', id=punto.id) }}" class="pv-grid">
+    <div class="form-group">
+      <label class="form-label">Receta</label>
+      <select class="form-control" name="receta_id" required>
+        <option value="">Seleccionar receta</option>
+        {% for r in recetas_disponibles %}
+        <option value="{{ r.id }}">{{ r.nombre }}{% if r.categoria %} - {{ r.categoria }}{% endif %}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Precio venta</label>
+      <input class="form-control" name="precio_venta" type="number" min="0" step="0.01" value="0">
+    </div>
+    <button type="submit" class="btn btn-success"><i class="fas fa-plus"></i> Anadir al menu</button>
+  </form>
+</div>
+
+<div class="card">
+  <div class="card-header"><h2><i class="fas fa-list"></i> Recetas publicadas</h2></div>
+  <div class="table-container">
+    <table>
+      <thead>
+        <tr>
+          <th>Receta</th>
+          <th>Categoria</th>
+          <th>Precio</th>
+          <th>TPV</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in recetas %}
+        <tr>
+          <td><strong>{{ r.nombre }}</strong></td>
+          <td>{{ r.categoria or 'Menu fijo' }}</td>
+          <td>{{ '%.2f'|format(r.precio_venta or 0) }} EUR</td>
+          <td>
+            {% if r.tpv_articulo_id and r.tpv_activo and r.visible_tpv %}
+            <span class="pv-pill">Publicado</span>
+            {% else %}
+            <span class="pv-pill">No visible</span>
+            {% endif %}
+          </td>
+          <td>
+            <form method="POST" action="{{ url_for('puntos_venta.eliminar_receta_menu_punto', id=punto.id, receta_id=r.id) }}">
+              <button class="btn btn-sm btn-danger" type="submit" onclick="return confirm('Quitar receta del menu TPV?')">Quitar</button>
+            </form>
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="5">No hay recetas publicadas en este punto.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

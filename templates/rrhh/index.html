@@ -1,0 +1,24 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container-fluid py-4">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div><h1 class="h3 mb-1">RRHH y permisos</h1><p class="text-muted mb-0">Control de personas, departamentos, fichajes y accesos.</p></div>
+    <form method="post" action="{{ url_for('rrhh.registrar_fichaje') }}" class="d-flex gap-2">
+      <button name="tipo" value="entrada" class="btn btn-success">Fichar entrada</button>
+      <button name="tipo" value="salida" class="btn btn-danger">Fichar salida</button>
+    </form>
+  </div>
+  <div class="row g-3 mb-4">
+    <div class="col-md-3"><div class="card shadow-sm"><div class="card-body"><div class="text-muted">Empleados activos</div><div class="fs-3 fw-bold">{{ resumen.empleados }}</div></div></div></div>
+    <div class="col-md-3"><div class="card shadow-sm"><div class="card-body"><div class="text-muted">Categorías</div><div class="fs-3 fw-bold">{{ resumen.categorias }}</div></div></div></div>
+    <div class="col-md-3"><div class="card shadow-sm"><div class="card-body"><div class="text-muted">Fichajes hoy</div><div class="fs-3 fw-bold">{{ resumen.fichajes_hoy }}</div></div></div></div>
+    <div class="col-md-3"><div class="card shadow-sm"><div class="card-body"><div class="text-muted">Contratos activos</div><div class="fs-3 fw-bold">{{ resumen.contratos_activos }}</div></div></div></div>
+  </div>
+  <div class="row g-3">
+    <div class="col-md-3"><a class="card card-body text-decoration-none shadow-sm" href="{{ url_for('rrhh.lista_empleados') }}"><strong>Empleados</strong><span class="text-muted">Alta, edición y departamento</span></a></div>
+    <div class="col-md-3"><a class="card card-body text-decoration-none shadow-sm" href="{{ url_for('rrhh.lista_fichajes') }}"><strong>Fichajes</strong><span class="text-muted">Registro de jornada</span></a></div>
+    <div class="col-md-3"><a class="card card-body text-decoration-none shadow-sm" href="{{ url_for('rrhh.lista_categorias') }}"><strong>Categorías laborales</strong><span class="text-muted">Convenio y grupo</span></a></div>
+    <div class="col-md-3"><a class="card card-body text-decoration-none shadow-sm" href="{{ url_for('rrhh.lista_roles') }}"><strong>Roles y permisos</strong><span class="text-muted">Acceso global o restringido</span></a></div>
+  </div>
+</div>
+{% endblock %}

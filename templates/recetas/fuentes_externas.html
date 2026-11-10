@@ -1,0 +1,386 @@
+{% extends "base.html" %}
+
+{% block content %}
+<style>
+    .fuentes-page {
+        max-width: none;
+        margin: 0;
+    }
+    .fuentes-grid {
+        display: grid;
+        grid-template-columns: 360px minmax(0, 1fr);
+        gap: 14px;
+        align-items: start;
+    }
+    .fuentes-panel {
+        border: 1px solid var(--border-color, #cbd5e1);
+        background: var(--surface-bg, #fff);
+        border-radius: 8px;
+        padding: 16px;
+    }
+    .fuentes-kpis {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
+        margin: 12px 0;
+    }
+    .fuentes-kpi {
+        border: 1px solid var(--border-color, #cbd5e1);
+        border-radius: 7px;
+        padding: 10px;
+        background: var(--surface-soft, #f8fafc);
+    }
+    .fuentes-kpi span {
+        display: block;
+        font-size: 12px;
+        color: var(--text-muted, #64748b);
+    }
+    .fuentes-kpi strong {
+        font-size: 22px;
+    }
+    .radar-recetas {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 8px;
+        margin: 14px 0;
+    }
+    .radar-card {
+        border: 1px solid var(--border-color, #cbd5e1);
+        border-radius: 8px;
+        padding: 10px;
+        background: var(--surface-soft, #f8fafc);
+    }
+    .radar-card span {
+        display: block;
+        font-size: 12px;
+        color: var(--text-muted, #64748b);
+    }
+    .radar-card strong {
+        display: block;
+        font-size: 20px;
+        margin-top: 2px;
+    }
+    .radar-card.alerta strong {
+        color: #dc2626;
+    }
+    .prioridad-recetas {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 10px 0 16px;
+        font-size: 13px;
+    }
+    .prioridad-recetas th,
+    .prioridad-recetas td {
+        border-bottom: 1px solid var(--border-color, #cbd5e1);
+        padding: 7px 6px;
+        text-align: left;
+        vertical-align: top;
+    }
+    .prioridad-recetas th {
+        color: var(--primary-color, #ff6600);
+        font-size: 11px;
+        text-transform: uppercase;
+    }
+    .propuesta-externa {
+        border: 1px solid var(--border-color, #cbd5e1);
+        border-radius: 8px;
+        padding: 12px;
+        margin-bottom: 10px;
+        background: var(--surface-bg, #fff);
+    }
+    .propuesta-top {
+        display: grid;
+        grid-template-columns: auto minmax(180px, 1fr) auto auto;
+        gap: 10px;
+        align-items: start;
+    }
+    .mini-muted {
+        color: var(--text-muted, #64748b);
+        font-size: 12px;
+    }
+    .comparativa {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 8px;
+        margin-top: 10px;
+    }
+    .comparativa div {
+        border: 1px solid var(--border-color, #cbd5e1);
+        border-radius: 7px;
+        padding: 9px;
+        background: var(--surface-soft, #f8fafc);
+        min-height: 68px;
+    }
+    .ingredientes-fuente {
+        white-space: pre-wrap;
+        max-height: 120px;
+        overflow: auto;
+        margin-top: 8px;
+        padding: 8px;
+        border-radius: 7px;
+        background: var(--surface-soft, #f8fafc);
+        border: 1px solid var(--border-color, #cbd5e1);
+        font-size: 12px;
+    }
+    @media (max-width: 1000px) {
+        .fuentes-grid,
+        .comparativa,
+        .propuesta-top,
+        .radar-recetas {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+
+<div class="fuentes-page">
+    <div class="card">
+        <div class="card-header" style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start;flex-wrap:wrap;">
+            <div>
+                <h2 style="margin:0;"><i class="fas fa-link"></i> Fuentes externas para recetas</h2>
+                <p class="mini-muted" style="margin:4px 0 0;">Compara enlaces o texto externo con tus recetas pendientes. Nada se aplica sin revisar. Si una receta esta vacia, puede proponer ingredientes con cantidades leidas de la fuente.</p>
+            </div>
+            <a href="{{ url_for('recetas.recetas', estado='sin_alergenos') }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Recetas sin alergenos
+            </a>
+        </div>
+
+        <div class="fuentes-grid">
+            <aside class="fuentes-panel">
+                <h3>Analizar fuente</h3>
+                <form method="post">
+                    <input type="hidden" name="accion" value="analizar_url">
+                    <label>URL de receta</label>
+                    <input class="form-control" name="url" placeholder="https://www.directoalpaladar.com/...">
+                    <div class="mini-muted" style="margin:6px 0 12px;">Si la pagina trae datos estructurados de receta, leeremos titulo e ingredientes. No se inventan cantidades.</div>
+
+                    <label>Titulo manual</label>
+                    <input class="form-control" name="titulo_manual" placeholder="Opcional si pegas texto">
+                    <label style="margin-top:10px;">Texto o ingredientes pegados</label>
+                    <textarea class="form-control" name="texto_manual" rows="7" placeholder="Un ingrediente por linea o texto de la receta"></textarea>
+
+                    {% if puede_editar %}
+                    <button class="btn btn-primary" style="width:100%;margin-top:12px;">
+                        <i class="fas fa-search"></i> Crear propuestas
+                    </button>
+                    {% else %}
+                    <div class="alert alert-warning" style="margin-top:12px;">Puedes revisar propuestas, pero no crear ni aplicar cambios.</div>
+                    {% endif %}
+                </form>
+
+                <div class="fuentes-kpis">
+                    <div class="fuentes-kpi"><span>Recetas sin alergenos</span><strong>{{ sin_alergenos or 0 }}</strong></div>
+                    <div class="fuentes-kpi"><span>Pendientes</span><strong>{{ resumen.pendientes or 0 }}</strong></div>
+                    <div class="fuentes-kpi"><span>Aplicadas</span><strong>{{ resumen.aplicadas or 0 }}</strong></div>
+                    <div class="fuentes-kpi"><span>Total propuestas</span><strong>{{ resumen.total or 0 }}</strong></div>
+                </div>
+
+                {% if puede_editar %}
+                <form method="post" style="margin-top:12px;">
+                    <input type="hidden" name="accion" value="generar_internas">
+                    <button class="btn btn-success" style="width:100%;">
+                        <i class="fas fa-database"></i> Proponer desde datos internos
+                    </button>
+                    <div class="mini-muted" style="margin-top:6px;">
+                        Usa ingredientes y alergenos de productos. No actualiza recetas hasta que revises y apliques.
+                    </div>
+                </form>
+
+                <form method="post" style="margin-top:12px;border-top:1px solid var(--border-color,#cbd5e1);padding-top:12px;">
+                    <input type="hidden" name="accion" value="buscar_pendientes_auto">
+                    <label>Buscar recetas pendientes</label>
+                    <input class="form-control" type="number" name="limite_recetas" value="10" min="1" max="30">
+                    <label style="display:flex;gap:8px;align-items:center;margin-top:8px;">
+                        <input type="checkbox" name="usar_web" value="1">
+                        Buscar tambien en Directo al Paladar
+                    </label>
+                    <button class="btn btn-warning" style="width:100%;margin-top:10px;">
+                        <i class="fas fa-wand-magic-sparkles"></i> Buscar automaticamente
+                    </button>
+                    <div class="mini-muted" style="margin-top:6px;">
+                        Primero busca en biblioteca privada. La web solo crea propuestas con fuente; no aplica cambios sola.
+                    </div>
+                </form>
+                {% endif %}
+            </aside>
+
+            <section class="fuentes-panel">
+                <h3 style="margin-top:0;">Radar de recetas</h3>
+                <div class="radar-recetas">
+                    <div class="radar-card">
+                        <span>Total recetas</span>
+                        <strong>{{ diagnostico.total_recetas or 0 }}</strong>
+                    </div>
+                    <div class="radar-card alerta">
+                        <span>Sin ingredientes</span>
+                        <strong>{{ diagnostico.sin_ingredientes or 0 }}</strong>
+                    </div>
+                    <div class="radar-card alerta">
+                        <span>Sin alergenos</span>
+                        <strong>{{ diagnostico.sin_alergenos or 0 }}</strong>
+                    </div>
+                    <div class="radar-card alerta">
+                        <span>Vacias criticas</span>
+                        <strong>{{ diagnostico.vacias_criticas or 0 }}</strong>
+                    </div>
+                    <div class="radar-card">
+                        <span>Produccion sin ingredientes</span>
+                        <strong>{{ diagnostico.produccion_sin_ingredientes or 0 }}</strong>
+                    </div>
+                    <div class="radar-card">
+                        <span>Produccion sin alergenos</span>
+                        <strong>{{ diagnostico.produccion_sin_alergenos or 0 }}</strong>
+                    </div>
+                    <div class="radar-card">
+                        <span>Menu sin ingredientes</span>
+                        <strong>{{ diagnostico.menu_sin_ingredientes or 0 }}</strong>
+                    </div>
+                    <div class="radar-card">
+                        <span>Menu sin alergenos</span>
+                        <strong>{{ diagnostico.menu_sin_alergenos or 0 }}</strong>
+                    </div>
+                </div>
+                <div class="mini-muted" style="margin:-4px 0 14px;">
+                    Prioridad real: primero recetas usadas en produccion o menu, luego recetas vacias, despues alergenos pendientes.
+                </div>
+                {% if recetas_prioritarias %}
+                <h3 style="margin:0;">Primeras recetas a corregir</h3>
+                <table class="prioridad-recetas">
+                    <thead>
+                        <tr>
+                            <th>Receta</th>
+                            <th>Hueco</th>
+                            <th>Produccion</th>
+                            <th>Menu</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for r in recetas_prioritarias %}
+                        <tr>
+                            <td>
+                                <strong>{{ r.nombre }}</strong>
+                                <div class="mini-muted">{{ r.categoria }}</div>
+                            </td>
+                            <td>
+                                {% if not r.ingredientes %}<span class="badge bg-danger">sin ingredientes</span>{% endif %}
+                                {% if not r.alergenos %}<span class="badge bg-warning text-dark">sin alergenos</span>{% endif %}
+                            </td>
+                            <td>{{ r.usos_produccion or 0 }}</td>
+                            <td>{{ r.usos_menu or 0 }}</td>
+                            <td><a class="btn btn-sm btn-secondary" href="{{ url_for('recetas.ver_receta', receta_id=r.id) }}">Ver</a></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% endif %}
+
+                <div style="display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap;">
+                    <h3 style="margin:0;">Propuestas de ajuste</h3>
+                    <div style="display:flex;gap:6px;flex-wrap:wrap;">
+                        <a class="btn btn-sm {% if estado_filtro == 'pendiente' %}btn-primary{% else %}btn-secondary{% endif %}" href="{{ url_for('recetas.fuentes_externas_recetas', estado='pendiente') }}">Pendientes</a>
+                        <a class="btn btn-sm {% if estado_filtro == 'aplicada' %}btn-primary{% else %}btn-secondary{% endif %}" href="{{ url_for('recetas.fuentes_externas_recetas', estado='aplicada') }}">Aplicadas</a>
+                        <a class="btn btn-sm {% if estado_filtro == 'descartada' %}btn-primary{% else %}btn-secondary{% endif %}" href="{{ url_for('recetas.fuentes_externas_recetas', estado='descartada') }}">Descartadas</a>
+                        <a class="btn btn-sm {% if estado_filtro == 'todos' %}btn-primary{% else %}btn-secondary{% endif %}" href="{{ url_for('recetas.fuentes_externas_recetas', estado='todos') }}">Todas</a>
+                        <a class="btn btn-sm {% if confianza_filtro == 'alta' %}btn-primary{% else %}btn-secondary{% endif %}" href="{{ url_for('recetas.fuentes_externas_recetas', estado=estado_filtro, confianza='alta') }}">Alta confianza</a>
+                        <a class="btn btn-sm {% if confianza_filtro == 'revision' %}btn-primary{% else %}btn-secondary{% endif %}" href="{{ url_for('recetas.fuentes_externas_recetas', estado=estado_filtro, confianza='revision') }}">Revisar</a>
+                        {% if confianza_filtro %}
+                        <a class="btn btn-sm btn-secondary" href="{{ url_for('recetas.fuentes_externas_recetas', estado=estado_filtro) }}">Quitar confianza</a>
+                        {% endif %}
+                    </div>
+                </div>
+                {% if propuestas %}
+                <form method="post">
+                    {% for p in propuestas %}
+                    <article class="propuesta-externa">
+                        <div class="propuesta-top">
+                            <label>
+                                {% if p.estado == 'pendiente' %}
+                                <input type="checkbox" name="propuesta_id" value="{{ p.id }}">
+                                {% endif %}
+                            </label>
+                            <div>
+                                <strong>{{ p.receta_nombre_actual or p.receta_nombre }}</strong>
+                                <div class="mini-muted">{{ p.receta_categoria or 'Sin categoria' }}</div>
+                                <div class="mini-muted">Fuente: {{ p.fuente_titulo or p.fuente_dominio or p.fuente_url }}</div>
+                            </div>
+                            <span class="badge bg-info">{{ '%.0f'|format(p.confianza or 0) }}%</span>
+                            <span class="badge {% if p.estado == 'pendiente' %}bg-warning text-dark{% elif p.estado == 'aplicada' %}bg-success{% else %}bg-secondary{% endif %}">
+                                {{ p.estado }}
+                            </span>
+                        </div>
+                        {% if p.notas %}
+                        <div class="mini-muted" style="margin-top:8px;">
+                            {{ p.notas }}
+                            {% if (p.confianza or 0) < 75 %}
+                                <strong>Revisar manualmente antes de aplicar.</strong>
+                            {% endif %}
+                        </div>
+                        {% endif %}
+
+                        <div class="comparativa">
+                            <div>
+                                <strong>Actual</strong>
+                                <p>{{ p.alergenos_actuales or 'Sin alergenos' }}</p>
+                            </div>
+                            <div>
+                                <strong>Propuesto</strong>
+                                <p>{{ p.alergenos_propuestos or '-' }}</p>
+                            </div>
+                            <div>
+                                <strong>Nuevos a revisar</strong>
+                                <p>{{ p.alergenos_nuevos or '-' }}</p>
+                            </div>
+                        </div>
+
+                        {% if p.ingredientes_fuente %}
+                        <details style="margin-top:8px;">
+                            <summary>Ingredientes detectados en la fuente</summary>
+                            <div style="display:flex;gap:8px;flex-wrap:wrap;margin:8px 0;">
+                                <span class="badge bg-info">{{ p.ingredientes_total or 0 }} lineas</span>
+                                <span class="badge bg-success">{{ p.ingredientes_creables or 0 }} creables</span>
+                                {% if p.ingredientes_omitidas %}
+                                <span class="badge bg-warning text-dark">{{ p.ingredientes_omitidas }} revisar</span>
+                                {% endif %}
+                            </div>
+                            <div class="ingredientes-fuente">{{ p.ingredientes_fuente }}</div>
+                            <div class="mini-muted" style="margin-top:6px;">Al aplicar, solo se rellenan ingredientes si la receta esta vacia y la cantidad se puede leer con claridad.</div>
+                            {% if p.ingredientes_creables_detalle %}
+                            <div class="mini-muted" style="margin-top:6px;">
+                                Se crearian:
+                                {% for ing in p.ingredientes_creables_detalle %}
+                                    {{ ing.nombre }} ({{ ing.cantidad }} {{ ing.unidad }}){% if not loop.last %}, {% endif %}
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+                            {% if p.ingredientes_omitidas_detalle %}
+                            <div class="mini-muted" style="margin-top:6px;">
+                                Requieren revision manual:
+                                {% for linea in p.ingredientes_omitidas_detalle %}
+                                    {{ linea }}{% if not loop.last %}; {% endif %}
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+                        </details>
+                        {% endif %}
+                    </article>
+                    {% endfor %}
+
+                    {% if puede_editar %}
+                    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                        <button class="btn btn-success" name="accion" value="aplicar">
+                            <i class="fas fa-check"></i> Aplicar seleccionadas
+                        </button>
+                        <button class="btn btn-secondary" name="accion" value="descartar">
+                            <i class="fas fa-times"></i> Descartar seleccionadas
+                        </button>
+                    </div>
+                    {% endif %}
+                </form>
+                {% else %}
+                <div class="alert alert-info">Todavia no hay propuestas. Pega una URL de Directo al Paladar o ingredientes y la ERP buscara coincidencias con recetas sin alergenos.</div>
+                {% endif %}
+            </section>
+        </div>
+    </div>
+</div>
+{% endblock %}

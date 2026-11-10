@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="card">
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+        <div>
+            <h2 style="color: #ff6b00;"> GENERAR PRODUCCIN DESDE MEN</h2>
+            <p style="color: #999;">{{ menu.fecha }} - {{ menu.tipo_nombre }}</p>
+        </div>
+        <a href="/menus/{{ menu.id }}" class="btn btn-red"> Volver al men</a>
+    </div>
+    
+    <div style="background: #3a3f44; padding: 20px; border-radius: 4px; margin: 20px 0;">
+        <form method="POST">
+            <div style="display: grid; grid-template-columns: 1fr 1fr 2fr; gap: 15px; margin-bottom: 15px;">
+                <div>
+                    <label>Fecha de produccin:</label>
+                    <input type="date" name="fecha" value="{{ now().strftime('%Y-%m-%d') }}" required style="width: 100%; padding: 8px;">
+                </div>
+                
+                <div>
+                    <label>Turno:</label>
+                    <select name="turno" required style="width: 100%; padding: 8px;">
+                        {% for t in turnos %}
+                        <option value="{{ t }}" {% if t == menu.tipo_nombre %}selected{% endif %}>{{ t }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div>
+                    <label>Responsable:</label>
+                    <input type="text" name="responsable" value="{{ session.user_nombre }}" style="width: 100%; padding: 8px;">
+                </div>
+            </div>
+            
+            <div style="margin-bottom: 15px;">
+                <label>Observaciones:</label>
+                <textarea name="observaciones" rows="3" style="width: 100%; padding: 8px;"></textarea>
+            </div>
+            
+            <div style="background: #2b2f33; padding: 15px; border-radius: 4px; margin: 20px 0;">
+                <h4 style="margin-top: 0;"> Platos que se producirn</h4>
+                <p style="color: #999;">Se generar una lnea de produccin por cada plato del men con cantidad 1 por defecto. Luego podrs ajustar las cantidades en el parte.</p>
+            </div>
+            
+            <button type="submit" class="btn btn-success"> Generar parte de produccin</button>
+            <a href="/menus/{{ menu.id }}" class="btn btn-secondary">Cancelar</a>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+
+

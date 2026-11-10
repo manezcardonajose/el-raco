@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header">
+        <h2><i class="fas fa-balance-scale"></i> COMPARATIVA DE PRECIOS</h2>
+        <div>
+            <button onclick="window.print()" class="btn btn-info">
+                <i class="fas fa-print"></i> Imprimir
+            </button>
+            <a href="{{ url_for('informes.compras_comparativa', exportar='excel', producto_id=producto_seleccionado) }}"
+               class="btn btn-success">
+                <i class="fas fa-file-excel"></i> Excel
+            </a>
+            <a href="{{ url_for('informes.compras') }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Volver
+            </a>
+        </div>
+    </div>
+
+    <!-- Filtro por producto -->
+    <div style="background: #1e252b; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+        <form method="GET" style="display: grid; grid-template-columns: 1fr auto; gap: 15px; align-items: end;">
+            <div>
+                <label class="form-label">Producto:</label>
+                <select name="producto_id" class="form-control">
+                    <option value="">Todos los productos</option>
+                    {% for p in productos %}
+                    <option value="{{ p.id }}" {% if p.id|string == producto_seleccionado %}selected{% endif %}>
+                        {{ p.nombre }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <button type="submit" class="btn btn-primary">Filtrar</button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Tabla de resultados -->
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>Producto</th>
+                    <th>Proveedor</th>
+                    <th>Precio</th>
+                    <th>Principal</th>
+                    <th>Contacto</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for d in datos %}
+                <tr>
+                    <td><strong>{{ d.producto }}</strong></td>
+                    <td>{{ d.proveedor }}</td>
+                    <td style="text-align: right;">{{ "%.2f"|format(d.precio) }} </td>
+                    <td style="text-align: center;">
+                        {% if d.es_principal %}
+                        <span style="color: #28a745;"> Principal</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if d.telefono %}
+                        <small> {{ d.telefono }}</small><br>
+                        {% endif %}
+                        {% if d.email %}
+                        <small>️ {{ d.email }}</small>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="5" style="text-align: center; padding: 40px;">
+                        No hay datos de precios
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
+
+
+
+
+

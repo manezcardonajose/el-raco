@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="es">
+<head>
+    <meta charset="utf-8">
+    <title>Etiqueta lote {{ lote.codigo_lote }}</title>
+    <style>
+        :root {
+            --label-w: {{ label_css.ancho_mm }}mm;
+            --label-h: {{ label_css.alto_mm }}mm;
+            --label-gap: {{ label_css.separacion_mm }}mm;
+            --label-pad: {{ label_css.padding_mm }}mm;
+            --label-font: {{ label_css.fuente_base_px }}px;
+            --page-margin: {{ label_css.margen_mm }}mm;
+        }
+        @page { size: {{ label_css.page_size }}; margin: {{ label_css.page_margin }}; }
+        body { font-family: Arial, sans-serif; color:#111; margin:0; padding:var(--page-margin); font-size:var(--label-font); background:#f3f4f6; }
+        .toolbar { display:flex; gap:8px; flex-wrap:wrap; align-items:end; margin-bottom:14px; background:#fff; border:1px solid #ddd; padding:10px; }
+        .toolbar a, .toolbar button { padding:8px 10px; border:1px solid #222; background:#fff; text-decoration:none; color:#111; cursor:pointer; }
+        .toolbar label { display:flex; flex-direction:column; gap:4px; font-size:12px; color:#555; }
+        .toolbar select { min-width:220px; padding:7px; border:1px solid #999; }
+        .printer-chip { padding:7px 9px; border:1px solid #bbb; background:#f8fafc; font-size:12px; color:#333; }
+        .label-grid { display:grid; grid-template-columns:repeat({{ label_css.columnas }}, var(--label-w)); gap:var(--label-gap); align-items:start; }
+        .label { width:var(--label-w); min-height:var(--label-h); border:1.6px solid #111; padding:var(--label-pad); background:#fff; box-sizing:border-box; page-break-inside:avoid; overflow:hidden; }
+        .label-mode-rollo .label-grid { display:block; }
+        .label-mode-rollo .label { page-break-after:always; break-after:page; }
+        .title { font-size:calc(var(--label-font) * 1.55); line-height:1.05; font-weight:700; margin-bottom:calc(var(--label-pad) * .7); }
+        .code { font-size:calc(var(--label-font) * 1.85); font-weight:800; letter-spacing:.4px; border:1px solid #111; padding:calc(var(--label-pad) * .65); text-align:center; margin:calc(var(--label-pad) * .8) 0; }
+        .row { display:flex; justify-content:space-between; gap:6px; border-bottom:1px solid #ddd; padding:2px 0; line-height:1.15; }
+        .row span { text-align:right; overflow-wrap:anywhere; }
+        .muted { color:#555; font-size:calc(var(--label-font) * .9); }
+        .badge { display:inline-block; border:1px solid #111; padding:2px 5px; margin-top:4px; font-size:calc(var(--label-font) * .85); }
+        @media print {
+            .toolbar { display:none; }
+            body { padding:0; background:#fff; }
+            .label { margin:0; }
+        }
+    </style>
+</head>
+<body class="label-mode-{{ config_etiqueta.formato }}">
+    <form class="toolbar" method="get">
+        <label>Formato etiqueta
+            <select name="formato" onchange="this.form.submit()">
+                {% for f in formatos_etiqueta %}
+                <option value="{{ f.codigo }}" {% if f.codigo == config_etiqueta.codigo %}selected{% endif %}>{{ f.nombre }}</option>
+                {% endfor %}
+            </select>
+        </label>
+        <input type="hidden" name="next" value="{{ next_url or '' }}">
+        <button type="button" onclick="window.print()">Imprimir</button>
+        <button type="button" onclick="queuePrintJob()">Enviar a impresora asignada</button>
+        {% if dispositivo_impresion %}
+        <span class="printer-chip">Equipo: {{ dispositivo_impresion.nombre }} · Etiquetas: {{ dispositivo_impresion.impresora_etiquetas_nombre or 'sin impresora asignada' }}</span>
+        {% else %}
+        <a href="{{ url_for('empresas.dispositivos_impresion') }}">Asignar este equipo</a>
+        {% endif %}
+        <a href="{{ url_for('empresas.configurar_etiquetas') }}">Configurar formatos</a>
+        <a href="{{ next_url or url_for('lotes.lista_lotes') }}">Volver</a>
+    </form>
+
+    <form id="queuePrintForm" method="post" action="{{ url_for('empresas.crear_trabajo_impresion') }}" style="display:none;">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="tipo" value="etiqueta_lote">
+        <input type="hidden" name="origen_tabla" value="lotes">
+        <input type="hidden" name="origen_id" value="{{ lote.id }}">
+        <input type="hidden" name="titulo" value="Etiqueta lote {{ lote.codigo_lote }}">
+        <input type="hidden" name="formato_codigo" value="{{ config_etiqueta.codigo }}">
+        <input type="hidden" name="lenguaje_impresion" value="{% if config_etiqueta.tipo_impresora in ['zebra_zpl','termica'] %}zpl{% else %}html{% endif %}">
+        <input type="hidden" name="next_url" value="{{ request.full_path }}">
+        <textarea name="contenido_html" id="printJobHtml"></textarea>
+        <textarea name="contenido_raw">{{ zpl_contenido }}</textarea>
+    </form>
+
+    <div class="label-grid">
+        <section class="label">
+            <div class="title">{{ lote.producto_nombre }}</div>
+            <div class="muted">{{ lote.familia or '-' }} / {{ lote.tipo_conservacion or '-' }}</div>
+            <div class="code">{{ lote.codigo_lote }}</div>
+            <div class="row"><strong>Origen lote</strong><span>{{ lote.origen_lote or ('proveedor' if lote.lote_proveedor else 'interno') }}</span></div>
+            <div class="row"><strong>Lote proveedor</strong><span>{{ lote.lote_proveedor or '-' }}</span></div>
+            <div class="row"><strong>Proveedor</strong><span>{{ lote.proveedor_nombre or '-' }}</span></div>
+            <div class="row"><strong>Recepcion</strong><span>{{ lote.fecha_recepcion or '-' }}</span></div>
+            <div class="row"><strong>Caducidad</strong><span>{{ lote.fecha_caducidad or '-' }}</span></div>
+            <div class="row"><strong>Cantidad</strong><span>{{ lote.cantidad_actual }} {{ lote.unidad or '' }}</span></div>
+            <div class="row"><strong>Almacen</strong><span>{{ lote.ubicacion_actual or lote.almacen_id or '-' }}</span></div>
+            <div class="row"><strong>Descongelado</strong><span>{{ lote.estado_descongelado or '-' }}</span></div>
+            {% if lote.estado == 'deteriorado' %}
+            <span class="badge">Deteriorado / no apto</span>
+            {% endif %}
+            {% if lote.num_desinfecciones %}
+            <span class="badge">Desinfeccion registrada</span>
+            {% endif %}
+            <div class="muted" style="margin-top:10px;">Impreso: {{ now.strftime('%Y-%m-%d %H:%M') }}</div>
+        </section>
+    </div>
+    {% if config_etiqueta.auto_print or (dispositivo_impresion and dispositivo_impresion.auto_print_etiquetas) %}
+    <script>
+        window.addEventListener('load', function () { window.print(); });
+    </script>
+    {% endif %}
+    <script>
+        function queuePrintJob() {
+            const styles = Array.from(document.querySelectorAll('style')).map(s => s.outerHTML).join('\n');
+            const content = document.querySelector('.label-grid');
+            document.getElementById('printJobHtml').value = `<!doctype html><html lang="es"><head><meta charset="utf-8"><title>Etiqueta</title>${styles}</head><body class="${document.body.className}">${content.outerHTML}</body></html>`;
+            document.getElementById('queuePrintForm').submit();
+        }
+    </script>
+</body>
+</html>

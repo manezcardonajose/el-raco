@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>{% block title %}El Racó ERP{% endblock %}</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #1e1e1e;
+            color: #e0e0e0;
+        }
+        
+        .navbar {
+            background: linear-gradient(135deg, #2b2f33 0%, #1c1f23 100%);
+            padding: 15px 30px;
+            display: flex;
+            gap: 25px;
+            border-bottom: 2px solid #ff6b00;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+            flex-wrap: wrap;
+        }
+        
+        .navbar a {
+            color: #e0e0e0;
+            text-decoration: none;
+            font-weight: 500;
+            padding: 5px 10px;
+            border-radius: 4px;
+            transition: all 0.2s;
+        }
+        
+        .navbar a:hover {
+            color: #ff6b00;
+            background: rgba(255, 107, 0, 0.1);
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 30px auto;
+            padding: 0 20px;
+        }
+        
+        .card {
+            background: #2b2f33;
+            border-radius: 8px;
+            padding: 25px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+            border-left: 4px solid #ff6b00;
+        }
+        
+        h2 {
+            color: #ff6b00;
+            margin-bottom: 20px;
+            font-weight: 600;
+        }
+        
+        .btn {
+            padding: 8px 16px;
+            border-radius: 4px;
+            text-decoration: none;
+            font-weight: 500;
+            display: inline-block;
+            transition: all 0.2s;
+            border: none;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        
+        .btn-primary { background: #007bff; color: white; }
+        .btn-success { background: #28a745; color: white; }
+        .btn-danger { background: #dc3545; color: white; }
+        .btn-warning { background: #ffc107; color: black; }
+        .btn-info { background: #17a2b8; color: white; }
+        .btn-secondary { background: #6c757d; color: white; }
+        
+        .btn:hover {
+            opacity: 0.8;
+            transform: translateY(-2px);
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        
+        th {
+            background: #1c1f23;
+            color: #ff6b00;
+            padding: 12px;
+            text-align: left;
+            font-weight: 600;
+        }
+        
+        td {
+            padding: 10px;
+            border-bottom: 1px solid #444;
+        }
+        
+        tr:hover {
+            background: #3a3f44;
+        }
+        
+        .alert {
+            padding: 12px 20px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+        }
+        
+        .alert-success { background: #28a745; color: white; }
+        .alert-danger { background: #dc3545; color: white; }
+        .alert-warning { background: #ffc107; color: black; }
+        .alert-info { background: #17a2b8; color: white; }
+        
+        input, select, textarea {
+            background: #3a3f44;
+            border: 1px solid #555;
+            color: white;
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        
+        input:focus, select:focus, textarea:focus {
+            outline: 2px solid #ff6b00;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 5px;
+            color: #ccc;
+            font-weight: 500;
+        }
+        
+        .footer {
+            text-align: center;
+            margin-top: 50px;
+            padding: 20px;
+            color: #777;
+            border-top: 1px solid #333;
+        }
+    </style>
+</head>
+<body>
+    <div class="navbar">
+        <a href="/"> Inicio</a>
+        <a href="/productos"> Productos</a>
+        <a href="/proveedores"> Proveedores</a>
+        <a href="/recetas"> Recetas</a>
+        <a href="/compras/pedidos"> Compras</a>
+        <a href="/almacenes"> Almacenes</a>
+        <a href="/stock"> Stock</a>
+        <a href="/produccion"> Produccin</a>
+        <a href="/appcc"> APPCC</a>
+        <a href="/incidencias">️ Incidencias</a>
+        <a href="/menus"> Mens</a>
+        <a href="/informes/compras"> Informes</a>
+        <a href="/importar"> Importar</a>
+        <a href="/proveedores/calendario"> Calendario</a>
+        
+        <div style="margin-left: auto; display: flex; gap: 15px;">
+            {% if session.user_nombre %}
+                <span style="color: #ff6b00;"> {{ session.user_nombre }}</span>
+                <a href="{{ url_for('auth.logout') }}"> Salir</a>
+            {% else %}
+                <a href="{{ url_for('auth.login') }}"> Iniciar sesin</a>
+            {% endif %}
+        </div>
+    </div>
+    
+    <div class="container">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+        
+        {% block content %}{% endblock %}
+    </div>
+    
+    <div class="footer">
+        <p>© 2026 El Racó ERP - Gestión hotelera integral</p>
+    </div>
+</body>
+</html>
+
+
+

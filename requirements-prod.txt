@@ -1,0 +1,6 @@
+# Dependencias verificadas del proyecto
+-r requirements.txt
+
+# Servidor estable: Waitress en Windows, Gunicorn en Linux/macOS
+waitress>=3.0,<4; sys_platform == "win32"
+gunicorn>=23.0,<24; sys_platform != "win32"

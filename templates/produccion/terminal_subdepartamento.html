@@ -1,0 +1,519 @@
+{% extends "base.html" %}
+
+{% block title %}Terminal {{ subdepartamento.nombre }} - El Raco ERP{% endblock %}
+
+{% block content %}
+<style>
+    .terminal-top {
+        position: sticky;
+        top: 72px;
+        z-index: 20;
+        background: #252b33;
+        padding-bottom: 10px;
+    }
+    .service-strip {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+        gap: 10px;
+        margin-bottom: 12px;
+    }
+    .service-card {
+        background: #111820;
+        border: 1px solid #2c3e50;
+        border-radius: 8px;
+        padding: 14px;
+    }
+    .service-card h3 {
+        color: #ff6b00;
+        margin: 0 0 10px;
+        font-size: 17px;
+    }
+    .service-numbers {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 6px;
+    }
+    .service-numbers div {
+        background: #1e252b;
+        border-radius: 6px;
+        padding: 9px 6px;
+        text-align: center;
+    }
+    .service-numbers span {
+        display: block;
+        color: #9fb0c0;
+        font-size: 10px;
+    }
+    .service-numbers strong {
+        color: #fff;
+        font-size: 22px;
+    }
+    .client-control-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+        gap: 10px;
+        margin-bottom: 12px;
+    }
+    .client-panel {
+        background: #111820;
+        border: 1px solid #2c3e50;
+        border-radius: 8px;
+        overflow: hidden;
+    }
+    .client-panel-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        padding: 9px 12px;
+        background: #151b22;
+        border-bottom: 1px solid #2c3e50;
+    }
+    .client-panel-head h4 {
+        margin: 0;
+        color: #ff6b00;
+        font-size: 14px;
+    }
+    .client-panel-head span {
+        color: #9fb0c0;
+        font-size: 11px;
+        white-space: nowrap;
+    }
+    .client-table-wrap {
+        max-height: 150px;
+        overflow: auto;
+    }
+    .client-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 12px;
+    }
+    .client-table th,
+    .client-table td {
+        border-bottom: 1px solid #263442;
+        padding: 7px 8px;
+        vertical-align: top;
+        text-align: left;
+    }
+    .client-table th {
+        color: #ff6b00;
+        background: #1a2028;
+        font-size: 10px;
+        text-transform: uppercase;
+        position: sticky;
+        top: 0;
+    }
+    .client-table td {
+        color: #e7eef7;
+    }
+    .client-table small {
+        display: block;
+        color: #9fb0c0;
+        margin-top: 2px;
+    }
+    .cliente-pendiente td {
+        background: rgba(255, 107, 0, 0.06);
+    }
+    .estado-cliente {
+        display: inline-block;
+        border-radius: 12px;
+        padding: 3px 7px;
+        font-size: 10px;
+        font-weight: 700;
+        text-transform: uppercase;
+    }
+    .estado-pendiente-cliente { background:#3a2e1e; color:#ffd166; }
+    .estado-parcial-cliente { background:#17324a; color:#75c8ff; }
+    .estado-completo-cliente { background:#153b25; color:#7be08a; }
+    .pasantes-box {
+        border-top: 1px solid #2c3e50;
+        padding: 8px 10px;
+        color: #dce8f3;
+        font-size: 12px;
+    }
+    .pasantes-box strong {
+        color: #ff6b00;
+        margin-right: 5px;
+    }
+    .pasante-chip {
+        display: inline-block;
+        background: #1e252b;
+        border: 1px solid #34495e;
+        border-radius: 12px;
+        padding: 3px 7px;
+        margin: 2px;
+    }
+    .empty-clientes {
+        color: #9fb0c0;
+        padding: 12px;
+        font-size: 12px;
+    }
+    .production-status-strip {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+        gap: 8px;
+        margin-bottom: 10px;
+    }
+    .production-status-card {
+        background: #111820;
+        border: 1px solid #2c3e50;
+        border-radius: 8px;
+        padding: 10px 12px;
+    }
+    .production-status-card span {
+        display: block;
+        color: #9fb0c0;
+        font-size: 11px;
+        margin-bottom: 4px;
+    }
+    .production-status-card strong {
+        color: #fff;
+        font-size: 22px;
+    }
+    .status-filter-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-bottom: 12px;
+    }
+    .status-filter-row .btn {
+        min-height: 38px;
+        justify-content: center;
+    }
+    .status-filter-row .active-filter {
+        border: 1px solid #ff6b00;
+        box-shadow: inset 0 0 0 1px rgba(255, 107, 0, 0.45);
+    }
+    .terminal-toolbar {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        align-items: end;
+        margin-bottom: 14px;
+    }
+    .parte-block {
+        background: #1e252b;
+        border: 1px solid #2c3e50;
+        border-radius: 8px;
+        margin-bottom: 18px;
+        overflow: hidden;
+    }
+    .parte-head {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 14px 16px;
+        background: #151b22;
+        border-bottom: 1px solid #2c3e50;
+    }
+    .parte-head h3 {
+        color: #ff6b00;
+        margin: 0;
+    }
+    .lineas-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 12px;
+        padding: 14px;
+    }
+    .linea-card {
+        background: #252b33;
+        border: 1px solid #34495e;
+        border-radius: 8px;
+        padding: 14px;
+    }
+    .linea-card h4 {
+        margin: 0 0 8px;
+        color: #fff;
+        font-size: 17px;
+    }
+    .linea-meta {
+        color: #b7c7d5;
+        font-size: 12px;
+        line-height: 1.45;
+        margin-bottom: 10px;
+    }
+    .terminal-hygiene {
+        border: 1px solid #f59e0b;
+        background: #2a1f0d;
+        border-radius: 7px;
+        padding: 9px;
+        margin-bottom: 10px;
+        color: #f8fafc;
+        font-size: 12px;
+    }
+    .terminal-hygiene strong,
+    .terminal-hygiene em,
+    .terminal-hygiene span {
+        display: block;
+    }
+    .terminal-hygiene strong {
+        color: #fbbf24;
+        margin-bottom: 4px;
+    }
+    .terminal-hygiene span {
+        color: #fde68a;
+    }
+    .terminal-hygiene em {
+        color: #fecaca;
+        font-style: normal;
+        font-weight: 700;
+        margin-top: 4px;
+    }
+    .terminal-hygiene ul {
+        margin: 6px 0 0;
+        padding-left: 17px;
+        line-height: 1.35;
+    }
+    .estado-pill {
+        display: inline-block;
+        border-radius: 14px;
+        padding: 4px 9px;
+        font-size: 12px;
+        font-weight: 700;
+        margin-bottom: 8px;
+    }
+    .estado-pendiente { background:#3a2e1e; color:#ffd166; }
+    .estado-en_proceso { background:#17324a; color:#75c8ff; }
+    .estado-completado { background:#153b25; color:#7be08a; }
+    .touch-actions {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 8px;
+        margin-top: 10px;
+    }
+    .touch-actions .btn {
+        justify-content: center;
+        min-height: 42px;
+    }
+    .mini-form {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 7px;
+    }
+</style>
+
+<div class="card">
+    <div class="terminal-top">
+        <div class="card-header">
+            <h2><i class="fas fa-fire"></i> {{ subdepartamento.departamento_nombre }} / {{ subdepartamento.nombre }}</h2>
+            <a class="btn btn-secondary" href="{{ url_for('produccion.terminales_cocina', fecha=fecha) }}">
+                <i class="fas fa-arrow-left"></i> Terminales
+            </a>
+        </div>
+
+        <div class="service-strip">
+            {% for s in resumen_servicios %}
+            <div class="service-card">
+                <h3>{{ s.label }}</h3>
+                <div class="service-numbers">
+                    <div><span>Tenemos</span><strong>{{ s.previstos|int }}</strong></div>
+                    <div><span>Entrados</span><strong>{{ s.entrados|int }}</strong></div>
+                    <div><span>Faltan</span><strong>{{ s.faltan|int }}</strong></div>
+                    <div><span>Pasantes</span><strong>{{ s.pasantes|int }}</strong></div>
+                </div>
+            </div>
+            {% else %}
+            <div class="service-card">
+                <h3>Sin servicio</h3>
+                <p style="color:#9fb0c0;">No hay partes para esta fecha.</p>
+            </div>
+            {% endfor %}
+        </div>
+
+        {% if resumen_servicios %}
+        <div class="client-control-grid">
+            {% for s in resumen_servicios %}
+            <div class="client-panel">
+                <div class="client-panel-head">
+                    <h4>{{ s.label }} - clientes</h4>
+                    <span>{{ s.clientes|length }} reservas - {{ s.faltan|int }} faltan</span>
+                </div>
+                {% if s.clientes %}
+                <div class="client-table-wrap">
+                    <table class="client-table">
+                        <thead>
+                            <tr>
+                                <th>Hab.</th>
+                                <th>Cliente</th>
+                                <th>Regimen</th>
+                                <th>Pax</th>
+                                <th>Entran</th>
+                                <th>Faltan</th>
+                                <th>Estado</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for c in s.clientes %}
+                            <tr class="cliente-{{ c.estado }}">
+                                <td><strong>{{ c.habitacion }}</strong><small>{{ c.codigo }}</small></td>
+                                <td>{{ c.titular }}</td>
+                                <td>{{ (c.regimen or '-')|replace('_', ' ') }}</td>
+                                <td>{{ c.pax|int }}</td>
+                                <td>{{ c.entrados|int }}</td>
+                                <td><strong>{{ c.faltan|int }}</strong></td>
+                                <td>
+                                    <span class="estado-cliente estado-{{ c.estado }}-cliente">
+                                        {{ c.estado }}
+                                    </span>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="empty-clientes">No hay reservas con derecho a este servicio.</div>
+                {% endif %}
+
+                {% if s.pasantes_detalle %}
+                <div class="pasantes-box">
+                    <strong>Pasantes / extras</strong>
+                    {% for p in s.pasantes_detalle %}
+                    <span class="pasante-chip">
+                        {{ p.pax|int }} pax - {{ p.titular }}{% if p.habitacion and p.habitacion != '-' %} - Hab. {{ p.habitacion }}{% endif %} - {{ p.motivo }}
+                    </span>
+                    {% endfor %}
+                </div>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <div class="production-status-strip">
+            <div class="production-status-card">
+                <span>Recetas</span>
+                <strong>{{ resumen_produccion.total|int }}</strong>
+            </div>
+            <div class="production-status-card">
+                <span>Pendientes</span>
+                <strong>{{ resumen_produccion.pendiente|int }}</strong>
+            </div>
+            <div class="production-status-card">
+                <span>En curso</span>
+                <strong>{{ resumen_produccion.en_proceso|int }}</strong>
+            </div>
+            <div class="production-status-card">
+                <span>Hechas</span>
+                <strong>{{ resumen_produccion.completado|int }}</strong>
+            </div>
+        </div>
+
+        <div class="status-filter-row">
+            <a class="btn btn-secondary {% if not estado_linea %}active-filter{% endif %}"
+               href="{{ url_for('produccion.terminal_subdepartamento', subdepto_id=subdepartamento.id, fecha=fecha, servicio=servicio) }}">
+                Todas
+            </a>
+            <a class="btn btn-warning {% if estado_linea == 'pendiente' %}active-filter{% endif %}"
+               href="{{ url_for('produccion.terminal_subdepartamento', subdepto_id=subdepartamento.id, fecha=fecha, servicio=servicio, estado_linea='pendiente') }}">
+                Pendientes
+            </a>
+            <a class="btn btn-primary {% if estado_linea == 'en_proceso' %}active-filter{% endif %}"
+               href="{{ url_for('produccion.terminal_subdepartamento', subdepto_id=subdepartamento.id, fecha=fecha, servicio=servicio, estado_linea='en_proceso') }}">
+                En curso
+            </a>
+            <a class="btn btn-success {% if estado_linea == 'completado' %}active-filter{% endif %}"
+               href="{{ url_for('produccion.terminal_subdepartamento', subdepto_id=subdepartamento.id, fecha=fecha, servicio=servicio, estado_linea='completado') }}">
+                Hechas
+            </a>
+        </div>
+
+        <form method="GET" class="terminal-toolbar">
+            <input type="hidden" name="estado_linea" value="{{ estado_linea }}">
+            <div>
+                <label class="form-label">Fecha</label>
+                <input class="form-control" type="date" name="fecha" value="{{ fecha }}">
+            </div>
+            <div>
+                <label class="form-label">Servicio</label>
+                <select class="form-control" name="servicio">
+                    <option value="">Todos</option>
+                    {% for s in servicios %}
+                    <option value="{{ s.servicio }}" {% if servicio == s.servicio %}selected{% endif %}>{{ s.servicio }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <button class="btn btn-primary" type="submit"><i class="fas fa-sync"></i> Actualizar</button>
+        </form>
+    </div>
+
+    {% for parte in partes %}
+    <div class="parte-block">
+        <div class="parte-head">
+            <div>
+                <h3>{{ parte.turno or 'Servicio' }}</h3>
+                <span style="color:#9fb0c0;">Parte #{{ parte.id }} - {{ parte.estado }} - {{ parte.pax_previstos|int if parte.pax_previstos else 0 }} pax</span>
+            </div>
+            <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                <a class="btn btn-secondary" href="{{ url_for('produccion.gestionar_parte_subdepartamento', parte_id=parte.id) }}">
+                    Gestion avanzada
+                </a>
+                <a class="btn btn-warning" href="{{ url_for('produccion.recogida_sobrantes_parte', parte_id=parte.id) }}">
+                    Recogida buffet
+                </a>
+                <a class="btn btn-info" href="{{ url_for('produccion.tarjetas_buffet', parte_id=parte.id) }}">
+                    Tarjetas
+                </a>
+            </div>
+        </div>
+
+        <div class="lineas-grid">
+            {% for linea in lineas_por_parte.get(parte.id, []) %}
+            <div class="linea-card">
+                {% set estado = linea.estado or 'pendiente' %}
+                <span class="estado-pill estado-{{ estado }}">{{ estado.replace('_', ' ') }}</span>
+                <h4>{{ linea.receta_nombre }}</h4>
+                <div class="linea-meta">
+                    {% if linea.estacion_buffet %}Estacion: {{ linea.estacion_buffet }}<br>{% endif %}
+                    Plan: {{ linea.raciones_planificadas or linea.cantidad_planificada or 0 }} raciones
+                    {% if linea.cantidad_real %} - Real: {{ linea.cantidad_real }}{% endif %}
+                    <br>Ingredientes: {{ linea.num_ingredientes or 0 }}
+                    {% if linea.hora_inicio %}<br>Inicio: {{ linea.hora_inicio[:16] }}{% endif %}
+                    {% if linea.hora_fin %}<br>Fin: {{ linea.hora_fin[:16] }}{% endif %}
+                    {% if linea.lote_elaborado_codigo %}<br>Lote: {{ linea.lote_elaborado_codigo }}{% endif %}
+                </div>
+
+                {% if linea.avisos_higiene %}
+                <div class="terminal-hygiene">
+                    <strong>Higiene / alergenos</strong>
+                    {% if linea.alergenos_operativos %}<span>{{ linea.alergenos_operativos }}</span>{% endif %}
+                    {% if linea.contaminacion_cruzada %}<em>Limpiar entre elaboraciones.</em>{% endif %}
+                    <ul>
+                        {% for aviso in linea.avisos_higiene[:2] %}
+                        <li>{{ aviso }}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+                {% endif %}
+
+                <form class="mini-form" method="POST" action="{{ url_for('produccion.terminal_actualizar_linea', linea_id=linea.id) }}">
+                    <input type="hidden" name="servicio" value="{{ servicio }}">
+                    <input type="hidden" name="estado_linea" value="{{ estado_linea }}">
+                    <input class="form-control" type="number" step="0.01" name="cantidad_real" placeholder="Cantidad real si cambia">
+                    <input class="form-control" name="observaciones" placeholder="Observaciones rapidas">
+                    <div class="touch-actions">
+                        <button class="btn btn-warning" type="submit" name="estado" value="pendiente">Pend.</button>
+                        <button class="btn btn-primary" type="submit" name="estado" value="en_proceso">En curso</button>
+                        <button class="btn btn-success" type="submit" name="estado" value="completado">Hecha</button>
+                    </div>
+                </form>
+
+                {% if linea.lote_elaborado_id %}
+                <a class="btn btn-info" style="margin-top:8px;" href="{{ url_for('produccion.etiqueta_lote_elaborado', lote_id=linea.lote_elaborado_id) }}">
+                    <i class="fas fa-tag"></i> Etiqueta
+                </a>
+                {% endif %}
+            </div>
+            {% else %}
+            <div class="linea-card">Este parte no tiene recetas.</div>
+            {% endfor %}
+        </div>
+    </div>
+    {% else %}
+    <div style="background:#1e252b; border:1px solid #2c3e50; border-radius:8px; padding:30px; text-align:center;">
+        No hay produccion para este subdepartamento en la fecha seleccionada.
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

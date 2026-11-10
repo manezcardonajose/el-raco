@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="card">
+    <h2>Nuevo departamento</h2>
+    <p style="color:#999;">Define si este departamento tiene vida propia: cocina, APPCC, stock, mantenimiento, TPV o pedidos.</p>
+
+    <form method="POST">
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px;">
+            <div>
+                <label>Nombre del departamento:</label>
+                <input type="text" name="nombre" required style="width:100%;padding:8px;">
+            </div>
+            <div>
+                <label>Tipo operativo:</label>
+                <select name="tipo_operativo" class="form-control">
+                    <option value="general">General</option>
+                    <option value="cocina">Cocina</option>
+                    <option value="restaurante">Restaurante</option>
+                    <option value="bar">Bar</option>
+                    <option value="mantenimiento">Mantenimiento</option>
+                    <option value="pisos">Pisos</option>
+                    <option value="recepcion">Recepcion</option>
+                    <option value="almacen">Almacen / economato</option>
+                </select>
+            </div>
+            <div>
+                <label>Centro / hotel:</label>
+                <select name="centro_id" class="form-control">
+                    <option value="">General empresa</option>
+                    {% for c in centros %}
+                    <option value="{{ c.id }}" {% if centro_preseleccionado|string == c.id|string %}selected{% endif %}>{{ c.nombre }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label>Depende de:</label>
+                <select name="departamento_padre_id" class="form-control">
+                    <option value="">No depende de otro departamento</option>
+                    {% for d in departamentos %}
+                    <option value="{{ d.id }}">{{ d.nombre }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+
+        <div style="margin-top:15px;">
+            <label>Descripcion:</label>
+            <textarea name="descripcion" rows="4" style="width:100%;padding:8px;"></textarea>
+        </div>
+
+        <div style="margin-top:18px;background:#1e252b;padding:14px;border-radius:8px;">
+            <h3 style="margin-top:0;color:#ff6b00;">Capacidades</h3>
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;">
+                {% for key,label in capacidades %}
+                <label><input type="checkbox" name="{{ key }}"> {{ label }}</label>
+                {% endfor %}
+            </div>
+            <label style="display:block;margin-top:14px;">
+                <input type="checkbox" name="crear_base_operativa" checked>
+                Crear base operativa: subdepartamentos, almacenes/camaras y controles APPCC segun capacidades
+            </label>
+        </div>
+
+        <div style="margin-top:18px;">
+            <button type="submit" class="btn btn-success">Crear departamento</button>
+            <a href="/departamentos" class="btn btn-red">Cancelar</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

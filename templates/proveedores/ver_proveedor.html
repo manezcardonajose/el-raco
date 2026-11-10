@@ -1,0 +1,125 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header">
+        <h2><i class="fas fa-truck"></i> {{ proveedor.nombre }}</h2>
+        <div>
+            <a href="{{ url_for('proveedores.calendario_proveedor', proveedor_id=proveedor.id) }}" class="btn btn-info">
+                <i class="fas fa-calendar-alt"></i> Calendario
+            </a>
+            <a href="{{ url_for('proveedores.listar_reglas', proveedor_id=proveedor.id) }}" class="btn btn-warning">
+                <i class="fas fa-list"></i> Reglas
+            </a>
+            <a href="{{ url_for('proveedores.editar_proveedor', proveedor_id=proveedor.id) }}" class="btn btn-primary">
+                <i class="fas fa-edit"></i> Editar
+            </a>
+            <a href="{{ url_for('proveedores.proveedores') }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Volver
+            </a>
+        </div>
+    </div>
+
+    <div style="background: #1e252b; padding: 20px; border-radius: 8px;">
+        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px;">
+            <div>
+                <p><strong><i class="fas fa-id-card"></i> NIF:</strong> {{ proveedor.nif or '---' }}</p>
+                <p><strong><i class="fas fa-phone"></i> Teléfono:</strong> {{ proveedor.telefono or '---' }}</p>
+                <p><strong><i class="fas fa-envelope"></i> Email:</strong> {{ proveedor.email or '---' }}</p>
+            </div>
+            <div>
+                <p><strong><i class="fas fa-map-marker-alt"></i> Dirección:</strong> {{ proveedor.direccion or '---' }}</p>
+                <p><strong><i class="fas fa-user"></i> Contacto:</strong> {{ proveedor.contacto or '---' }}</p>
+                <p><strong><i class="fas fa-check-circle"></i> Estado:</strong>
+                    {% if proveedor.activo %}
+                        <span style="color: #28a745;">Activo</span>
+                    {% else %}
+                        <span style="color: #dc3545;">Inactivo</span>
+                    {% endif %}
+                </p>
+            </div>
+        </div>
+        <div style="margin-top: 15px;">
+            <p><strong><i class="fas fa-comment"></i> Observaciones:</strong> {{ proveedor.observaciones or '---' }}</p>
+        </div>
+    </div>
+
+    <h3 style="margin-top: 30px;"><i class="fas fa-boxes"></i> Productos de este proveedor</h3>
+    <div class="table-container">
+        <table style="width: 100%; border-collapse: collapse;">
+            <thead>
+                <tr style="background: #1c1f23;">
+                    <th style="padding: 10px 8px; text-align: left;">Producto</th>
+                    <th style="padding: 10px 8px; text-align: right;">Precio</th>
+                    <th style="padding: 10px 8px; text-align: center;">Principal</th>
+                    <th style="padding: 10px 8px; text-align: center;">Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for pr in productos %}
+                <tr style="border-bottom: 1px solid #444;">
+                    <td style="padding: 8px;"><strong>{{ pr.nombre_producto }}</strong></td>
+                    <td style="text-align: right;">{{ "%.2f"|format(pr.precio) }} €</td>
+                    <td style="text-align: center;">
+                        {% if pr.es_principal %}
+                            <i class="fas fa-star" style="color: #ffc107;"></i> Principal
+                        {% else %}
+                            ---
+                        {% endif %}
+                    </td>
+                    <td style="text-align: center; white-space: nowrap;">
+                        <a href="{{ url_for('productos.ver_producto', producto_id=pr.producto_id) }}" class="btn-icon" title="Ver producto">
+                            <i class="fas fa-eye"></i>
+                        </a>
+                        <a href="{{ url_for('productos.editar_producto', producto_id=pr.producto_id) }}" class="btn-icon" title="Editar producto">
+                            <i class="fas fa-edit"></i>
+                        </a>
+                        <form method="POST" action="{{ url_for('proveedores.eliminar_producto_proveedor', proveedor_id=proveedor.id, relacion_id=pr.id) }}" 
+                              style="display: inline;" 
+                              onsubmit="return confirm('¿Eliminar este producto del proveedor?');">
+                            <button type="submit" class="btn-icon" style="background: #dc3545; color: white;" title="Eliminar">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </form>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="4" style="text-align: center; padding: 40px;">
+                        No hay productos asociados a este proveedor
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <div style="margin-top: 20px; text-align: right;">
+        <a href="{{ url_for('productos.productos') }}" class="btn btn-primary">
+            <i class="fas fa-plus"></i> Añadir producto
+        </a>
+    </div>
+</div>
+
+<style>
+    .btn-icon {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 5px 8px;
+        margin: 0 2px;
+        border-radius: 4px;
+        text-decoration: none;
+        background: #3a3f44;
+        color: #ff6b00;
+        transition: all 0.2s;
+        font-size: 14px;
+        border: none;
+        cursor: pointer;
+    }
+    .btn-icon:hover {
+        background: #ff6b00;
+        color: white;
+    }
+</style>
+{% endblock %}

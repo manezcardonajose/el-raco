@@ -1,0 +1,14 @@
+{% extends 'base.html' %}
+{% block title %}{% if documento %}Editar documento{% else %}Nuevo documento RRHH{% endif %}{% endblock %}
+{% block breadcrumb %}RRHH / Documentación / {% if documento %}Editar{% else %}Nuevo{% endif %}{% endblock %}
+{% block content %}
+<div class="card"><div class="card-header"><h2><i class="fas fa-folder-plus"></i> {% if documento %}Editar documento RRHH{% else %}Nuevo documento RRHH{% endif %}</h2></div>
+<form method="post"><div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap:16px;">
+<div class="form-group"><label class="form-label">Empleado *</label><select class="form-control" name="empleado_id" required><option value="">Seleccionar</option>{% for e in empleados %}<option value="{{ e.id }}" {% if documento and documento.empleado_id == e.id %}selected{% endif %}>{{ e.nombre }} {{ e.apellidos or '' }}</option>{% endfor %}</select></div>
+<div class="form-group"><label class="form-label">Tipo documento</label><select class="form-control" name="tipo_documento">{% for t in ['DNI/NIE','Contrato','Nómina','PRL','Reconocimiento médico','Carnet manipulador','Certificado','Otro'] %}<option value="{{ t }}" {% if documento and documento.tipo_documento == t %}selected{% endif %}>{{ t }}</option>{% endfor %}</select></div>
+{% for field,label,type in [('nombre','Nombre','text'),('fecha_documento','Fecha documento','date'),('fecha_caducidad','Fecha caducidad','date'),('archivo','Archivo/ruta','text')] %}<div class="form-group"><label class="form-label">{{ label }}</label><input class="form-control" type="{{ type }}" name="{{ field }}" value="{{ documento[field] if documento and field in documento.keys() else '' }}"></div>{% endfor %}
+<div class="form-group"><label class="form-label">Estado</label><select class="form-control" name="estado">{% for s in ['vigente','pendiente','caducado','anulado'] %}<option value="{{ s }}" {% if documento and documento.estado == s %}selected{% endif %}>{{ s }}</option>{% endfor %}</select></div>
+</div><div class="form-group"><label class="form-label">Observaciones</label><textarea class="form-control" name="observaciones" rows="3">{{ documento.observaciones if documento else '' }}</textarea></div>
+{% if documento %}<div class="form-group"><label class="form-label">Motivo del cambio</label><input class="form-control" name="motivo_cambio" required></div>{% endif %}
+<button class="btn btn-success" type="submit">Guardar</button> <a class="btn btn-secondary" href="{{ url_for('rrhh.lista_documentos') }}">Volver</a></form></div>
+{% endblock %}

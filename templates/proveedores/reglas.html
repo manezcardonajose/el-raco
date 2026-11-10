@@ -1,0 +1,113 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header">
+        <h2><i class="fas fa-list"></i> Reglas de calendario: {{ proveedor.nombre }}</h2>
+        <div>
+            <a href="{{ url_for('proveedores.calendario_proveedor', proveedor_id=proveedor.id) }}" class="btn btn-primary">
+                <i class="fas fa-calendar-alt"></i> Ver calendario
+            </a>
+            <a href="{{ url_for('proveedores.nueva_regla', proveedor_id=proveedor.id) }}" class="btn btn-success">
+                <i class="fas fa-plus"></i> Nueva regla
+            </a>
+            <a href="{{ url_for('proveedores.proveedores') }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Volver
+            </a>
+        </div>
+    </div>
+
+    <div class="table-container">
+        <table style="width: 100%; border-collapse: collapse;">
+            <thead>
+                <tr style="background: #1c1f23;">
+                    <th style="padding: 10px 8px; text-align: left;">Tipo</th>
+                    <th style="padding: 10px 8px; text-align: left;">Frecuencia</th>
+                    <th style="padding: 10px 8px; text-align: left;">Día</th>
+                    <th style="padding: 10px 8px; text-align: left;">Hora</th>
+                    <th style="padding: 10px 8px; text-align: center;">Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for r in reglas %}
+                <tr style="border-bottom: 1px solid #444;">
+                    <td style="padding: 8px;">
+                        {% if r.tipo == 'pedido' %}
+                            <i class="fas fa-box" style="color: #28a745;"></i> Pedido
+                        {% elif r.tipo == 'entrega' %}
+                            <i class="fas fa-truck" style="color: #ffc107;"></i> Entrega
+                        {% elif r.tipo == 'visita' %}
+                            <i class="fas fa-user-friends" style="color: #17a2b8;"></i> Visita
+                        {% endif %}
+                    </td>
+                    <td style="padding: 8px;">
+                        {% if r.frecuencia == 'semanal' %}
+                            <i class="fas fa-calendar-week"></i> Semanal
+                        {% else %}
+                            <i class="fas fa-calendar-alt"></i> Mensual
+                        {% endif %}
+                    </td>
+                    <td style="padding: 8px;">
+                        {% if r.frecuencia == 'semanal' %}
+                            {% if r.dia_semana == 0 %}Lunes
+                            {% elif r.dia_semana == 1 %}Martes
+                            {% elif r.dia_semana == 2 %}Miércoles
+                            {% elif r.dia_semana == 3 %}Jueves
+                            {% elif r.dia_semana == 4 %}Viernes
+                            {% elif r.dia_semana == 5 %}Sábado
+                            {% else %}Domingo{% endif %}
+                        {% else %}
+                            Día {{ r.dia_mes }}
+                        {% endif %}
+                    </td>
+                    <td style="padding: 8px;">{{ r.hora or '---' }}</td>
+                    <td style="text-align: center; white-space: nowrap;">
+                        <a href="{{ url_for('proveedores.editar_regla', regla_id=r.id) }}" class="btn-icon" title="Editar">
+                            <i class="fas fa-edit"></i>
+                        </a>
+                        <form method="POST" action="{{ url_for('proveedores.eliminar_regla', regla_id=r.id) }}" 
+                              style="display: inline;" 
+                              onsubmit="return confirm('¿Eliminar esta regla?');">
+                            <button type="submit" class="btn-icon" style="background: #dc3545; color: white;" title="Eliminar">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </form>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="5" style="text-align: center; padding: 40px;">
+                        No hay reglas definidas.
+                        <a href="{{ url_for('proveedores.nueva_regla', proveedor_id=proveedor.id) }}" style="color: #ff6b00;">
+                            Crea la primera
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<style>
+    .btn-icon {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 5px 8px;
+        margin: 0 2px;
+        border-radius: 4px;
+        text-decoration: none;
+        background: #3a3f44;
+        color: #ff6b00;
+        transition: all 0.2s;
+        font-size: 14px;
+        border: none;
+        cursor: pointer;
+    }
+    .btn-icon:hover {
+        background: #ff6b00;
+        color: white;
+    }
+</style>
+{% endblock %}

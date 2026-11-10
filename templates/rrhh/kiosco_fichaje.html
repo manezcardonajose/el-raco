@@ -1,0 +1,58 @@
+{% extends 'base.html' %}
+{% block title %}Fichaje tablet{% endblock %}
+{% block breadcrumb %}RRHH / Fichaje tablet{% endblock %}
+{% block content %}
+<style>
+  .kiosk-wrap{min-height:calc(100vh - 180px);display:flex;align-items:center;justify-content:center;}
+  .kiosk-panel{width:min(760px,100%);}
+  .kiosk-clock{text-align:center;margin-bottom:18px;color:#e5e7eb;}
+  .kiosk-clock strong{display:block;font-size:34px;line-height:1.1;}
+  .kiosk-form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px;}
+  .kiosk-actions{display:grid;grid-template-columns:repeat(2,minmax(160px,1fr));gap:12px;}
+  .kiosk-actions button{min-height:74px;font-size:18px;font-weight:800;}
+  .kiosk-actions i{display:block;font-size:22px;margin-bottom:5px;}
+  @media(max-width:680px){.kiosk-wrap{align-items:flex-start}.kiosk-form-grid,.kiosk-actions{grid-template-columns:1fr}.kiosk-actions button{min-height:62px;}}
+</style>
+
+<div class="kiosk-wrap">
+  <div class="card kiosk-panel">
+    <div class="card-header">
+      <h2><i class="fas fa-fingerprint"></i> Fichaje tablet</h2>
+    </div>
+    <div class="kiosk-clock">
+      <strong id="kiosk-time">--:--</strong>
+      <span id="kiosk-date">{{ moment if moment is defined else '' }}</span>
+    </div>
+    <form method="post" action="{{ url_for('rrhh.kiosco_registrar_fichaje') }}" autocomplete="off">
+      <div class="kiosk-form-grid">
+        <div class="form-group">
+          <label class="form-label">Codigo de acceso</label>
+          <input class="form-control" name="codigo" inputmode="text" autofocus required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">PIN</label>
+          <input class="form-control" type="password" name="pin" inputmode="numeric" required>
+        </div>
+      </div>
+      <div class="kiosk-actions">
+        <button class="btn btn-success" name="tipo" value="entrada" type="submit"><i class="fas fa-play"></i>Entrada</button>
+        <button class="btn btn-warning" name="tipo" value="pausa" type="submit"><i class="fas fa-pause"></i>Pausa</button>
+        <button class="btn btn-info" name="tipo" value="reanudacion" type="submit"><i class="fas fa-forward"></i>Reanudar</button>
+        <button class="btn btn-danger" name="tipo" value="salida" type="submit"><i class="fas fa-stop"></i>Salida</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+  function updateKioskClock(){
+    const now = new Date();
+    const time = now.toLocaleTimeString('es-ES', {hour:'2-digit', minute:'2-digit'});
+    const date = now.toLocaleDateString('es-ES', {weekday:'long', year:'numeric', month:'long', day:'numeric'});
+    document.getElementById('kiosk-time').textContent = time;
+    document.getElementById('kiosk-date').textContent = date;
+  }
+  updateKioskClock();
+  setInterval(updateKioskClock, 10000);
+</script>
+{% endblock %}

@@ -1,0 +1,1292 @@
+{% extends 'base.html' %}
+{% block title %}Terminal TPV{% endblock %}
+{% block breadcrumb %}TPV / Terminal{% endblock %}
+{% block content %}
+<style>
+  .tpv-top{display:flex;justify-content:space-between;gap:14px;align-items:flex-start;margin-bottom:10px;}
+  .tpv-top h2{margin-bottom:4px;}
+  .tpv-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
+  .tpv-actions .btn{min-height:38px;}
+  .tpv-device-badge{display:inline-flex;align-items:center;gap:6px;border:1px solid #334155;border-radius:999px;padding:4px 10px;color:#cbd5e1;background:#0f172a;font-size:12px;margin-top:4px;}
+  .tpv-workbench{display:grid;grid-template-columns:minmax(760px,1fr) 392px;gap:8px;min-height:calc(100vh - 135px);align-items:start;}
+  .tpv-panel{border:1px solid #263244;border-radius:8px;background:#111827;padding:10px;min-width:0;box-shadow:0 10px 28px rgba(0,0,0,.16);}
+  .tpv-panel h3{display:flex;align-items:center;gap:7px;margin:0 0 9px;font-size:15px;letter-spacing:0;text-transform:none;}
+  .tpv-note{color:#94a3b8;font-size:12px;line-height:1.35;}
+  .tpv-context{display:grid;grid-template-columns:1fr 1fr 1fr 180px;gap:8px;align-items:end;margin-bottom:8px;}
+  .tpv-context .form-group{margin-bottom:0;}
+  .tpv-context .btn{min-height:34px;padding:7px 10px;}
+  .tpv-table-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(112px,1fr));gap:8px;max-height:42vh;overflow:auto;padding-right:2px;}
+  .tpv-map-modal{position:fixed;inset:4vh 4vw;z-index:1100;display:none;overflow:hidden;border:1px solid #334155;border-radius:8px;background:#111827;padding:10px;box-shadow:0 24px 80px rgba(0,0,0,.45);}
+  .tpv-map-modal.is-active{display:block;}
+  .tpv-map-backdrop{position:fixed;inset:0;background:rgba(2,6,23,.72);backdrop-filter:blur(2px);z-index:1090;display:none;}
+  .tpv-map-backdrop.is-active{display:block;}
+  .tpv-map-scroll{overflow:auto;border:1px solid #263244;border-radius:8px;background:#0b1220;max-height:calc(92vh - 150px);}
+  .tpv-table-grid.tpv-map-grid{display:block;position:relative;width:1080px;max-width:none;height:660px;overflow:hidden;padding:0;background:#0b1220;}
+  .tpv-map-grid::before{content:"";position:absolute;inset:0;background-image:linear-gradient(rgba(148,163,184,.08) 1px,transparent 1px),linear-gradient(90deg,rgba(148,163,184,.08) 1px,transparent 1px);background-size:40px 40px;pointer-events:none;}
+  .tpv-seat{position:relative;border:1px solid #334155;background:#0f172a;color:#e5e7eb;border-radius:8px;padding:10px;min-height:96px;text-align:left;cursor:pointer;transition:transform .08s ease,border-color .08s ease,background .08s ease;}
+  .tpv-map-grid .tpv-seat{position:absolute!important;width:112px;min-height:84px;z-index:2;}
+  .tpv-map-element{position:absolute;border:1px solid #475569;border-radius:6px;background:rgba(51,65,85,.45);color:#cbd5e1;display:flex;align-items:center;justify-content:center;text-align:center;font-size:12px;font-weight:700;pointer-events:none;z-index:1;}
+  .tpv-map-element.clickable{cursor:pointer;pointer-events:auto;}
+  .tpv-map-element.clickable.selected{outline:3px solid #38bdf8;}
+  .tpv-map-grid .tpv-empty{position:absolute;left:12px;right:12px;top:12px;}
+  .tpv-map-element.pared{background:#64748b;border-color:#94a3b8;color:#111827;}
+  .tpv-map-element.barra{background:#3f2f1f;border-color:#f59e0b;color:#fde68a;}
+  .tpv-map-element.taburete{border-radius:999px;background:#422006;border-color:#f97316;color:#fed7aa;}
+  .tpv-map-element.sofa{background:#312e81;border-color:#818cf8;color:#e0e7ff;}
+  .tpv-map-element.puerta{background:#064e3b;border-color:#34d399;color:#d1fae5;}
+  .tpv-map-element.ventana{background:#075985;border-color:#38bdf8;color:#e0f2fe;}
+  .tpv-map-element.planta{border-radius:999px;background:#14532d;border-color:#22c55e;color:#dcfce7;}
+  .tpv-map-element.columna{border-radius:999px;background:#52525b;border-color:#d4d4d8;color:#fafafa;}
+  .tpv-map-element.caja{background:#581c87;border-color:#c084fc;color:#f3e8ff;}
+  .tpv-map-element.cocina{background:#7f1d1d;border-color:#f87171;color:#fee2e2;}
+  .tpv-map-element.bano{background:#164e63;border-color:#67e8f9;color:#ecfeff;}
+  .tpv-map-element.escalera{background:#292524;border-color:#a8a29e;color:#fafaf9;}
+  .tpv-seat:hover,.tpv-ref:hover,.tpv-btn:hover,.tpv-cat:hover,.tpv-mode:hover{transform:translateY(-1px);border-color:#64748b;}
+  .tpv-seat strong{display:block;font-size:17px;}
+  .tpv-seat span{display:block;font-size:12px;color:#94a3b8;margin-top:2px;}
+  .tpv-seat.free::after,.tpv-seat.busy::after{content:"";position:absolute;right:8px;top:8px;width:9px;height:9px;border-radius:999px;background:#22c55e;}
+  .tpv-seat.busy{border-color:#f59e0b;background:#1f2937;}
+  .tpv-seat.busy::after{background:#f59e0b;}
+  .tpv-seat.selected{outline:3px solid #38bdf8;border-color:#38bdf8;background:#10243a;}
+  .tpv-seat .total{color:#fff;font-size:18px;margin-top:6px;font-weight:700;}
+  .tpv-ref-list{display:grid;gap:8px;margin-top:10px;max-height:22vh;overflow:auto;padding-right:2px;}
+  .tpv-ref{border:1px solid #334155;background:#0f172a;color:#e5e7eb;border-radius:8px;padding:10px;text-align:left;cursor:pointer;transition:transform .08s ease,border-color .08s ease;}
+  .tpv-ref.selected{outline:3px solid #38bdf8;border-color:#38bdf8;background:#10243a;}
+  .tpv-mode-row{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:8px;}
+  .tpv-mode{border:1px solid #334155;background:#0f172a;color:#e5e7eb;border-radius:8px;padding:11px 8px;cursor:pointer;min-height:58px;transition:transform .08s ease,border-color .08s ease;}
+  .tpv-mode.active{border-color:#38bdf8;background:#123047;}
+  .tpv-search{position:relative;margin-bottom:8px;}
+  .tpv-search i{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:#94a3b8;}
+  .tpv-search input{padding-left:36px;min-height:42px;}
+  .tpv-sale-area{display:grid;grid-template-columns:210px minmax(0,1fr);gap:8px;align-items:start;}
+  .tpv-cat-row{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;max-height:68vh;overflow:auto;padding-right:2px;}
+  .tpv-cat{border:1px solid #334155;background:linear-gradient(135deg,hsl(var(--hue,205) 52% 26%),#0f172a);color:#e5e7eb;border-radius:7px;padding:8px 7px;cursor:pointer;min-height:62px;text-align:center;font-size:12px;font-weight:800;transition:transform .08s ease,border-color .08s ease;display:flex;align-items:center;justify-content:center;overflow:hidden;}
+  .tpv-cat.active{border-color:#38bdf8;background:linear-gradient(90deg,hsl(var(--hue,205) 70% 31%),#123047);}
+  .tpv-products{display:grid;grid-template-columns:repeat(auto-fill,96px);grid-auto-rows:82px;gap:6px;max-height:68vh;overflow:auto;padding-right:2px;align-content:start;justify-content:start;}
+  .tpv-btn{position:relative;border:1px solid #334155;background:linear-gradient(135deg,hsl(var(--hue,205) 42% 23%),#0f172a);color:#fff;border-radius:7px;padding:8px 6px 6px;min-height:0;height:82px;text-align:center;cursor:pointer;display:flex;flex-direction:column;justify-content:center;gap:4px;transition:transform .08s ease,border-color .08s ease,background .08s ease;overflow:hidden;}
+  .tpv-btn::before{content:"";position:absolute;left:0;right:0;bottom:0;height:4px;background:hsl(var(--hue,205) 68% 48%);}
+  .tpv-btn.charge-incluido{background:#10281b;border-color:#1f7a3d;}
+  .tpv-btn.charge-suplemento{background:#2a2110;border-color:#b7791f;}
+  .tpv-btn.charge-gourmet{background:#26162d;border-color:#a855f7;}
+  .tpv-btn strong{display:block;font-size:11px;line-height:1.08;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;}
+  .tpv-btn span{display:block;color:#94a3b8;font-size:10px;margin-top:2px;}
+  .tpv-btn .price{color:#e2e8f0;font-size:12px;font-weight:800;}
+  .tpv-charge{display:inline-flex;align-self:center;align-items:center;border:1px solid #475569;border-radius:999px;padding:1px 5px;color:#e5e7eb;background:rgba(15,23,42,.75);font-size:9px;font-weight:700;margin-top:2px;}
+  .tpv-charge.incluido{border-color:#22c55e;color:#bbf7d0;}
+  .tpv-charge.suplemento{border-color:#f59e0b;color:#fde68a;}
+  .tpv-charge.gourmet{border-color:#c084fc;color:#e9d5ff;}
+  .tpv-ticket-panel{position:sticky;top:10px;}
+  .tpv-ticket-head{border:1px solid #263244;border-radius:8px;background:#0b1220;padding:10px;margin-bottom:8px;}
+  .tpv-ticket-head strong{display:block;font-size:20px;line-height:1.1;}
+  .tpv-ticket-head .money{font-size:28px;margin-top:4px;font-weight:800;}
+  .tpv-ticket-lines{border:1px solid #263244;border-radius:8px;overflow:hidden;margin-bottom:8px;}
+  .tpv-line{display:grid;grid-template-columns:42px 1fr 88px 34px;gap:6px;align-items:center;border-bottom:1px solid #263244;padding:9px;background:#0f172a;}
+  .tpv-line-edit{grid-template-columns:38px 1fr 78px 34px 34px 34px;}
+  .tpv-line:last-child{border-bottom:0;}
+  .tpv-line small{display:block;color:#94a3b8;}
+  .tpv-line button{border:1px solid #475569;background:#111827;color:#e5e7eb;border-radius:6px;padding:4px 6px;}
+  .tpv-line button[data-add]{background:#123047;border-color:#38bdf8;}
+  .tpv-existing .tpv-line{background:#172033;}
+  .tpv-ticket-total{display:flex;justify-content:space-between;gap:8px;align-items:center;border-top:1px solid #334155;padding-top:8px;margin-top:8px;}
+  .tpv-ticket-total strong{font-size:22px;}
+  .tpv-ticket-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px;}
+  .tpv-ticket-grid .wide{grid-column:1 / -1;}
+  .tpv-action-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-top:8px;}
+  .tpv-action-grid .btn{min-height:46px;}
+  .tpv-action-grid .wide{grid-column:1 / -1;}
+  .tpv-hidden-select{display:none;}
+  .tpv-empty{border:1px dashed #475569;border-radius:8px;padding:12px;color:#94a3b8;text-align:center;}
+  .tpv-pay-overlay{position:fixed;inset:0;background:rgba(2,6,23,.78);display:flex;align-items:flex-start;justify-content:center;z-index:1000;padding:12px;overflow:auto;}
+  .tpv-pay-overlay[hidden]{display:none;}
+  .tpv-pay-modal{width:min(560px,100%);max-height:calc(100dvh - 24px);overflow:auto;border:1px solid #475569;border-radius:8px;background:#111827;padding:14px;box-shadow:0 22px 70px rgba(0,0,0,.45);}
+  .tpv-pay-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;margin-bottom:12px;}
+  .tpv-pay-head strong{display:block;font-size:30px;}
+  .tpv-pay-methods{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px;}
+  .tpv-pay-method{border:1px solid #475569;background:#0f172a;color:#e5e7eb;border-radius:8px;padding:16px 8px;font-weight:700;cursor:pointer;}
+  .tpv-pay-method.active{border-color:#22c55e;background:#14331f;}
+  .tpv-pay-method:disabled{opacity:.45;cursor:not-allowed;}
+  .tpv-cash-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;align-items:end;margin-bottom:12px;}
+  .tpv-change{border:1px solid #334155;border-radius:8px;background:#0f172a;padding:10px;}
+  .tpv-change strong{display:block;font-size:28px;}
+  .tpv-pay-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+  .tpv-mobile-tabs{display:none;}
+  .tpv-choice-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;margin:8px 0 12px;}
+  .tpv-choice{border:1px solid #475569;background:#0f172a;color:#e5e7eb;border-radius:8px;min-height:46px;padding:9px;font-weight:700;cursor:pointer;}
+  .tpv-choice.active{border-color:#22c55e;background:#14331f;color:#fff;}
+  .tpv-pref-modal{width:min(700px,100%);padding:12px;}
+  .tpv-pref-modal .tpv-pay-head{position:sticky;top:-12px;z-index:2;background:#111827;padding:2px 0 8px;margin-bottom:8px;border-bottom:1px solid #263244;}
+  .tpv-pref-modal .tpv-pay-head h3{margin:0;font-size:18px;line-height:1.1;}
+  .tpv-pref-modal .tpv-choice-grid{grid-template-columns:repeat(auto-fit,minmax(104px,1fr));gap:6px;margin:6px 0 10px;}
+  .tpv-pref-modal .tpv-choice{min-height:38px;padding:6px;font-size:12px;line-height:1.15;}
+  .tpv-pref-modal .form-group{margin-bottom:8px;}
+  .tpv-pref-modal .tpv-pay-actions{position:sticky;bottom:-12px;background:#111827;padding-top:8px;border-top:1px solid #263244;}
+  .tpv-terminal-tools{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px;}
+  .tpv-terminal-tools .btn{min-height:38px;}
+  .tpv-keypad{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:8px;}
+  .tpv-key{border:1px solid #475569;border-radius:7px;background:#0f172a;color:#e5e7eb;min-height:40px;font-size:18px;font-weight:800;cursor:pointer;}
+  .tpv-key.action{font-size:12px;background:#172033;}
+  .tpv-key.total{grid-column:span 2;background:#14532d;border-color:#22c55e;}
+  .tpv-context-panel{margin-bottom:8px;}
+  @media (min-width:1260px){
+    .content{padding-top:8px;}
+    .tpv-top{align-items:end;margin-bottom:6px;border:1px solid #263244;border-radius:8px;background:#111827;padding:6px;display:grid;grid-template-columns:auto minmax(520px,1fr) auto;}
+    .tpv-top h2{font-size:21px;margin:0;white-space:nowrap;}
+    .tpv-top .tpv-note,.tpv-device-badge{display:none;}
+    .tpv-actions{gap:6px;margin-left:auto;}
+    .tpv-actions .btn{min-height:34px;padding:7px 9px;font-size:12px;}
+    .tpv-panel{padding:8px;}
+    .tpv-panel h3{margin-bottom:6px;font-size:14px;}
+    .tpv-context-panel{display:contents;}
+    .tpv-context{grid-template-columns:130px 130px 150px 94px;justify-content:center;align-items:end;gap:5px;margin:0;max-width:none;}
+    .tpv-context label{font-size:11px;margin-bottom:2px;}
+    .tpv-context .form-control{min-height:31px;padding:5px 8px;font-size:12px;}
+    .tpv-context .btn{min-height:31px;padding:6px 8px;font-size:12px;}
+    .tpv-workbench{grid-template-columns:minmax(920px,1fr) 480px;gap:8px;min-height:calc(100vh - 76px);}
+    .tpv-sale-area{grid-template-columns:300px minmax(0,1fr);}
+    .tpv-cat-row{grid-template-columns:repeat(3,94px);gap:6px;max-height:calc(100vh - 236px);}
+    .tpv-cat{width:94px;height:56px;min-height:56px;font-size:11px;}
+    .tpv-products{grid-template-columns:repeat(auto-fill,92px);grid-auto-rows:76px;gap:5px;max-height:calc(100vh - 236px);}
+          .tpv-btn{width:92px;height:76px;padding:10px 5px 5px;}
+    .tpv-btn strong{font-size:10px;-webkit-line-clamp:2;}
+    .tpv-btn span{font-size:9px;}
+    .tpv-btn .price{font-size:11px;}
+    .tpv-charge{font-size:8px;margin-top:1px;padding:1px 4px;}
+    .tpv-search{margin-bottom:6px;}
+    .tpv-search input{min-height:34px;font-size:13px;}
+    .tpv-terminal-tools{margin-bottom:6px;gap:6px;}
+    .tpv-terminal-tools .btn{min-height:34px;padding:7px 10px;font-size:13px;}
+    .tpv-ticket-panel{top:6px;}
+    .tpv-ticket-head{padding:8px;margin-bottom:6px;}
+    .tpv-ticket-head strong{font-size:18px;}
+    .tpv-ticket-head .money{font-size:25px;}
+    .tpv-ticket-lines{margin-bottom:6px;}
+    .tpv-empty{padding:9px;font-size:13px;}
+    .tpv-ticket-total{padding-top:6px;margin-top:6px;}
+    .tpv-ticket-total strong{font-size:20px;}
+    .tpv-action-grid{gap:6px;margin-top:6px;}
+    .tpv-action-grid .btn{min-height:38px;padding:7px 8px;font-size:13px;}
+    .tpv-keypad{gap:5px;margin-top:6px;}
+    .tpv-key{min-height:34px;font-size:16px;}
+    details{font-size:12px;}
+  }
+  @media (max-width:1250px){.tpv-workbench{grid-template-columns:1fr;}.tpv-ticket-panel{position:static;}.tpv-table-grid,.tpv-products,.tpv-ref-list{max-height:none;}.tpv-products{grid-template-columns:repeat(auto-fill,94px);}}
+  @media (max-width:860px){
+    .content{padding:0 0 76px;background:#0b1220;}
+    .tpv-top{position:sticky;top:0;z-index:50;background:#111827;border:0;border-bottom:1px solid #263244;border-radius:0;padding:8px 10px;margin:0;display:block;}
+    .tpv-top h2{font-size:16px;line-height:1.1;margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+    .tpv-top .tpv-note,.tpv-device-badge{display:none;}
+    .tpv-actions{display:none;}
+    .tpv-actions .btn{justify-content:center;min-height:42px;padding:8px;font-size:12px;}
+    .tpv-actions .btn span{display:none;}
+    .tpv-context-panel{display:none;}
+    .tpv-context{grid-template-columns:1fr 1fr;gap:7px;}
+    .tpv-context .form-group{margin-bottom:0;}
+    .tpv-context .form-group:nth-child(3){grid-column:1 / -1;}
+    .tpv-workbench{display:block;min-height:0;padding-bottom:0;}
+    .tpv-panel{padding:10px;border:0;border-radius:0;margin:0;background:#0b1220;box-shadow:none;}
+    .tpv-panel h3{font-size:15px;margin-bottom:8px;}
+    .tpv-panel[data-pane]{display:none;}
+    .tpv-panel[data-pane].is-active{display:block;}
+    .tpv-map-modal{position:static;inset:auto;z-index:auto;overflow:visible;box-shadow:none;padding:8px;margin-bottom:8px;}
+    .tpv-map-modal[data-pane]{display:none;}
+    .tpv-map-modal[data-pane].is-active{display:block;}
+    .tpv-map-backdrop{display:none!important;}
+    .tpv-map-modal .card-header button[id="close-map"]{display:none;}
+    .tpv-table-grid{grid-template-columns:repeat(2,minmax(0,1fr));max-height:none;}
+    .tpv-map-scroll{max-height:none;overflow:visible;border:0;background:transparent;}
+    .tpv-table-grid.tpv-map-grid{display:grid;width:auto;height:auto;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;background:transparent;}
+    .tpv-map-grid::before,.tpv-map-element{display:none;}
+    .tpv-map-grid .tpv-empty{position:relative;left:auto;right:auto;top:auto;grid-column:1 / -1;}
+    .tpv-map-grid .tpv-seat{position:relative!important;left:auto!important;top:auto!important;width:auto;min-height:86px;}
+    .tpv-seat{min-height:86px;padding:10px;}
+    .tpv-seat strong{font-size:16px;}
+    .tpv-mode-row{grid-template-columns:repeat(3,1fr);gap:7px;margin-bottom:10px;}
+    .tpv-mode{min-height:50px;padding:8px 6px;}
+    .tpv-sale-area{display:block;}
+    .tpv-cat-row{display:flex;gap:7px;overflow-x:auto;max-height:none;padding:6px 0 9px;margin:0 0 8px;padding-right:0;scroll-snap-type:x proximity;}
+    .tpv-cat{flex:0 0 86px;min-height:48px;padding:7px 5px;font-size:11px;scroll-snap-align:start;}
+    .tpv-products{grid-template-columns:repeat(3,minmax(0,1fr));grid-auto-rows:86px;max-height:none;gap:7px;}
+    .tpv-btn{width:auto;height:86px;padding:8px 5px;}
+    .tpv-btn strong{font-size:11px;}
+    .tpv-cat-row{position:sticky;top:37px;z-index:40;background:#0b1220;}
+    .tpv-search{margin-bottom:6px;}
+    .tpv-search input{min-height:38px;font-size:14px;}
+    .tpv-terminal-tools{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:8px;}
+    .tpv-terminal-tools .btn{min-height:42px;padding:7px 5px;font-size:12px;justify-content:center;}
+    .tpv-line{grid-template-columns:34px 1fr 70px 30px;padding:8px;}
+    .tpv-line-edit{grid-template-columns:32px 1fr 64px 30px 30px 30px;}
+    .tpv-ticket-head{padding:9px;margin-bottom:8px;}
+    .tpv-ticket-head strong{font-size:20px;}
+    .tpv-ticket-head .money{font-size:28px;}
+    .tpv-action-grid{grid-template-columns:1fr 1fr;gap:7px;}
+    .tpv-action-grid .btn{min-height:44px;padding:8px 6px;font-size:13px;}
+    .tpv-keypad{display:none;}
+    .tpv-pay-methods{grid-template-columns:1fr;}
+    .tpv-mobile-tabs{position:fixed;left:0;right:0;bottom:0;z-index:950;display:grid;grid-template-columns:repeat(3,1fr);gap:6px;background:#0b1220;border-top:1px solid #334155;padding:8px;}
+    .tpv-tab{border:1px solid #334155;background:#111827;color:#e5e7eb;border-radius:8px;min-height:54px;font-weight:700;}
+    .tpv-tab.is-active{background:#14532d;border-color:#22c55e;color:#fff;}
+    .tpv-tab small{display:block;color:#94a3b8;font-size:11px;font-weight:500;margin-top:2px;}
+  }
+  @media (max-width:430px){
+    .tpv-actions{grid-template-columns:repeat(3,1fr);}
+    .tpv-context{grid-template-columns:1fr;}
+    .tpv-table-grid.tpv-map-grid{width:auto;height:auto;grid-template-columns:repeat(2,minmax(0,1fr));}
+    .tpv-products{grid-template-columns:repeat(3,minmax(0,1fr));grid-auto-rows:86px;gap:6px;}
+    .tpv-btn{height:86px;padding:8px 5px;}
+    .tpv-btn .price{font-size:12px;}
+    .tpv-ticket-grid,.tpv-action-grid,.tpv-cash-grid{grid-template-columns:1fr;}
+    .tpv-ticket-grid .wide,.tpv-action-grid .wide{grid-column:auto;}
+  }
+</style>
+
+<div class="tpv-top">
+  <div>
+    <h2><i class="fas fa-cash-register"></i> {{ terminal.punto_nombre or 'TPV' }}</h2>
+    <div class="tpv-note">{{ terminal.nombre }} - {{ terminal.codigo }}</div>
+    <div class="tpv-device-badge"><i class="fas {% if terminal.tipo == 'comandero' %}fa-mobile-alt{% else %}fa-desktop{% endif %}"></i> {{ 'Comandero' if terminal.tipo == 'comandero' else 'Terminal' }}</div>
+  </div>
+  <div class="tpv-context-panel">
+    <form class="tpv-context" method="post" action="{{ url_for('tpv.terminal_contexto', terminal_id=terminal.id) }}">
+      <div class="form-group">
+        <label class="form-label">Servicio</label>
+        <select class="form-control" name="servicio_actual">
+          {% for key,label in servicios.items() %}<option value="{{ key }}" {% if servicio_actual == key %}selected{% endif %}>{{ label }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Turno</label>
+        <select class="form-control" name="turno_actual">
+          {% for key,label in turnos.items() %}<option value="{{ key }}" {% if turno_actual == key %}selected{% endif %}>{{ label }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Fecha</label>
+        <input class="form-control" name="fecha_servicio" type="date" value="{{ fecha_servicio }}">
+      </div>
+      <button class="btn btn-primary" type="submit" name="destino" value="terminal"><i class="fas fa-sync"></i> Cambiar</button>
+      {% if terminal.tpv_control_buffet or terminal.tpv_tipo == 'buffet' %}
+      <button class="btn btn-success" type="submit" name="destino" value="acceso"><i class="fas fa-door-open"></i> Acceso</button>
+      {% endif %}
+    </form>
+  </div>
+  <div class="tpv-actions">
+    <a class="btn btn-secondary" href="{{ url_for('tpv.arranque') }}"><i class="fas fa-exchange-alt"></i> <span>Cambiar punto</span></a>
+    <a class="btn {% if caja_actual %}btn-success{% else %}btn-warning{% endif %}" href="{{ url_for('tpv.caja_terminal', terminal_id=terminal.id) }}"><i class="fas fa-cash-register"></i> <span>{% if caja_actual %}Caja abierta{% else %}Abrir caja{% endif %}</span></a>
+    <a class="btn btn-secondary" href="{{ url_for('tpv.cuentas', terminal_id=terminal.id, punto_venta_id=terminal.punto_venta_id) }}"><i class="fas fa-receipt"></i> <span>Cuentas</span></a>
+    <a class="btn btn-secondary" href="{{ url_for('tpv.mesas', punto_venta_id=terminal.punto_venta_id) }}"><i class="fas fa-map"></i> <span>Mapa</span></a>
+    <a class="btn btn-secondary" href="{{ url_for('tpv.pantalla', terminal_id=terminal.id, destino='barra', punto_venta_id=terminal.punto_venta_id) }}"><i class="fas fa-glass-martini-alt"></i> <span>Barra</span></a>
+    <a class="btn btn-secondary" href="{{ url_for('tpv.pantalla', terminal_id=terminal.id, destino='cocina', punto_venta_id=terminal.punto_venta_id) }}"><i class="fas fa-tv"></i> <span>Cocina</span></a>
+    {% if terminal.tpv_control_buffet or terminal.tpv_tipo == 'buffet' %}
+    <a class="btn btn-secondary" href="{{ url_for('tpv.acceso', terminal_id=terminal.id, punto_venta_id=terminal.punto_venta_id, fecha=fecha_servicio, servicio=servicio_actual) }}"><i class="fas fa-door-open"></i> <span>Acceso</span></a>
+    <a class="btn btn-secondary" href="{{ url_for('tpv.buffet', terminal_id=terminal.id, punto_venta_id=terminal.punto_venta_id, fecha=fecha_servicio, servicio=servicio_actual) }}"><i class="fas fa-utensils"></i> <span>Buffet</span></a>
+    {% endif %}
+    <a class="btn btn-secondary" href="{{ url_for('tpv.dashboard') }}"><i class="fas fa-cog"></i> <span>Panel</span></a>
+  </div>
+</div>
+
+<div class="tpv-mobile-tabs" aria-label="Navegacion comandero">
+  <button class="tpv-tab" type="button" data-open-map><i class="fas fa-chair"></i><small>Mesas</small></button>
+  <button class="tpv-tab" type="button" data-open-pane="platos"><i class="fas fa-th-large"></i><small>Platos</small></button>
+  <button class="tpv-tab" type="button" data-open-pane="ticket"><i class="fas fa-receipt"></i><small>Ticket</small></button>
+</div>
+
+<div class="tpv-map-backdrop" id="map-backdrop"></div>
+
+<div class="tpv-workbench">
+  <aside class="tpv-panel tpv-map-modal" id="mesa-panel" data-pane="mesas">
+    <div class="card-header" style="padding:0 0 8px;margin-bottom:8px;">
+      <h3 style="margin:0;"><i class="fas fa-chair"></i> Seleccionar mesa / cuenta</h3>
+      <button class="btn btn-secondary" type="button" id="close-map"><i class="fas fa-times"></i> Cerrar</button>
+    </div>
+    <div class="tpv-mode-row">
+      <button class="tpv-mode" type="button" data-mode-quick="barra"><i class="fas fa-glass-martini-alt"></i><br>Barra</button>
+      <button class="tpv-mode" type="button" data-mode-quick="habitacion"><i class="fas fa-bed"></i><br>Hab.</button>
+      <button class="tpv-mode" type="button" data-mode-quick="buffet"><i class="fas fa-utensils"></i><br>Buffet</button>
+    </div>
+    <div class="tpv-map-scroll">
+    <div class="tpv-table-grid tpv-map-grid">
+      {% for e in mapa_elementos %}
+      <div class="tpv-map-element {{ e.tipo or 'zona' }} {% if e.tipo in ['barra','taburete'] %}clickable{% endif %}"
+           {% if e.tipo in ['barra','taburete'] %}data-map-service data-mode="barra" data-label="{{ e.etiqueta or e.tipo }}"{% endif %}
+           style="left:{{ e.x or 0 }}%;top:{{ e.y or 0 }}%;width:{{ e.ancho or 12 }}%;height:{{ e.alto or 8 }}%;background-color:{{ e.color or '' }};transform:rotate({{ e.rotacion or 0 }}deg);">
+        {{ e.etiqueta or e.tipo }}
+      </div>
+      {% endfor %}
+      {% for m in mesas %}
+      <button class="tpv-seat {% if m.cuenta_id %}busy{% else %}free{% endif %}" type="button"
+              style="left:{{ m.x or ((loop.index0 % 2) * 48 + 4) }}%;top:{{ m.y or ((loop.index0 // 2) * 24 + 4) }}%;"
+              data-seat
+              data-mesa-id="{{ m.id }}"
+              data-cuenta-id="{{ m.cuenta_id or '' }}"
+              data-mode="mesa"
+              data-label="{{ m.zona or 'Sala' }} {{ m.nombre or m.numero or m.id }}">
+        <strong>{{ m.nombre or m.numero or ('Mesa ' ~ m.id) }}</strong>
+        <span>{{ m.zona or 'Sala' }} - {{ m.capacidad or 0 }} pax</span>
+        {% if m.cuenta_id %}
+        <span>{{ m.cuenta_numero }}</span>
+        <span class="total">{{ '%.2f'|format(m.cuenta_total or 0) }} EUR</span>
+        {% if m.cuenta_cliente %}<span>{{ m.cuenta_cliente }}</span>{% endif %}
+        {% else %}
+        <span>Libre</span>
+        {% endif %}
+      </button>
+      {% else %}
+      <div class="tpv-empty">Sin mesas configuradas para este punto.</div>
+      {% endfor %}
+    </div>
+    </div>
+
+    <h3 style="margin-top:12px;"><i class="fas fa-receipt"></i> Barra / habitacion</h3>
+    <div class="tpv-ref-list">
+      {% for c in referencias_abiertas %}
+      <button class="tpv-ref" type="button"
+              data-ref
+              data-cuenta-id="{{ c.id }}"
+              data-mode="{{ c.modo_servicio or 'barra' }}"
+              data-label="{{ c.habitacion or c.cliente or c.modo_servicio or c.numero }}">
+        <strong>{{ c.habitacion or c.cliente or c.modo_servicio or c.numero }}</strong>
+        <span class="tpv-note">{{ c.numero }} - {{ '%.2f'|format(c.total or 0) }} EUR</span>
+      </button>
+      {% else %}
+      <div class="tpv-note">Sin cuentas de barra o habitacion abiertas.</div>
+      {% endfor %}
+    </div>
+  </aside>
+
+  <main class="tpv-panel is-active" data-pane="platos">
+    <h3><i class="fas fa-th-large"></i> Familias y articulos</h3>
+    <div class="tpv-terminal-tools">
+      <button class="btn btn-primary" type="button" data-open-map><i class="fas fa-chair"></i> Mesa</button>
+      <button class="btn btn-secondary" type="button" data-mode-quick="barra"><i class="fas fa-glass-martini-alt"></i> Barra</button>
+      <button class="btn btn-secondary" type="button" data-mode-quick="habitacion"><i class="fas fa-bed"></i> Hab.</button>
+      <button class="btn btn-secondary" type="button" data-open-pane="ticket"><i class="fas fa-receipt"></i> Ticket</button>
+    </div>
+    <div class="tpv-search">
+      <i class="fas fa-search"></i>
+      <input class="form-control" id="product-search" type="search" placeholder="Buscar articulo">
+    </div>
+    <div class="tpv-sale-area">
+      <div class="tpv-cat-row">
+        {% for c in categorias %}
+        <button class="tpv-cat {% if loop.first %}active{% endif %}" style="--hue:{{ ((c.id or 1) * 37) % 360 }};" type="button" data-cat="{{ c.id }}">{{ c.nombre }}</button>
+        {% endfor %}
+      </div>
+      <div class="tpv-products">
+        {% for a in articulos %}
+        {% set tipo_cobro = a.tipo_cobro or 'cobro' %}
+        <button class="tpv-btn charge-{{ tipo_cobro }}" style="--hue:{{ (((a.categoria_id or a.id or 1) * 37) % 360) }};" type="button"
+                data-category="{{ a.categoria_id }}"
+                data-articulo-id="{{ a.id }}"
+                data-name="{{ a.nombre }}"
+                data-price="{{ a.precio or 0 }}"
+                data-destino="{{ a.destino_preparacion or 'sin_preparacion' }}"
+                data-tipo-cobro="{{ tipo_cobro }}"
+                data-category-name="{{ a.categoria_nombre or '' }}"
+                data-search="{{ (a.nombre ~ ' ' ~ (a.categoria_nombre or '') ~ ' ' ~ (a.destino_preparacion or ''))|lower }}">
+          <strong>{{ a.nombre }}</strong>
+          {% if tipo_cobro != 'cobro' %}
+          <span class="tpv-charge {{ tipo_cobro }}">
+            {% if tipo_cobro == 'incluido' %}Incluido{% elif tipo_cobro == 'suplemento' %}Suplemento{% elif tipo_cobro == 'gourmet' %}Gourmet{% else %}Cobro{% endif %}
+          </span>
+          {% endif %}
+          <span class="price">
+            {% if tipo_cobro == 'incluido' %}0.00 EUR{% elif tipo_cobro == 'suplemento' %}+ {{ '%.2f'|format(a.precio or 0) }} EUR{% else %}{{ '%.2f'|format(a.precio or 0) }} EUR{% endif %}
+          </span>
+        </button>
+        {% else %}
+        <div class="tpv-empty">No hay articulos visibles para este punto de venta.</div>
+        {% endfor %}
+      </div>
+    </div>
+  </main>
+
+  <aside class="tpv-panel tpv-ticket-panel" data-pane="ticket">
+    <form id="ticket-form" method="post" action="{{ url_for('tpv.crear_comanda', terminal_id=terminal.id) }}">
+      <input type="hidden" name="lineas_json" id="lineas_json">
+      <input type="hidden" name="cuenta_id" id="cuenta_id">
+      <input type="hidden" name="mesa_id" id="mesa_id">
+      <input type="hidden" name="mesa_nombre" id="mesa_nombre">
+      <input type="hidden" name="modo_servicio" id="modo_servicio" value="mesa">
+      <input type="hidden" name="finalizar" id="finalizar" value="">
+      <input type="hidden" name="forma_pago" id="ticket_forma_pago" value="efectivo">
+      <input type="hidden" name="importe_entregado" id="ticket_importe_entregado" value="">
+      <input type="hidden" name="cambio" id="ticket_cambio" value="">
+
+      <div class="tpv-ticket-head">
+        <span class="tpv-note">Ticket seleccionado</span>
+        <strong id="selected-label">Selecciona mesa</strong>
+        <div class="money" id="selected-total">0.00 EUR</div>
+        <div class="tpv-note" id="selected-extra">Cuenta nueva</div>
+      </div>
+
+      <h3>Consumo de la mesa</h3>
+      <div class="tpv-ticket-lines tpv-existing" id="existing-lines">
+        <div class="tpv-empty">El consumo de la mesa aparecera aqui.</div>
+      </div>
+
+      <h3>Nuevo pedido</h3>
+      <div class="tpv-ticket-lines" id="ticket-lines">
+        <div class="tpv-empty">Toca articulos para anadirlos.</div>
+      </div>
+
+      <div class="tpv-ticket-total">
+        <span>Total ticket</span>
+        <strong id="ticket-total">0.00 EUR</strong>
+      </div>
+
+      <details style="margin-top:8px;">
+        <summary class="tpv-note">Datos de la cuenta</summary>
+        <div class="tpv-ticket-grid">
+          <div class="form-group">
+            <label class="form-label">Pax</label>
+            <input class="form-control" name="pax" id="pax" type="number" min="0" value="0">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Camarero</label>
+            <input class="form-control" name="camarero" id="camarero" value="{{ session.get('user_nombre') or session.get('user_email') or '' }}">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Salida</label>
+            <select class="form-control" name="prioridad" id="prioridad">
+              {% for key,label in prioridades.items() %}
+              <option value="{{ key }}">{{ label }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Habitacion</label>
+            <input class="form-control" name="habitacion" id="habitacion" placeholder="0005">
+          </div>
+          <div class="form-group wide">
+            <label class="form-label">Cliente</label>
+            <input class="form-control" name="cliente" id="cliente" placeholder="Nombre o referencia">
+          </div>
+          <div class="form-group wide">
+            <label class="form-label">Reserva activa</label>
+            <select class="form-control" name="reserva_id" id="reserva_id">
+              <option value="">Buscar por habitacion</option>
+              {% for r in reservas_activas %}
+              <option value="{{ r.id }}" data-habitacion="{{ r.habitacion_numero or r.habitacion_nombre or '' }}" data-cliente="{{ r.titular_nombre or '' }}">
+                {{ r.habitacion_numero or r.habitacion_nombre or '-' }} - {{ r.titular_nombre or r.codigo or ('#' ~ r.id) }} - {{ regimenes.get(r.regimen, r.regimen or '') }}
+              </option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="form-group wide">
+            <label class="form-label">Avisos</label>
+            <input class="form-control" name="avisos" placeholder="Alergias, intolerancias, cambios">
+          </div>
+          <div class="form-group wide">
+            <label class="form-label">Observaciones</label>
+            <input class="form-control" name="observaciones" placeholder="Sin sal, sacar con entrantes...">
+          </div>
+          {% if terminal.tpv_admite_cargo_habitacion %}
+          <label class="wide"><input type="checkbox" name="cargo_habitacion" value="1"> Cargo a habitacion</label>
+          {% endif %}
+        </div>
+      </details>
+
+      <div class="tpv-action-grid">
+        <button class="btn btn-success wide" type="submit"><i class="fas fa-paper-plane"></i> Enviar / guardar</button>
+        <button class="btn btn-primary wide" id="send-pay-button" type="button"><i class="fas fa-cash-register"></i> Enviar y cobrar</button>
+        <button class="btn btn-secondary" id="clear-ticket" type="button"><i class="fas fa-eraser"></i> Limpiar</button>
+        <button class="btn btn-primary" id="quick-pay-button" type="button"><i class="fas fa-euro-sign"></i> Cobrar cuenta</button>
+        <button class="btn btn-secondary" id="transfer-table" type="button"><i class="fas fa-random"></i> Traspasar</button>
+        <button class="btn btn-secondary" id="join-table" type="button"><i class="fas fa-object-group"></i> Juntar</button>
+        <a class="btn btn-secondary" href="{{ url_for('tpv.cuentas', terminal_id=terminal.id, punto_venta_id=terminal.punto_venta_id) }}"><i class="fas fa-list"></i> Cuentas</a>
+        <a class="btn btn-secondary" href="{{ url_for('tpv.pantalla', terminal_id=terminal.id, destino='barra', punto_venta_id=terminal.punto_venta_id) }}"><i class="fas fa-glass-martini-alt"></i> Barra</a>
+        <a class="btn btn-secondary" href="{{ url_for('tpv.pantalla', terminal_id=terminal.id, destino='cocina', punto_venta_id=terminal.punto_venta_id) }}"><i class="fas fa-tv"></i> Cocina</a>
+      </div>
+      <div class="tpv-note" id="pay-help" style="margin-top:8px;">Para cobrar, se abre el cobro aqui mismo con efectivo, tarjeta o cargo a habitacion.</div>
+      <div class="tpv-keypad" aria-label="Teclado TPV">
+        <button class="tpv-key" type="button" data-keypad="7">7</button>
+        <button class="tpv-key" type="button" data-keypad="8">8</button>
+        <button class="tpv-key" type="button" data-keypad="9">9</button>
+        <button class="tpv-key action" type="button" data-keypad-action="back">Borrar</button>
+        <button class="tpv-key" type="button" data-keypad="4">4</button>
+        <button class="tpv-key" type="button" data-keypad="5">5</button>
+        <button class="tpv-key" type="button" data-keypad="6">6</button>
+        <button class="tpv-key action" type="button" data-keypad-action="qty">Uds</button>
+        <button class="tpv-key" type="button" data-keypad="1">1</button>
+        <button class="tpv-key" type="button" data-keypad="2">2</button>
+        <button class="tpv-key" type="button" data-keypad="3">3</button>
+        <button class="tpv-key action" type="button" data-keypad-action="clear">C</button>
+        <button class="tpv-key" type="button" data-keypad="0">0</button>
+        <button class="tpv-key" type="button" data-keypad=".">.</button>
+        <button class="tpv-key total" type="button" id="keypad-total">Total</button>
+      </div>
+    </form>
+    <form id="payment-form" method="post" action="{{ url_for('tpv.cobrar_terminal', terminal_id=terminal.id) }}">
+      <input type="hidden" name="cuenta_id" id="pay_cuenta_id">
+      <input type="hidden" name="accion" id="pay_accion" value="cobrar">
+      <input type="hidden" name="forma_pago" id="pay_forma_pago" value="efectivo">
+      <input type="hidden" name="importe_entregado" id="pay_importe_entregado" value="">
+      <input type="hidden" name="cambio" id="pay_cambio" value="">
+      <input type="hidden" name="motivo" value="Cobro directo desde terminal TPV">
+    </form>
+    <form id="table-op-form" method="post" action="{{ url_for('tpv.mesa_operacion_terminal', terminal_id=terminal.id) }}">
+      <input type="hidden" name="accion" id="table_op_accion" value="traspasar">
+      <input type="hidden" name="cuenta_id" id="table_op_cuenta_id">
+      <input type="hidden" name="mesa_destino_id" id="table_op_mesa_id">
+      <input type="hidden" name="destino_modo" id="table_op_destino_modo">
+      <input type="hidden" name="destino_label" id="table_op_destino_label">
+    </form>
+  </aside>
+</div>
+
+<div class="tpv-pay-overlay" id="pay-modal" hidden>
+  <div class="tpv-pay-modal">
+    <div class="tpv-pay-head">
+      <div>
+        <span class="tpv-note">Cobrar</span>
+        <h3 id="pay-title">Ticket</h3>
+      </div>
+      <div>
+        <span class="tpv-note">Total</span>
+        <strong id="pay-total">0.00 EUR</strong>
+      </div>
+    </div>
+    <div class="tpv-pay-methods">
+      <button class="tpv-pay-method active" type="button" data-pay-method="efectivo"><i class="fas fa-money-bill-wave"></i><br>Efectivo</button>
+      <button class="tpv-pay-method" type="button" data-pay-method="tarjeta"><i class="fas fa-credit-card"></i><br>Tarjeta</button>
+      <button class="tpv-pay-method" type="button" data-pay-method="cargo_habitacion" {% if not terminal.tpv_admite_cargo_habitacion %}disabled{% endif %}><i class="fas fa-bed"></i><br>Habitacion</button>
+      <button class="tpv-pay-method" type="button" data-pay-method="consumo_empleado"><i class="fas fa-user-tie"></i><br>Empleado</button>
+      <button class="tpv-pay-method" type="button" data-pay-method="invitacion"><i class="fas fa-gift"></i><br>Invitacion</button>
+    </div>
+    <div id="cash-box" class="tpv-cash-grid">
+      <div class="form-group">
+        <label class="form-label" for="cash-received">Entregado</label>
+        <input class="form-control" id="cash-received" type="number" min="0" step="0.01" inputmode="decimal">
+      </div>
+      <div class="tpv-change">
+        <span class="tpv-note">Devolucion</span>
+        <strong id="cash-change">0.00 EUR</strong>
+      </div>
+    </div>
+    <div class="tpv-note" id="pay-warning" style="min-height:18px;margin-bottom:10px;"></div>
+    <div class="tpv-pay-actions">
+      <button class="btn btn-secondary" id="cancel-pay" type="button">Cancelar</button>
+      <button class="btn btn-success" id="confirm-pay" type="button"><i class="fas fa-check"></i> Confirmar cobro</button>
+    </div>
+  </div>
+</div>
+
+<div class="tpv-pay-overlay" id="pref-modal" hidden>
+  <div class="tpv-pay-modal tpv-pref-modal">
+    <div class="tpv-pay-head">
+      <div>
+        <span class="tpv-note">Como lo quiere el cliente</span>
+        <h3 id="pref-title">Articulo</h3>
+      </div>
+      <button class="btn btn-secondary" id="pref-cancel" type="button"><i class="fas fa-times"></i></button>
+    </div>
+    <div id="pref-sauce-box">
+      <label class="form-label">Salsa</label>
+      <div class="tpv-choice-grid">
+        {% for salsa in opciones_menu.salsas %}
+        <button class="tpv-choice" type="button" data-pref-sauce="{{ salsa.nombre }}">{{ salsa.nombre }}</button>
+        {% else %}
+        <div class="tpv-empty">Este menu no tiene salsas configuradas.</div>
+        {% endfor %}
+      </div>
+    </div>
+    <label class="form-label">Punto / preparacion</label>
+    <div class="tpv-choice-grid">
+      <button class="tpv-choice" type="button" data-pref-point="Poco hecha">Poco hecha</button>
+      <button class="tpv-choice" type="button" data-pref-point="Punto -">Punto -</button>
+      <button class="tpv-choice" type="button" data-pref-point="Al punto">Al punto</button>
+      <button class="tpv-choice" type="button" data-pref-point="Punto +">Punto +</button>
+      <button class="tpv-choice" type="button" data-pref-point="Hecha">Hecha</button>
+      <button class="tpv-choice" type="button" data-pref-point="Muy hecha">Muy hecha</button>
+      <button class="tpv-choice" type="button" data-pref-point="Al dente">Al dente</button>
+      <button class="tpv-choice" type="button" data-pref-point="Sin sal">Sin sal</button>
+      <button class="tpv-choice" type="button" data-pref-point="Sin queso">Sin queso</button>
+      <button class="tpv-choice" type="button" data-pref-point="Aparte">Aparte</button>
+      <button class="tpv-choice" type="button" data-pref-point="Extra queso">Extra queso</button>
+      <button class="tpv-choice" type="button" data-pref-point="Extra salsa">Extra salsa</button>
+      <button class="tpv-choice" type="button" data-pref-point="Extra bacon">Extra bacon</button>
+      <button class="tpv-choice" type="button" data-pref-point="Sin cebolla">Sin cebolla</button>
+    </div>
+    <div class="form-group">
+      <label class="form-label" for="pref-notes">Notas libres</label>
+      <input class="form-control" id="pref-notes" placeholder="Sin gluten, alergia, salsa aparte...">
+    </div>
+    <div class="tpv-pay-actions">
+      <button class="btn btn-secondary" id="pref-clear" type="button"><i class="fas fa-eraser"></i> Sin nota</button>
+      <button class="btn btn-success" id="pref-save" type="button"><i class="fas fa-check"></i> Guardar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  const cuentas = {{ cuentas_abiertas|tojson }};
+  const mesas = {{ mesas|tojson }};
+  const opcionesMenu = {{ opciones_menu|tojson }};
+  const selectedCuentaId = "{{ seleccion_cuenta_id }}";
+  const selectedMesaId = "{{ seleccion_mesa_id }}";
+  const lines = [];
+  const cuentaMap = new Map(cuentas.map((cuenta) => [String(cuenta.id), cuenta]));
+  const mesaMap = new Map(mesas.map((mesa) => [String(mesa.id), mesa]));
+  const container = document.getElementById('ticket-lines');
+  const existingContainer = document.getElementById('existing-lines');
+  const totalEl = document.getElementById('ticket-total');
+  const productSearch = document.getElementById('product-search');
+  const selectedTotalEl = document.getElementById('selected-total');
+  const selectedLabelEl = document.getElementById('selected-label');
+  const selectedExtraEl = document.getElementById('selected-extra');
+  const inputJson = document.getElementById('lineas_json');
+  const cuentaInput = document.getElementById('cuenta_id');
+  const mesaInput = document.getElementById('mesa_id');
+  const mesaNombreInput = document.getElementById('mesa_nombre');
+  const modoInput = document.getElementById('modo_servicio');
+  const finalizarInput = document.getElementById('finalizar');
+  const ticketFormaInput = document.getElementById('ticket_forma_pago');
+  const ticketImporteInput = document.getElementById('ticket_importe_entregado');
+  const ticketCambioInput = document.getElementById('ticket_cambio');
+  const paymentForm = document.getElementById('payment-form');
+  const payCuentaInput = document.getElementById('pay_cuenta_id');
+  const payFormaInput = document.getElementById('pay_forma_pago');
+  const payImporteInput = document.getElementById('pay_importe_entregado');
+  const payCambioInput = document.getElementById('pay_cambio');
+  const quickPayButton = document.getElementById('quick-pay-button');
+  const transferTableButton = document.getElementById('transfer-table');
+  const joinTableButton = document.getElementById('join-table');
+  const tableOpForm = document.getElementById('table-op-form');
+  const tableOpAccion = document.getElementById('table_op_accion');
+  const tableOpCuenta = document.getElementById('table_op_cuenta_id');
+  const tableOpMesa = document.getElementById('table_op_mesa_id');
+  const tableOpDestinoModo = document.getElementById('table_op_destino_modo');
+  const tableOpDestinoLabel = document.getElementById('table_op_destino_label');
+  const sendPayButton = document.getElementById('send-pay-button');
+  const payHelp = document.getElementById('pay-help');
+  const payModal = document.getElementById('pay-modal');
+  const payTitle = document.getElementById('pay-title');
+  const payTotal = document.getElementById('pay-total');
+  const cashBox = document.getElementById('cash-box');
+  const cashReceived = document.getElementById('cash-received');
+  const cashChange = document.getElementById('cash-change');
+  const payWarning = document.getElementById('pay-warning');
+  const confirmPay = document.getElementById('confirm-pay');
+  const cancelPay = document.getElementById('cancel-pay');
+  const prefModal = document.getElementById('pref-modal');
+  const prefTitle = document.getElementById('pref-title');
+  const prefNotes = document.getElementById('pref-notes');
+  const prefCancel = document.getElementById('pref-cancel');
+  const prefClear = document.getElementById('pref-clear');
+  const prefSave = document.getElementById('pref-save');
+  const prefDialog = prefModal ? prefModal.querySelector('.tpv-pref-modal') : null;
+  let selected = { cuentaId: '', mesaId: '', mode: 'mesa', label: 'Ticket nuevo', existingTotal: 0, existingLines: [] };
+  let payContext = 'existing';
+  let selectedPayMethod = 'efectivo';
+  let payableTotal = 0;
+  let selectedCategory = '';
+  let keypadBuffer = '';
+  let prefLineIndex = null;
+  let tableOperation = '';
+  const mobileQuery = window.matchMedia('(max-width: 860px)');
+  const mesaPanel = document.getElementById('mesa-panel');
+  const mapBackdrop = document.getElementById('map-backdrop');
+
+  function openMap(operation) {
+    tableOperation = operation || '';
+    if (mobileQuery.matches) {
+      setMobilePane('mesas');
+      if (operation) {
+        payHelp.textContent = operation === 'juntar' ? 'Toca la mesa destino para juntar cuentas.' : 'Toca la mesa destino para traspasar la cuenta.';
+      }
+      return;
+    }
+    if (mesaPanel) mesaPanel.classList.add('is-active');
+    if (mapBackdrop) mapBackdrop.classList.add('is-active');
+    if (operation) {
+      payHelp.textContent = operation === 'juntar' ? 'Toca la mesa destino para juntar cuentas.' : 'Toca la mesa destino para traspasar la cuenta.';
+    }
+  }
+
+  function closeMap() {
+    tableOperation = '';
+    if (mesaPanel) mesaPanel.classList.remove('is-active');
+    if (mapBackdrop) mapBackdrop.classList.remove('is-active');
+  }
+
+  function setMobilePane(pane) {
+    document.querySelectorAll('[data-pane]').forEach((panel) => {
+      panel.classList.toggle('is-active', panel.dataset.pane === pane);
+    });
+    document.querySelectorAll('[data-open-pane]').forEach((btn) => {
+      btn.classList.toggle('is-active', btn.dataset.openPane === pane);
+    });
+    document.querySelectorAll('[data-open-map]').forEach((btn) => {
+      btn.classList.toggle('is-active', pane === 'mesas');
+    });
+  }
+
+  function openPaneOnMobile(pane) {
+    if (mobileQuery.matches) setMobilePane(pane);
+  }
+
+  function applyMobileLayout() {
+    if (!mobileQuery.matches) return;
+    setMobilePane(selected.cuentaId || selected.mesaId ? 'platos' : 'mesas');
+  }
+
+  function money(value) {
+    return `${Number(value || 0).toFixed(2)} EUR`;
+  }
+
+  function escapeHtml(value) {
+    return String(value || '').replace(/[&<>"']/g, (char) => ({
+      '&': '&amp;',
+      '<': '&lt;',
+      '>': '&gt;',
+      '"': '&quot;',
+      "'": '&#039;'
+    }[char]));
+  }
+
+  function clearSelectedClasses() {
+    document.querySelectorAll('[data-seat], [data-ref], [data-map-service]').forEach((btn) => btn.classList.remove('selected'));
+    document.querySelectorAll('.tpv-mode').forEach((btn) => btn.classList.remove('active'));
+  }
+
+  function selectTarget(target) {
+    clearSelectedClasses();
+    selected = Object.assign({ cuentaId: '', mesaId: '', mode: 'mesa', label: 'Ticket nuevo', existingTotal: 0, existingLines: [] }, target);
+    const cuenta = selected.cuentaId ? cuentaMap.get(String(selected.cuentaId)) : null;
+    if (cuenta) {
+      selected.label = cuenta.mesa_nombre || cuenta.habitacion || cuenta.cliente || cuenta.modo_servicio || cuenta.numero;
+      selected.mode = cuenta.modo_servicio || selected.mode || 'mesa';
+      selected.mesaId = cuenta.mesa_id || selected.mesaId || '';
+      selected.existingTotal = Number(cuenta.total || 0);
+      selected.existingLines = cuenta.lineas || [];
+      document.getElementById('cliente').value = cuenta.cliente || '';
+      document.getElementById('habitacion').value = cuenta.habitacion || '';
+      document.getElementById('pax').value = cuenta.pax || 0;
+      if (cuenta.reserva_id) document.getElementById('reserva_id').value = cuenta.reserva_id;
+    } else {
+      document.getElementById('cliente').value = selected.cliente || '';
+      document.getElementById('habitacion').value = selected.habitacion || '';
+      document.getElementById('pax').value = 0;
+      document.getElementById('reserva_id').value = '';
+    }
+    cuentaInput.value = selected.cuentaId || '';
+    mesaInput.value = selected.mesaId || '';
+    mesaNombreInput.value = selected.mesaNombre || selected.mapLabel || '';
+    modoInput.value = selected.mode || 'mesa';
+    selectedLabelEl.textContent = selected.label || 'Ticket nuevo';
+    selectedTotalEl.textContent = money(selected.existingTotal);
+    selectedExtraEl.textContent = cuenta ? `${cuenta.numero} - ${cuenta.articulos || 0} uds` : 'Cuenta nueva';
+    payCuentaInput.value = selected.cuentaId || '';
+    quickPayButton.disabled = !selected.cuentaId;
+    if (transferTableButton) transferTableButton.disabled = !selected.cuentaId;
+    if (joinTableButton) joinTableButton.disabled = !selected.cuentaId;
+    payHelp.textContent = selected.cuentaId ? `Cobro directo de ${selected.label} sin salir del TPV.` : 'Primero guarda el pedido o selecciona una cuenta abierta.';
+    document.querySelectorAll('.tpv-mode').forEach((btn) => {
+      btn.classList.toggle('active', btn.dataset.modeQuick === selected.mode);
+    });
+    const seat = selected.mesaId ? document.querySelector(`[data-seat][data-mesa-id="${selected.mesaId}"]`) : null;
+    if (seat) seat.classList.add('selected');
+    const ref = selected.cuentaId && !seat ? document.querySelector(`[data-ref][data-cuenta-id="${selected.cuentaId}"]`) : null;
+    if (ref) ref.classList.add('selected');
+    const service = !selected.cuentaId && !seat && selected.mapLabel ? Array.from(document.querySelectorAll('[data-map-service]')).find(btn => btn.dataset.label === selected.mapLabel) : null;
+    if (service) service.classList.add('selected');
+    renderExisting();
+    renderTicket();
+    closeMap();
+    openPaneOnMobile('platos');
+  }
+
+  function changeSelection(target) {
+    if (lines.length && !confirm('Hay articulos sin enviar. Cambiar de mesa limpiara el pedido pendiente.')) {
+      return;
+    }
+    if (lines.length) lines.splice(0, lines.length);
+    selectTarget(target);
+  }
+
+  function renderExisting() {
+    existingContainer.innerHTML = '';
+    if (!selected.existingLines || !selected.existingLines.length) {
+      existingContainer.innerHTML = '<div class="tpv-empty">Sin consumo previo en esta cuenta.</div>';
+      return;
+    }
+    selected.existingLines.forEach((line) => {
+      const div = document.createElement('div');
+      div.className = 'tpv-line';
+      div.innerHTML = `<strong>${Number(line.cantidad || 0).toString()}</strong><span>${line.nombre}<small>${line.destino || ''}</small></span><span>${money(line.total)}</span><span></span>`;
+      existingContainer.appendChild(div);
+    });
+  }
+
+  function renderTicket() {
+    container.innerHTML = '';
+    let total = Number(selected.existingTotal || 0);
+    if (!lines.length) {
+      container.innerHTML = '<div class="tpv-empty">Toca articulos para anadirlos.</div>';
+    }
+    lines.forEach((line, index) => {
+      total += line.price * line.cantidad;
+      const div = document.createElement('div');
+      div.className = 'tpv-line tpv-line-edit';
+      const tipo = line.comentario || (line.tipoCobro === 'incluido' ? 'Incluido' : line.tipoCobro === 'suplemento' ? 'Suplemento' : line.tipoCobro === 'gourmet' ? 'Gourmet' : line.destino);
+      div.innerHTML = `<strong>${line.cantidad}</strong><span>${escapeHtml(line.name)}<small>${escapeHtml(tipo)}</small></span><span>${money(line.price * line.cantidad)}</span><button type="button" data-remove="${index}">-</button><button type="button" data-add="${index}">+</button><button type="button" data-note="${index}"><i class="fas fa-pen"></i></button>`;
+      container.appendChild(div);
+    });
+    totalEl.textContent = money(total);
+    inputJson.value = JSON.stringify(lines);
+    const ticketTab = document.querySelector('[data-open-pane="ticket"] small');
+    if (ticketTab) ticketTab.textContent = lines.length ? `${lines.reduce((sum, line) => sum + Number(line.cantidad || 0), 0)} uds` : 'Ticket';
+    container.querySelectorAll('button[data-remove]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const index = Number(btn.dataset.remove);
+        if (lines[index].cantidad > 1) {
+          lines[index].cantidad -= 1;
+        } else {
+          lines.splice(index, 1);
+        }
+        renderTicket();
+      });
+    });
+    container.querySelectorAll('button[data-add]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const index = Number(btn.dataset.add);
+        if (lines[index]) {
+          lines[index].cantidad += 1;
+          renderTicket();
+        }
+      });
+    });
+    container.querySelectorAll('button[data-note]').forEach((btn) => {
+      btn.addEventListener('click', () => openPreference(Number(btn.dataset.note), false));
+    });
+  }
+
+  function normalizeText(value) {
+    return String(value || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  }
+
+  function needsPreference(button) {
+    if (!opcionesMenu.salsas || !opcionesMenu.salsas.length) return false;
+    const text = normalizeText(`${button.dataset.name || ''} ${button.dataset.categoryName || ''}`);
+    return ['pasta', 'penne', 'spaghetti', 'spaguetti', 'gnocchi', 'noqui', 'macarron', 'ravioli', 'tagliatelle', 'carne', 'solomillo', 'entrecot', 'chuleton', 'hamburguesa', 'ternera', 'cordero'].some((word) => text.includes(word));
+  }
+
+  function applyProductFilters() {
+    const query = normalizeText(productSearch ? productSearch.value : '');
+    if (!selectedCategory) {
+      const firstCat = document.querySelector('.tpv-cat');
+      selectedCategory = firstCat ? firstCat.dataset.cat || '' : '';
+      if (firstCat) firstCat.classList.add('active');
+    }
+    document.querySelectorAll('.tpv-btn').forEach((item) => {
+      const categoryMatch = item.dataset.category === selectedCategory;
+      const text = normalizeText(item.dataset.search || item.dataset.name || '');
+      const textMatch = !query || text.includes(query);
+      item.style.display = categoryMatch && textMatch ? '' : 'none';
+    });
+  }
+
+  function pendingTotal() {
+    return lines.reduce((sum, line) => sum + (Number(line.price || 0) * Number(line.cantidad || 0)), 0);
+  }
+
+  function totalForPayment(context) {
+    return context === 'send' ? Number(selected.existingTotal || 0) + pendingTotal() : Number(selected.existingTotal || 0);
+  }
+
+  function updateCashChange() {
+    const received = Number(cashReceived.value || 0);
+    const change = Math.max(received - payableTotal, 0);
+    cashChange.textContent = money(change);
+    if (selectedPayMethod === 'efectivo' && received + 0.001 < payableTotal) {
+      payWarning.textContent = `Faltan ${money(payableTotal - received)}.`;
+      confirmPay.disabled = true;
+    } else {
+      const warnings = {
+        cargo_habitacion: 'Se cerrara como cargo a habitacion.',
+        consumo_empleado: 'Se registrara como consumo de empleado.',
+        invitacion: 'Se registrara como invitacion.'
+      };
+      payWarning.textContent = warnings[selectedPayMethod] || '';
+      confirmPay.disabled = false;
+    }
+  }
+
+  function setPayMethod(method) {
+    selectedPayMethod = method;
+    document.querySelectorAll('[data-pay-method]').forEach((btn) => {
+      btn.classList.toggle('active', btn.dataset.payMethod === method);
+    });
+    cashBox.style.display = method === 'efectivo' ? '' : 'none';
+    if (method === 'efectivo') {
+      cashReceived.value = payableTotal.toFixed(2);
+      setTimeout(() => cashReceived.select(), 30);
+    }
+    updateCashChange();
+  }
+
+  function openPayment(context) {
+    payContext = context;
+    payableTotal = totalForPayment(context);
+    payTitle.textContent = selected.label || 'Ticket';
+    payTotal.textContent = money(payableTotal);
+    payModal.hidden = false;
+    setPayMethod('efectivo');
+  }
+
+  function closePayment() {
+    payModal.hidden = true;
+  }
+
+  function selectedPrefValues() {
+    const salsa = document.querySelector('[data-pref-sauce].active');
+    const puntos = Array.from(document.querySelectorAll('[data-pref-point].active')).map((btn) => btn.dataset.prefPoint);
+    const parts = [];
+    if (salsa) parts.push(`Salsa: ${salsa.dataset.prefSauce}`);
+    parts.push(...puntos);
+    if (prefNotes.value.trim()) parts.push(prefNotes.value.trim());
+    return parts.join(' | ');
+  }
+
+  function openPreference(index, sauceFirst) {
+    prefLineIndex = index;
+    const line = lines[index];
+    if (!line) return;
+    prefTitle.textContent = line.name || 'Articulo';
+    prefNotes.value = line.comentario || '';
+    document.querySelectorAll('[data-pref-sauce], [data-pref-point]').forEach((btn) => btn.classList.remove('active'));
+    document.getElementById('pref-sauce-box').style.display = opcionesMenu.salsas && opcionesMenu.salsas.length ? '' : 'none';
+    prefModal.hidden = false;
+    if (prefDialog) prefDialog.scrollTop = 0;
+  }
+
+  function closePreference() {
+    prefModal.hidden = true;
+    prefLineIndex = null;
+  }
+
+  function paymentValues() {
+    const received = selectedPayMethod === 'efectivo' ? Number(cashReceived.value || 0) : 0;
+    const change = selectedPayMethod === 'efectivo' ? Math.max(received - payableTotal, 0) : 0;
+    return {
+      forma: selectedPayMethod,
+      recibido: received.toFixed(2),
+      cambio: change.toFixed(2)
+    };
+  }
+
+  document.querySelectorAll('[data-seat]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      if (tableOperation) {
+        if (!selected.cuentaId) {
+          alert('Selecciona primero una cuenta abierta.');
+          closeMap();
+          return;
+        }
+        tableOpAccion.value = tableOperation;
+        tableOpCuenta.value = selected.cuentaId || '';
+        tableOpMesa.value = btn.dataset.mesaId || '';
+        tableOpDestinoModo.value = 'mesa';
+        tableOpDestinoLabel.value = btn.dataset.label || '';
+        tableOpForm.submit();
+        return;
+      }
+      changeSelection({
+        cuentaId: btn.dataset.cuentaId || '',
+        mesaId: btn.dataset.mesaId || '',
+        mode: 'mesa',
+        label: btn.dataset.label || 'Mesa',
+        existingTotal: 0,
+        existingLines: []
+      });
+    });
+  });
+
+  document.querySelectorAll('[data-ref]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      changeSelection({
+        cuentaId: btn.dataset.cuentaId || '',
+        mode: btn.dataset.mode || 'barra',
+        label: btn.dataset.label || 'Cuenta'
+      });
+    });
+  });
+
+  document.querySelectorAll('[data-map-service]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const label = btn.dataset.label || 'Barra';
+      if (tableOperation) {
+        if (!selected.cuentaId) {
+          alert('Selecciona primero una cuenta abierta.');
+          closeMap();
+          return;
+        }
+        tableOpAccion.value = tableOperation;
+        tableOpCuenta.value = selected.cuentaId || '';
+        tableOpMesa.value = '';
+        tableOpDestinoModo.value = btn.dataset.mode || 'barra';
+        tableOpDestinoLabel.value = label;
+        tableOpForm.submit();
+        return;
+      }
+      changeSelection({
+        cuentaId: '',
+        mesaId: '',
+        mode: btn.dataset.mode || 'barra',
+        label,
+        mapLabel: label,
+        mesaNombre: label,
+        existingTotal: 0,
+        existingLines: []
+      });
+    });
+  });
+
+  document.querySelectorAll('[data-open-map]').forEach((btn) => {
+    btn.addEventListener('click', () => openMap(''));
+  });
+  document.getElementById('close-map')?.addEventListener('click', closeMap);
+  mapBackdrop?.addEventListener('click', closeMap);
+  transferTableButton?.addEventListener('click', () => {
+    if (!selected.cuentaId) {
+      alert('Selecciona una cuenta abierta para traspasar.');
+      return;
+    }
+    openMap('traspasar');
+  });
+  joinTableButton?.addEventListener('click', () => {
+    if (!selected.cuentaId) {
+      alert('Selecciona una cuenta abierta para juntar.');
+      return;
+    }
+    openMap('juntar');
+  });
+
+  document.querySelectorAll('[data-mode-quick]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const mode = btn.dataset.modeQuick || 'barra';
+      let label = mode === 'habitacion' ? 'Habitacion nueva' : mode === 'buffet' ? 'Buffet nuevo' : 'Barra nueva';
+      if (mode === 'habitacion') {
+        const actual = document.getElementById('habitacion').value || '';
+        const habitacion = window.prompt('Numero de habitacion', actual);
+        if (habitacion === null) return;
+        const limpia = habitacion.trim();
+        document.getElementById('habitacion').value = limpia;
+        document.getElementById('reserva_id').value = '';
+        label = limpia ? `Hab. ${limpia}` : 'Habitacion nueva';
+      }
+      changeSelection({
+        cuentaId: '',
+        mesaId: '',
+        mode,
+        label,
+        mesaNombre: mode === 'barra' ? label : '',
+        habitacion: mode === 'habitacion' ? document.getElementById('habitacion').value : '',
+        existingTotal: 0,
+        existingLines: []
+      });
+    });
+  });
+
+  document.querySelectorAll('.tpv-btn').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const articuloId = Number(btn.dataset.articuloId || 0);
+      const existing = lines.find((line) => line.articulo_id === articuloId);
+      let lineIndex = -1;
+      if (existing) {
+        existing.cantidad += 1;
+        lineIndex = lines.indexOf(existing);
+      } else {
+        lines.push({
+          articulo_id: articuloId,
+          name: btn.dataset.name,
+          price: Number(btn.dataset.price || 0),
+          destino: btn.dataset.destino || 'sin_preparacion',
+          tipoCobro: btn.dataset.tipoCobro || 'cobro',
+          comentario: '',
+          cantidad: 1
+        });
+        lineIndex = lines.length - 1;
+      }
+      renderTicket();
+      if (needsPreference(btn)) {
+        openPreference(lineIndex, true);
+      }
+      openPaneOnMobile('ticket');
+    });
+  });
+
+  document.querySelectorAll('[data-pref-sauce]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('[data-pref-sauce]').forEach((item) => item.classList.remove('active'));
+      btn.classList.add('active');
+    });
+  });
+
+  document.querySelectorAll('[data-pref-point]').forEach((btn) => {
+    btn.addEventListener('click', () => btn.classList.toggle('active'));
+  });
+
+  prefCancel.addEventListener('click', closePreference);
+  prefClear.addEventListener('click', () => {
+    if (prefLineIndex !== null && lines[prefLineIndex]) {
+      lines[prefLineIndex].comentario = '';
+      renderTicket();
+    }
+    closePreference();
+  });
+  prefSave.addEventListener('click', () => {
+    if (prefLineIndex !== null && lines[prefLineIndex]) {
+      lines[prefLineIndex].comentario = selectedPrefValues();
+      renderTicket();
+    }
+    closePreference();
+  });
+
+  document.querySelectorAll('[data-open-pane]').forEach((btn) => {
+    btn.addEventListener('click', () => setMobilePane(btn.dataset.openPane || 'mesas'));
+  });
+
+  document.querySelectorAll('.tpv-cat').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      selectedCategory = btn.dataset.cat || '';
+      document.querySelectorAll('.tpv-cat').forEach((item) => item.classList.remove('active'));
+      btn.classList.add('active');
+      applyProductFilters();
+    });
+  });
+
+  if (productSearch) {
+    productSearch.addEventListener('input', applyProductFilters);
+  }
+
+  applyMobileLayout();
+  if (mobileQuery.addEventListener) {
+    mobileQuery.addEventListener('change', applyMobileLayout);
+  } else if (mobileQuery.addListener) {
+    mobileQuery.addListener(applyMobileLayout);
+  }
+
+  document.querySelectorAll('[data-keypad]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const value = btn.dataset.keypad || '';
+      if (value === '.' && keypadBuffer.includes('.')) return;
+      keypadBuffer = `${keypadBuffer}${value}`;
+      payHelp.textContent = `Teclado: ${keypadBuffer}`;
+    });
+  });
+  document.querySelectorAll('[data-keypad-action]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const action = btn.dataset.keypadAction || '';
+      if (action === 'clear') keypadBuffer = '';
+      if (action === 'back') keypadBuffer = keypadBuffer.slice(0, -1);
+      if (action === 'qty') {
+        const qty = Math.max(Number(keypadBuffer || '1') || 1, 1);
+        if (lines.length) {
+          lines[lines.length - 1].cantidad = qty;
+          renderTicket();
+        }
+        keypadBuffer = '';
+      }
+      payHelp.textContent = keypadBuffer ? `Teclado: ${keypadBuffer}` : 'Teclado listo.';
+    });
+  });
+  document.getElementById('keypad-total')?.addEventListener('click', () => {
+    if (selected.cuentaId) openPayment('existing');
+    else if (lines.length) openPayment('send');
+  });
+
+  const reservaSelect = document.getElementById('reserva_id');
+  if (reservaSelect) {
+    reservaSelect.addEventListener('change', () => {
+      const option = reservaSelect.options[reservaSelect.selectedIndex];
+      if (!option) return;
+      if (option.dataset.habitacion) document.getElementById('habitacion').value = option.dataset.habitacion;
+      if (option.dataset.cliente) document.getElementById('cliente').value = option.dataset.cliente;
+    });
+  }
+
+  document.getElementById('clear-ticket').addEventListener('click', () => {
+    lines.splice(0, lines.length);
+    renderTicket();
+  });
+
+  quickPayButton.addEventListener('click', () => {
+    if (!selected.cuentaId) {
+      alert('Selecciona una cuenta abierta para cobrar.');
+      return;
+    }
+    if (lines.length) {
+      alert('Hay articulos sin enviar. Usa Enviar y cobrar para meterlos en la cuenta y cerrarla.');
+      return;
+    }
+    openPayment('existing');
+  });
+
+  sendPayButton.addEventListener('click', () => {
+    if (!lines.length) {
+      alert('Anade articulos antes de enviar y cobrar.');
+      return;
+    }
+    openPayment('send');
+  });
+
+  document.querySelectorAll('[data-pay-method]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      if (btn.disabled) return;
+      setPayMethod(btn.dataset.payMethod || 'efectivo');
+    });
+  });
+
+  cashReceived.addEventListener('input', updateCashChange);
+  cancelPay.addEventListener('click', closePayment);
+
+  confirmPay.addEventListener('click', () => {
+    const values = paymentValues();
+    if (selectedPayMethod === 'efectivo' && Number(values.recibido) + 0.001 < payableTotal) {
+      updateCashChange();
+      return;
+    }
+    if (payContext === 'send') {
+      finalizarInput.value = 'cobrar';
+      ticketFormaInput.value = values.forma;
+      ticketImporteInput.value = values.recibido;
+      ticketCambioInput.value = values.cambio;
+      inputJson.value = JSON.stringify(lines);
+      document.getElementById('ticket-form').submit();
+      return;
+    }
+    payCuentaInput.value = selected.cuentaId || '';
+    payFormaInput.value = values.forma;
+    payImporteInput.value = values.recibido;
+    payCambioInput.value = values.cambio;
+    paymentForm.submit();
+  });
+
+  document.getElementById('ticket-form').addEventListener('submit', (event) => {
+    if (!lines.length) {
+      event.preventDefault();
+      alert('Anade articulos antes de enviar.');
+      return;
+    }
+    if (event.submitter && event.submitter.id !== 'send-pay-button') {
+      finalizarInput.value = '';
+    }
+    inputJson.value = JSON.stringify(lines);
+  });
+
+  if (selectedCuentaId && cuentaMap.has(String(selectedCuentaId))) {
+    selectTarget({ cuentaId: selectedCuentaId });
+  } else if (selectedMesaId && mesaMap.has(String(selectedMesaId))) {
+    const mesa = mesaMap.get(String(selectedMesaId));
+    selectTarget({ mesaId: mesa.id, cuentaId: mesa.cuenta_id || '', mode: 'mesa', label: mesa.nombre || mesa.numero || 'Mesa' });
+  } else if (cuentas.length) {
+    selectTarget({ cuentaId: cuentas[0].id });
+  } else if (mesas.length) {
+    selectTarget({ mesaId: mesas[0].id, mode: 'mesa', label: mesas[0].nombre || mesas[0].numero || 'Mesa' });
+  } else {
+    selectTarget({ mode: 'barra', label: 'Barra nueva' });
+  }
+  applyProductFilters();
+</script>
+{% endblock %}

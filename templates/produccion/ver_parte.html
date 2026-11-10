@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="card">
+
+    <div class="card-header">
+        <h2>Parte #{{ parte.id }}</h2>
+
+        <div>
+            <a href="{{ url_for('produccion.editar_parte', parte_id=parte.id) }}" class="btn btn-primary">Editar</a>
+            <a href="{{ url_for('produccion.produccion_index') }}" class="btn btn-secondary">Volver</a>
+        </div>
+    </div>
+
+    <div style="padding:15px;">
+        <strong>Fecha:</strong> {{ parte.fecha }} |
+        <strong>Turno:</strong> {{ parte.turno }} |
+        <strong>Responsable:</strong> {{ parte.responsable }}
+    </div>
+
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Receta</th>
+                <th>Raciones</th>
+                <th>FM</th>
+                <th>Regla</th>
+                <th>Real</th>
+                <th>Estado</th>
+            </tr>
+        </thead>
+
+        <tbody>
+            {% for l in lineas %}
+            <tr>
+                <td>{{ l.receta_nombre }}</td>
+                <td>{{ l.raciones_planificadas or '-' }}</td>
+                <td>{{ l.cantidad_planificada }}</td>
+                <td>
+                    {{ l.estacion_buffet or '-' }}
+                    {% if l.pax_previstos %}<br><small>{{ l.pax_previstos|int }} pax</small>{% endif %}
+                </td>
+                <td>{{ l.cantidad_real or '-' }}</td>
+                <td>{{ l.estado }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <div style="margin-top:15px;">
+        <a href="{{ url_for('produccion.gestionar_parte_subdepartamento', parte_id=parte.id) }}" class="btn btn-warning">Gestionar</a>
+        <a href="{{ url_for('produccion.recogida_sobrantes_parte', parte_id=parte.id) }}" class="btn btn-warning">Recogida buffet</a>
+        <a href="{{ url_for('produccion.incidencia_produccion', parte_id=parte.id) }}" class="btn btn-danger">Incidencias</a>
+        <a href="{{ url_for('produccion.tarjetas_buffet', parte_id=parte.id) }}" class="btn btn-info">Tarjetas</a>
+        <a href="{{ url_for('produccion.tarjetas_servicio', fecha=parte.fecha, servicio=parte.turno) }}" class="btn btn-success">Tarjetas servicio</a>
+        <a href="{{ url_for('produccion.trazabilidad_produccion', fecha_desde=parte.fecha, fecha_hasta=parte.fecha) }}" class="btn btn-secondary">Trazabilidad APPCC</a>
+    </div>
+
+</div>
+
+{% endblock %}

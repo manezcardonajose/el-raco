@@ -1,0 +1,107 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header">
+        <h2><i class="fas fa-chart-line"></i> EVOLUCIN DE PRECIOS</h2>
+        <div>
+            <button onclick="window.print()" class="btn btn-info">
+                <i class="fas fa-print"></i> Imprimir
+            </button>
+            <a href="{{ url_for('informes.compras_evolucion', exportar='excel', producto_id=request.args.get('producto_id')) }}"
+               class="btn btn-success">
+                <i class="fas fa-file-excel"></i> Excel
+            </a>
+            <a href="{{ url_for('informes.compras') }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Volver
+            </a>
+        </div>
+    </div>
+
+    <!-- informescin del producto -->
+    <div style="background: #1e252b; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+        <h3 style="color: #ff6b00; margin-top: 0;">{{ producto.nombre }}</h3>
+        <p>ltimas 50 compras de este producto</p>
+    </div>
+
+    <!-- Tabla de resultados -->
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>Fecha</th>
+                    <th>Proveedor</th>
+                    <th>Precio unitario</th>
+                    <th>Cantidad</th>
+                    <th>Total</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for d in datos %}
+                <tr>
+                    <td>{{ d.fecha_pedido }}</td>
+                    <td>{{ d.proveedor }}</td>
+                    <td style="text-align: right;">{{ "%.2f"|format(d.precio) }} </td>
+                    <td style="text-align: right;">{{ d.cantidad }}</td>
+                    <td style="text-align: right;">{{ "%.2f"|format(d.precio * d.cantidad) }} </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="5" style="text-align: center; padding: 40px;">
+                        No hay datos de compras para este producto
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Si hay datos, mostrar grfico de evolucin -->
+    {% if datos %}
+    <div style="margin-top: 30px;">
+        <h3> Evolucin del precio</h3>
+        <div style="background: #1e252b; padding: 20px; border-radius: 8px;">
+            <canvas id="graficoEvolucion" style="width:100%; max-height:300px;"></canvas>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const ctx = document.getElementById('graficoEvolucion').getContext('2d');
+            const fechas = [{% for d in datos %}'{{ d.fecha_pedido }}'{% if not loop.last %},{% endif %}{% endfor %}];
+            const precios = [{% for d in datos %}{{ d.precio }}{% if not loop.last %},{% endif %}{% endfor %}];
+
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: fechas,
+                    datasets: [{
+                        label: 'Precio ()',
+                        data: precios,
+                        borderColor: '#ff6b00',
+                        backgroundColor: 'rgba(255, 107, 0, 0.1)',
+                        tension: 0.1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: { labels: { color: '#fff' } }
+                    },
+                    scales: {
+                        y: { ticks: { color: '#fff' }, grid: { color: '#555' } },
+                        x: { ticks: { color: '#fff' }, grid: { color: '#555' } }
+                    }
+                }
+            });
+        });
+    </script>
+    {% endif %}
+</div>
+{% endblock %}
+
+
+
+
+

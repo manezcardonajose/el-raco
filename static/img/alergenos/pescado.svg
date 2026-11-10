@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Pescado">
+  <circle cx="32" cy="32" r="30" fill="#f5a623"/>
+  <g fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M12 33c11-13 28-13 40 0-12 13-29 13-40 0z"/>
+    <path d="M48 33l8-8v16z"/>
+    <path d="M29 25c4 4 4 12 0 16"/>
+    <path d="M19 33h.1"/>
+  </g>
+</svg>

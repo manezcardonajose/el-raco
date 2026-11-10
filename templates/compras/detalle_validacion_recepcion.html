@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<div class="container mt-4">
+
+    <h3>Validación económica</h3>
+
+    <p><strong>Proveedor:</strong> {{ recepcion.proveedor_nombre }}</p>
+    <p><strong>Albarán:</strong> {{ recepcion.numero_albaran }}</p>
+
+    <form method="POST" action="{{ url_for('compras.guardar_validacion_economica', id=recepcion.id) }}">
+
+        <table class="table table-bordered">
+            <thead>
+                <tr>
+                    <th>Producto</th>
+                    <th>Cantidad</th>
+                    <th>Precio unitario</th>
+                </tr>
+            </thead>
+
+            <tbody>
+            {% for l in lineas %}
+                <tr>
+                    <td>{{ l.nombre }}</td>
+                    <td>{{ l.cantidad_recibida }}</td>
+                    <td>
+                        <input type="number" step="0.01"
+                               name="precio_{{ l.id }}"
+                               class="form-control"
+                               value="{{ l.precio_unitario or '' }}">
+                    </td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+
+        <button class="btn btn-success">
+            Validar económicamente
+        </button>
+
+    </form>
+
+</div>
+
+{% endblock %}

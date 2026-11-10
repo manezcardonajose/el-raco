@@ -1,0 +1,23 @@
+{% extends 'base.html' %}
+{% block title %}Variables pre-nómina{% endblock %}
+{% block breadcrumb %}RRHH / Variables pre-nómina{% endblock %}
+{% block content %}
+<div class="card">
+    <div class="card-header"><h2><i class="fas fa-plus-minus"></i> Variables de pre-nómina</h2><a href="{{ url_for('rrhh.lista_prenomina') }}" class="btn btn-secondary">Volver a pre-nómina</a></div>
+    {% if puede_editar %}
+    <form method="post" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap:12px; margin-bottom:20px;">
+        <div class="form-group"><label class="form-label">Empleado</label><select name="empleado_id" class="form-control" required>{% for e in empleados %}<option value="{{ e.id }}">{{ e.nombre }} {{ e.apellidos or '' }}</option>{% endfor %}</select></div>
+        <div class="form-group"><label class="form-label">Fecha</label><input type="date" name="fecha" class="form-control" required></div>
+        <div class="form-group"><label class="form-label">Concepto</label><input type="text" name="concepto" class="form-control" placeholder="Nocturnidad, festivo, anticipo..." required></div>
+        <div class="form-group"><label class="form-label">Tipo</label><select name="tipo" class="form-control"><option value="plus">Plus</option><option value="incentivo">Incentivo</option><option value="descuento">Descuento</option><option value="ausencia">Ausencia</option><option value="anticipo">Anticipo</option></select></div>
+        <div class="form-group"><label class="form-label">Unidades</label><input type="number" step="0.01" name="unidades" class="form-control" value="1"></div>
+        <div class="form-group"><label class="form-label">Importe unitario</label><input type="number" step="0.01" name="importe_unitario" class="form-control" value="0"></div>
+        <div class="form-group"><label class="form-label">Importe total</label><input type="number" step="0.01" name="importe_total" class="form-control" value="0"></div>
+        <div class="form-group" style="grid-column:1/-1;"><label class="form-label">Observaciones</label><input type="text" name="observaciones" class="form-control"></div>
+        <button class="btn btn-success" type="submit"><i class="fas fa-save"></i> Guardar variable</button>
+    </form>
+    {% endif %}
+    {% include 'rrhh/_herramientas_tabla.html' %}
+<div class="table-container"><table><thead><tr><th>Fecha</th><th>Empleado</th><th>Concepto</th><th>Tipo</th><th>Unidades</th><th>Total</th><th>Estado</th><th>Acciones</th></tr></thead><tbody>{% for v in variables %}<tr><td>{{ v.fecha }}</td><td>{{ v.empleado_nombre }}</td><td>{{ v.concepto }}</td><td>{{ v.tipo }}</td><td>{{ v.unidades }}</td><td>{{ '%.2f'|format(v.importe_total or 0) }} €</td><td>{{ v.estado or 'activo' }}</td><td>{% if puede_editar %}<a class="btn btn-sm btn-primary" href="{{ url_for('rrhh.editar_variable_prenomina', id=v.id) }}">Editar</a> <form method="post" action="{{ url_for('rrhh.anular_variable_prenomina', id=v.id) }}" style="display:inline" onsubmit="return confirm('¿Anular variable?')"><button class="btn btn-sm btn-warning">Anular</button></form>{% endif %}</td></tr>{% else %}<tr><td colspan="8">No hay variables registradas.</td></tr>{% endfor %}</tbody></table></div>
+</div>
+{% endblock %}

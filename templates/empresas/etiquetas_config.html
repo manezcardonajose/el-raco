@@ -1,0 +1,216 @@
+{% extends "base.html" %}
+{% block title %}Configuracion etiquetas - El Raco ERP{% endblock %}
+{% block content %}
+
+<div class="card">
+    <div class="card-header" style="display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap;">
+        <div>
+            <h2><i class="fas fa-tags"></i> Configuracion de etiquetas</h2>
+            <p style="color:#64748b;margin-top:6px;">Define el tamano real de cada etiqueta y el formato por defecto para recepcion, lotes y produccion.</p>
+        </div>
+        <a href="{{ url_for('empresas.listar_empresas') }}" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Empresas</a>
+    </div>
+
+    <div class="alert alert-info" style="margin:12px 0;">
+        El navegador no permite escoger automaticamente la impresora por seguridad. Aqui dejamos el formato, medidas y nombre de referencia.
+        Para impresoras directas Zebra/Brother/ESC-POS necesitaremos despues un pequeno servicio local de impresion.
+    </div>
+
+    <div class="label-config-grid">
+        {% for f in formatos %}
+        <form method="post" class="label-config-card">
+            <input type="hidden" name="accion" value="guardar">
+            <input type="hidden" name="config_id" value="{{ f.id }}">
+            <div class="label-config-head">
+                <div>
+                    <strong>{{ f.nombre }}</strong>
+                    <small>{{ f.codigo }}{% if f.es_default %} · Por defecto{% endif %}</small>
+                </div>
+                <span class="badge {% if f.activo %}badge-success{% else %}badge-secondary{% endif %}">{{ 'Activo' if f.activo else 'Inactivo' }}</span>
+            </div>
+
+            <div class="label-preview" style="--w:{{ (f.ancho_mm / 1.6)|round(1) }}px;--h:{{ (f.alto_mm / 1.6)|round(1) }}px;">
+                <div>{{ f.ancho_mm }} x {{ f.alto_mm }} mm</div>
+                <small>{{ f.columnas }} col · {{ f.formato|upper }}</small>
+            </div>
+
+            <div class="form-grid">
+                <label>Nombre
+                    <input class="form-control" name="nombre" value="{{ f.nombre }}" required>
+                </label>
+                <label>Tipo impresora
+                    <select class="form-control" name="tipo_impresora">
+                        {% for codigo, nombre in [('termica','Termica rollo'),('zebra_zpl','Zebra ZPL'),('brother','Brother'),('laser_inkjet','Laser / tinta A4'),('escpos','ESC/POS')] %}
+                        <option value="{{ codigo }}" {% if f.tipo_impresora == codigo %}selected{% endif %}>{{ nombre }}</option>
+                        {% endfor %}
+                    </select>
+                </label>
+                <label>Nombre impresora
+                    <input class="form-control" name="impresora_nombre" value="{{ f.impresora_nombre or '' }}" placeholder="Ej: Zebra cocina fria">
+                </label>
+                <label>Formato
+                    <select class="form-control" name="formato">
+                        <option value="rollo" {% if f.formato == 'rollo' %}selected{% endif %}>Rollo / etiqueta por pagina</option>
+                        <option value="a4" {% if f.formato == 'a4' %}selected{% endif %}>Hoja A4</option>
+                    </select>
+                </label>
+                <label>Ancho mm
+                    <input class="form-control" type="number" step="0.1" min="20" name="ancho_mm" value="{{ f.ancho_mm }}">
+                </label>
+                <label>Alto mm
+                    <input class="form-control" type="number" step="0.1" min="15" name="alto_mm" value="{{ f.alto_mm }}">
+                </label>
+                <label>Columnas
+                    <input class="form-control" type="number" min="1" max="6" name="columnas" value="{{ f.columnas }}">
+                </label>
+                <label>Margen mm
+                    <input class="form-control" type="number" step="0.1" min="0" name="margen_mm" value="{{ f.margen_mm }}">
+                </label>
+                <label>Separacion mm
+                    <input class="form-control" type="number" step="0.1" min="0" name="separacion_mm" value="{{ f.separacion_mm }}">
+                </label>
+                <label>Padding mm
+                    <input class="form-control" type="number" step="0.1" min="0" name="padding_mm" value="{{ f.padding_mm }}">
+                </label>
+                <label>Letra px
+                    <input class="form-control" type="number" min="7" max="18" name="fuente_base_px" value="{{ f.fuente_base_px }}">
+                </label>
+                <label>Descripcion
+                    <input class="form-control" name="descripcion" value="{{ f.descripcion or '' }}">
+                </label>
+            </div>
+
+            <div class="check-row">
+                <label><input type="checkbox" name="activo" {% if f.activo %}checked{% endif %}> Activo</label>
+                <label><input type="checkbox" name="es_default" {% if f.es_default %}checked{% endif %}> Por defecto</label>
+                <label><input type="checkbox" name="auto_print" {% if f.auto_print %}checked{% endif %}> Auto imprimir</label>
+            </div>
+
+            <button class="btn btn-primary" type="submit"><i class="fas fa-save"></i> Guardar formato</button>
+        </form>
+        {% endfor %}
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <h3><i class="fas fa-plus"></i> Crear formato propio</h3>
+    </div>
+    <form method="post" class="form-grid create-grid">
+        <input type="hidden" name="accion" value="crear">
+        <label>Codigo
+            <input class="form-control" name="codigo" placeholder="zebra_70x45" required>
+        </label>
+        <label>Nombre
+            <input class="form-control" name="nombre" placeholder="Zebra 70 x 45 cocina" required>
+        </label>
+        <label>Tipo impresora
+            <select class="form-control" name="tipo_impresora">
+                <option value="termica">Termica rollo</option>
+                <option value="zebra_zpl">Zebra ZPL</option>
+                <option value="brother">Brother</option>
+                <option value="laser_inkjet">Laser / tinta A4</option>
+                <option value="escpos">ESC/POS</option>
+            </select>
+        </label>
+        <label>Formato
+            <select class="form-control" name="formato">
+                <option value="rollo">Rollo / etiqueta por pagina</option>
+                <option value="a4">Hoja A4</option>
+            </select>
+        </label>
+        <label>Ancho mm
+            <input class="form-control" type="number" step="0.1" min="20" name="ancho_mm" value="58">
+        </label>
+        <label>Alto mm
+            <input class="form-control" type="number" step="0.1" min="15" name="alto_mm" value="40">
+        </label>
+        <label>Columnas
+            <input class="form-control" type="number" min="1" max="6" name="columnas" value="1">
+        </label>
+        <label>Margen mm
+            <input class="form-control" type="number" step="0.1" min="0" name="margen_mm" value="0">
+        </label>
+        <label>Separacion mm
+            <input class="form-control" type="number" step="0.1" min="0" name="separacion_mm" value="0">
+        </label>
+        <label>Padding mm
+            <input class="form-control" type="number" step="0.1" min="0" name="padding_mm" value="2">
+        </label>
+        <label>Letra px
+            <input class="form-control" type="number" min="7" max="18" name="fuente_base_px" value="9">
+        </label>
+        <label>Impresora referencia
+            <input class="form-control" name="impresora_nombre" placeholder="Opcional">
+        </label>
+        <label style="grid-column:1/-1;">Descripcion
+            <input class="form-control" name="descripcion" placeholder="Para que se usa este formato">
+        </label>
+        <div style="grid-column:1/-1;">
+            <button class="btn btn-success" type="submit"><i class="fas fa-plus"></i> Crear formato</button>
+        </div>
+    </form>
+</div>
+
+<style>
+.label-config-grid {
+    display:grid;
+    grid-template-columns:repeat(auto-fit, minmax(360px, 1fr));
+    gap:14px;
+}
+.label-config-card {
+    border:1px solid #d8e2ed;
+    background:#fff;
+    border-radius:8px;
+    padding:14px;
+}
+.label-config-head {
+    display:flex;
+    justify-content:space-between;
+    gap:10px;
+    align-items:flex-start;
+    margin-bottom:10px;
+}
+.label-config-head strong {
+    display:block;
+    color:#182230;
+}
+.label-config-head small {
+    color:#64748b;
+}
+.label-preview {
+    width:min(100%, 230px);
+    min-height:70px;
+    border:2px dashed #64748b;
+    background:#f8fafc;
+    color:#182230;
+    display:flex;
+    flex-direction:column;
+    justify-content:center;
+    align-items:center;
+    margin-bottom:12px;
+    border-radius:6px;
+}
+.form-grid {
+    display:grid;
+    grid-template-columns:repeat(auto-fit, minmax(145px, 1fr));
+    gap:10px;
+}
+.form-grid label {
+    color:#334155;
+    font-weight:600;
+    font-size:13px;
+}
+.check-row {
+    display:flex;
+    gap:14px;
+    flex-wrap:wrap;
+    margin:12px 0;
+    color:#334155;
+}
+.create-grid {
+    margin-top:8px;
+}
+</style>
+
+{% endblock %}

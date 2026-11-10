@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="card">
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+        <h2 style="color: #ff6b00;"> RESULTADO DEL INFORME</h2>
+        <div>
+            <a href="/informes/exportar-pdf" class="btn btn-danger" target="_blank"> PDF</a>
+            <a href="/informes/personalizados" class="btn btn-red"> Nuevo informe</a>
+        </div>
+    </div>
+    
+    <div style="overflow-x: auto; margin-top: 20px;">
+        <table style="width: 100%; border-collapse: collapse;">
+            <thead>
+                <tr>
+                    {% if resultados %}
+                        {% for key in resultados[0].keys() %}
+                        <th style="background: #1c1f23; color: #ff6b00; padding: 10px;">{{ key }}</th>
+                        {% endfor %}
+                    {% endif %}
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in resultados %}
+                <tr>
+                    {% for value in row.values() %}
+                    <td style="padding: 8px; border-bottom: 1px solid #555;">{{ value }}</td>
+                    {% endfor %}
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="10" style="text-align: center; padding: 40px;">No hay datos para los filtros seleccionados</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
+
+

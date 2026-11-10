@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Informe {{ tipo }}</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 30px;
+            color: #333;
+        }
+        h1 {
+            color: #ff6b00;
+            border-bottom: 2px solid #ff6b00;
+            padding-bottom: 10px;
+        }
+        .cabecera {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 30px;
+            color: #666;
+            font-size: 12px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            font-size: 11px;
+        }
+        th {
+            background: #ff6b00;
+            color: white;
+            padding: 8px;
+            text-align: left;
+        }
+        td {
+            padding: 6px 8px;
+            border-bottom: 1px solid #ddd;
+        }
+        .footer {
+            margin-top: 40px;
+            text-align: center;
+            color: #999;
+            font-size: 10px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Informe de {{ tipo }}</h1>
+    
+    <div class="cabecera">
+        <div>Generado por: {{ usuario }}</div>
+        <div>Fecha: {{ fecha }}</div>
+    </div>
+    
+    <table>
+        <thead>
+            <tr>
+                {% if resultados %}
+                    {% for key in resultados[0].keys() %}
+                    <th>{{ key }}</th>
+                    {% endfor %}
+                {% endif %}
+            </tr>
+        </thead>
+        <tbody>
+            {% for row in resultados %}
+            <tr>
+                {% for value in row.values() %}
+                <td>{{ value }}</td>
+                {% endfor %}
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    
+    <div class="footer">
+        <p>Informe generado automáticamente por El Racó ERP</p>
+    </div>
+</body>
+</html>
+
+
+

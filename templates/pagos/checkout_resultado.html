@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Resultado pago</title>
+  <style>
+    body{font-family:Arial,sans-serif;background:#f3f6fb;margin:0;display:grid;place-items:center;min-height:100vh;color:#0f172a}
+    .box{width:min(460px,calc(100vw - 32px));background:#fff;border:1px solid #cbd5e1;border-radius:8px;padding:24px;text-align:center}
+    h1{color:#ff6b00}
+  </style>
+</head>
+<body>
+  <main class="box">
+    <h1>{{ operacion.estado|upper }}</h1>
+    <p>Referencia {{ operacion.referencia_interna }}</p>
+    <p>{{ "%.2f"|format(operacion.importe or 0) }} {{ operacion.moneda or 'EUR' }}</p>
+  </main>
+</body>
+</html>

@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="card">
+    <div class="card-header" style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:12px;">
+        <div>
+            <h2>{{ subdepartamento.nombre }}</h2>
+            <div style="font-size:13px; opacity:.8;">{{ subdepartamento.departamento_nombre }} - produccion del dia</div>
+        </div>
+
+        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+            <form method="GET" style="display:flex; gap:8px;">
+                <input type="date" name="fecha" value="{{ fecha }}" class="form-control">
+                <button type="submit" class="btn btn-primary">Filtrar</button>
+            </form>
+            <a href="{{ url_for('produccion.produccion_departamento', depto_id=subdepartamento.departamento_id, fecha=fecha) }}" class="btn btn-secondary">
+                Volver
+            </a>
+        </div>
+    </div>
+
+    <div style="padding:15px; display:grid; grid-template-columns:repeat(auto-fit, minmax(150px, 1fr)); gap:10px;">
+        <div style="padding:12px; border:1px solid rgba(148,163,184,.25); border-radius:6px;">
+            <div style="font-size:12px; opacity:.75;">Partes</div>
+            <strong>{{ partes|length }}</strong>
+        </div>
+        <div style="padding:12px; border:1px solid rgba(148,163,184,.25); border-radius:6px;">
+            <div style="font-size:12px; opacity:.75;">Recetas</div>
+            <strong>{{ lineas|length }}</strong>
+        </div>
+        <div style="padding:12px; border:1px solid rgba(148,163,184,.25); border-radius:6px;">
+            <div style="font-size:12px; opacity:.75;">Raciones</div>
+            <strong>{{ "%.0f"|format(total_raciones or 0) }}</strong>
+        </div>
+    </div>
+
+    <div style="padding:0 15px 15px;">
+        <input type="text" id="buscador" placeholder="Buscar receta, servicio o estado..." class="form-control">
+    </div>
+
+    <div class="table-container">
+        <table class="table table-hover" id="tabla">
+            <thead>
+                <tr>
+                    <th>Servicio</th>
+                    <th>Receta</th>
+                    <th style="text-align:right;">Raciones</th>
+                    <th style="text-align:right;">FM</th>
+                    <th style="text-align:right;">Ingredientes</th>
+                    <th>Estado</th>
+                    <th>Accion</th>
+                </tr>
+            </thead>
+
+            <tbody>
+                {% for l in lineas %}
+                <tr>
+                    <td>{{ l.turno or '-' }}</td>
+                    <td>
+                        <strong>{{ l.receta_nombre }}</strong>
+                        {% if l.estacion_buffet %}
+                        <div style="font-size:12px; opacity:.75;">{{ l.estacion_buffet }}</div>
+                        {% endif %}
+                    </td>
+                    <td style="text-align:right;">{{ "%.0f"|format(l.raciones_planificadas or 0) }}</td>
+                    <td style="text-align:right;">{{ "%.2f"|format(l.cantidad_real or l.cantidad_planificada or 1) }}</td>
+                    <td style="text-align:right;">{{ l.num_ingredientes or 0 }}</td>
+
+                    <td>
+                        <span class="badge
+                            {% if l.estado == 'pendiente' %}badge-secondary
+                            {% elif l.estado == 'en_proceso' %}badge-warning
+                            {% elif l.estado == 'completado' %}badge-success
+                            {% endif %}">
+                            {{ l.estado }}
+                        </span>
+                    </td>
+
+                    <td>
+                        <div style="display:flex;gap:6px;flex-wrap:wrap;">
+                            <a href="{{ url_for('produccion.gestionar_parte_subdepartamento', parte_id=l.parte_id) }}" class="btn-sm btn-warning">
+                                Gestionar parte
+                            </a>
+                            <a href="{{ url_for('produccion.recogida_sobrantes_parte', parte_id=l.parte_id) }}" class="btn-sm btn-info">
+                                Recogida buffet
+                            </a>
+                            {% if l.parte_estado == 'en_curso' %}
+                            <form method="POST" action="{{ url_for('produccion.completar_parte', parte_id=l.parte_id) }}" style="display:inline;">
+                                <button class="btn-sm btn-success">Completar</button>
+                            </form>
+                            {% endif %}
+                        </div>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="7" style="text-align:center; padding:25px;">No hay produccion para este subdepartamento y fecha.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+document.getElementById('buscador').addEventListener('keyup', function() {
+    const filtro = this.value.toLowerCase();
+    document.querySelectorAll("#tabla tbody tr").forEach(tr => {
+        tr.style.display = tr.innerText.toLowerCase().includes(filtro) ? "" : "none";
+    });
+});
+</script>
+
+{% endblock %}

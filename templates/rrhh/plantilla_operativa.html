@@ -1,0 +1,104 @@
+{% extends 'base.html' %}
+{% block title %}Plantilla operativa{% endblock %}
+{% block breadcrumb %}RRHH / Plantilla operativa{% endblock %}
+{% block content %}
+<style>
+  .plantilla-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin:14px 0}
+  .plantilla-kpi{background:var(--card-bg,#fff);border:1px solid var(--border-color,#cbd5e1);border-radius:8px;padding:13px}
+  .plantilla-kpi span{display:block;color:var(--text-muted,#64748b);font-size:12px}
+  .plantilla-kpi strong{display:block;font-size:25px;line-height:1.1;margin-top:4px}
+  .plantilla-note{color:var(--text-muted,#64748b);font-size:12px;line-height:1.35;max-width:420px}
+  .plantilla-pill{display:inline-flex;border:1px solid var(--border-color,#cbd5e1);border-radius:999px;padding:3px 8px;font-size:12px;margin:2px;background:color-mix(in srgb,var(--card-bg,#fff) 85%,var(--accent-color,#ff6b00) 15%)}
+  .plantilla-alert{color:#b45309;font-weight:800}
+  .plantilla-ok{color:#15803d;font-weight:800}
+  .plantilla-bad{color:#b91c1c;font-weight:800}
+  .plantilla-warn{color:#b45309;font-weight:800}
+  .plantilla-table td{vertical-align:top}
+</style>
+
+<div class="card">
+  <div class="card-header">
+    <h2><i class="fas fa-users-cog"></i> Plantilla operativa necesaria</h2>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+      <a class="btn btn-secondary" href="{{ url_for('rrhh.necesidades_operativas') }}"><i class="fas fa-clipboard-list"></i> Necesidades</a>
+      <a class="btn btn-secondary" href="{{ url_for('rrhh.cuadrante_real') }}"><i class="fas fa-calendar-week"></i> Cuadrante</a>
+      <form method="post" onsubmit="return confirm('Crear empleados simulados hasta cubrir la plantilla objetivo?');">
+        <button class="btn btn-success"><i class="fas fa-user-plus"></i> Crear simulados</button>
+      </form>
+    </div>
+  </div>
+
+  <div class="alert alert-info">
+    Centro: <strong>{{ centro.nombre if centro else 'Hotel 1' }}</strong>. El cálculo cubre dos días libres por persona:
+    una persona cubre 5 jornadas por semana. Para servicios cortos se cruza también con horas semanales.
+  </div>
+
+  <div class="plantilla-kpis">
+    <div class="plantilla-kpi"><span>Grupos operativos</span><strong>{{ totales.grupos }}</strong></div>
+    <div class="plantilla-kpi"><span>Personas día base</span><strong>{{ totales.personas_dia|round(0)|int }}</strong></div>
+    <div class="plantilla-kpi"><span>Plantilla objetivo</span><strong>{{ totales.plantilla|round(0)|int }}</strong></div>
+    <div class="plantilla-kpi"><span>Rotativos descanso</span><strong>{{ totales.rotativos|round(0)|int }}</strong></div>
+    <div class="plantilla-kpi"><span>Horas semana</span><strong>{{ totales.horas_semana|round(1) }}</strong></div>
+    <div class="plantilla-kpi"><span>Simulados creados</span><strong>{{ totales.empleados_simulados }}</strong></div>
+    <div class="plantilla-kpi"><span>Déficit</span><strong>{{ totales.deficit }}</strong></div>
+    <div class="plantilla-kpi"><span>Exceso</span><strong>{{ totales.exceso }}</strong></div>
+    <div class="plantilla-kpi"><span>Grupos OK</span><strong>{{ totales.grupos_ok }}/{{ totales.grupos }}</strong></div>
+  </div>
+
+  <div class="table-container">
+    <table class="plantilla-table">
+      <thead>
+        <tr>
+          <th>Grupo</th>
+          <th>Area</th>
+          <th>Puestos incluidos</th>
+          <th style="text-align:right;">Día base</th>
+          <th style="text-align:right;">Jornadas semana</th>
+          <th style="text-align:right;">Horas semana</th>
+          <th style="text-align:right;">Por descansos</th>
+          <th style="text-align:right;">Por horas</th>
+          <th style="text-align:right;">Objetivo</th>
+          <th style="text-align:right;">Rotativos</th>
+          <th style="text-align:right;">Empleados</th>
+          <th style="text-align:right;">Estado</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for g in grupos %}
+        <tr>
+          <td>
+            <strong>{{ g.grupo }}</strong>
+            {% if g.aviso %}<div class="plantilla-alert">{{ g.aviso }}</div>{% endif %}
+          </td>
+          <td>{{ g.departamento }}{% if g.subdepartamento %}<br><span class="plantilla-note">{{ g.subdepartamento }}</span>{% endif %}</td>
+          <td>
+            {% for p in g.puestos %}
+              <span class="plantilla-pill">{{ p }}</span>
+            {% endfor %}
+          </td>
+          <td style="text-align:right;">{{ g.personas_dia_base|round(1) }}</td>
+          <td style="text-align:right;">{{ g.jornadas_semana|round(1) }}</td>
+          <td style="text-align:right;">{{ g.horas_semana|round(1) }}</td>
+          <td style="text-align:right;">{{ g.por_descansos }}</td>
+          <td style="text-align:right;">{{ g.por_horas }}</td>
+          <td style="text-align:right;"><strong>{{ g.plantilla_objetivo }}</strong></td>
+          <td style="text-align:right;">{{ g.rotativos }}</td>
+          <td style="text-align:right;">{{ g.empleados_simulados }}</td>
+          <td style="text-align:right;">
+            {% if g.estado_cobertura == 'ok' %}
+              <span class="plantilla-ok">OK</span>
+            {% elif g.estado_cobertura == 'deficit' %}
+              <span class="plantilla-bad">faltan {{ -g.diferencia }}</span>
+            {% else %}
+              <span class="plantilla-warn">sobran {{ g.diferencia }}</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="12" style="text-align:center;padding:20px;">No hay necesidades operativas activas para este centro.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

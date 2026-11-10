@@ -1,0 +1,34 @@
+{% extends 'base.html' %}
+{% block title %}Bloqueo masivo{% endblock %}
+{% block breadcrumb %}Recepcion / Bloqueos / Masivo{% endblock %}
+{% block content %}
+<div class="card">
+  <div class="card-header">
+    <h2><i class="fas fa-layer-group"></i> Bloqueo masivo</h2>
+    <a class="btn btn-secondary" href="{{ url_for('recepcion.bloqueos') }}">Bloqueos</a>
+  </div>
+  <form method="post">
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:16px;">
+      <div class="form-group"><label class="form-label">Desde</label><input class="form-control" type="date" name="fecha_inicio" required></div>
+      <div class="form-group"><label class="form-label">Hasta</label><input class="form-control" type="date" name="fecha_fin" required></div>
+      <div class="form-group"><label class="form-label">Bloque / edificio</label><input class="form-control" name="bloque" placeholder="Dejar vacio para todos"></div>
+      <div class="form-group"><label class="form-label">Planta</label><input class="form-control" name="planta" placeholder="Dejar vacio para todas"></div>
+      <div class="form-group"><label class="form-label">Tipo</label><select class="form-control" name="tipo_habitacion_id">
+        <option value="">Todos</option>
+        {% for t in tipos %}
+        <option value="{{ t.id }}">{{ t.nombre }} ({{ t.codigo }})</option>
+        {% endfor %}
+      </select></div>
+      <div class="form-group"><label class="form-label">Cantidad maxima</label><input class="form-control" type="number" min="0" name="cantidad" value="0"><small>0 bloquea todas las disponibles del filtro.</small></div>
+      <div class="form-group"><label class="form-label">Motivo</label><select class="form-control" name="motivo">
+        {% for m in ['mantenimiento','fuera_servicio','uso_interno','bloqueo'] %}
+        <option value="{{ m }}">{{ m|replace('_',' ') }}</option>
+        {% endfor %}
+      </select></div>
+    </div>
+    <div class="form-group"><label class="form-label">Descripcion</label><textarea class="form-control" name="descripcion" rows="3"></textarea></div>
+    <button class="btn btn-success" type="submit">Crear bloqueos</button>
+    <a class="btn btn-secondary" href="{{ url_for('recepcion.bloqueos') }}">Volver</a>
+  </form>
+</div>
+{% endblock %}

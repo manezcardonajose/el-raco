@@ -1,0 +1,185 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header">
+        <h2><i class="fas fa-thermometer-half"></i> CONTROL DE DESCONGELADO</h2>
+        <a href="{{ next_url or url_for('lotes.lista_lotes') }}" class="btn btn-secondary">Volver</a>
+    </div>
+
+    <div style="background: #1e252b; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+        <h3 style="color: #ff6b00;">{{ lote.producto_nombre }}</h3>
+        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px;">
+            <p><strong>Lote:</strong> {{ lote.codigo_lote }}</p>
+            <p><strong>Proveedor:</strong> {{ lote.proveedor_nombre or '---' }}</p>
+            <p><strong>Caducidad:</strong> {{ lote.fecha_caducidad or '---' }}</p>
+            <p><strong>Programado para:</strong> {{ lote.fecha_descongelado[:16] if lote.fecha_descongelado else 'No programado' }}</p>
+            <p><strong>Tiempo necesario:</strong> {{ lote.tiempo_descongelado_horas or 72 }} horas</p>
+            <p>
+                <strong>Estado actual:</strong>
+                <span class="badge {% if lote.estado_descongelado == 'pendiente' %}badge-secondary{% elif lote.estado_descongelado == 'en_curso' %}badge-warning{% elif lote.estado_descongelado == 'apto' %}badge-success{% endif %}">
+                    {{ lote.estado_descongelado }}
+                </span>
+            </p>
+        </div>
+    </div>
+
+    {% if lote.estado_descongelado not in ['en_curso', 'apto', 'no_apto'] %}
+    <div style="background:#182431;border:1px solid rgba(255,255,255,.12);padding:16px;border-radius:8px;margin-bottom:20px;">
+        <h3 style="margin-top:0;">Sacar del congelador</h3>
+        <form method="POST" action="{{ url_for('lotes.iniciar_descongelado', lote_id=lote.id) }}">
+            <input type="hidden" name="next" value="{{ next_url or url_for('lotes.lista_lotes') }}">
+            {% if volver_panel %}
+            <input type="hidden" name="volver_panel" value="1">
+            {% endif %}
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;align-items:end;">
+                <div class="form-group">
+                    <label class="form-label">Cantidad</label>
+                    <input type="number" step="0.001" min="0.001" max="{{ lote.cantidad_actual or 0 }}" name="cantidad" value="{{ lote.cantidad_actual or 0 }}" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Temperatura salida (C)</label>
+                    <input type="number" step="0.1" name="temperatura" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Destino</label>
+                    <input type="text" name="ubicacion_destino" value="Camara de descongelacion" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Observaciones</label>
+                    <input type="text" name="observaciones" class="form-control" placeholder="Ej: para buffet almuerzo">
+                </div>
+                <button type="submit" class="btn btn-success">
+                    Sacar del congelador
+                </button>
+            </div>
+        </form>
+    </div>
+    {% elif lote.estado_descongelado == 'en_curso' %}
+    <div class="alert alert-info">
+        Este lote ya esta fuera del congelador. Continua con los controles de temperatura, aspecto y decision.
+    </div>
+    {% endif %}
+
+    {% if controles %}
+    <div style="margin-bottom: 30px;">
+        <h3> Controles anteriores</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>Fecha</th>
+                    <th>Temperatura</th>
+                    <th>Aspecto</th>
+                    <th>Olfativo</th>
+                    <th>Decisin</th>
+                    <th>Responsable</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for c in controles %}
+                <tr>
+                    <td>{{ c.fecha_control[:16] }}</td>
+                    <td>{{ c.temperatura }}°C</td>
+                    <td>{{ c.aspecto or '---' }}</td>
+                    <td>{{ c.olfativo or '---' }}</td>
+                    <td>
+                        <span class="badge {% if c.decision == 'apto' %}badge-success{% elif c.decision == 'no_apto' %}badge-danger{% else %}badge-warning{% endif %}">
+                            {{ c.decision }}
+                        </span>
+                    </td>
+                    <td>{{ c.responsable }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+
+    <h3> Nuevo control</h3>
+    <form method="POST">
+        <input type="hidden" name="next" value="{{ next_url or url_for('lotes.lista_lotes') }}">
+        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px;">
+            <div class="form-group">
+                <label class="form-label">Temperatura actual (°C) *</label>
+                <input type="number" step="0.1" name="temperatura" required class="form-control" placeholder="0.0">
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Aspecto</label>
+                <select name="aspecto" class="form-control">
+                    <option value="">-- Normal --</option>
+                    <option value="deshidratado">Deshidratado</option>
+                    <option value="quemadura">Quemadura por congelacin</option>
+                    <option value="moho">Moho</option>
+                    <option value="anomalo">Anmalo</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Olfativo</label>
+                <select name="olfativo" class="form-control">
+                    <option value="">-- Normal --</option>
+                    <option value="agrio">Agrio</option>
+                    <option value="rancio">Rancio</option>
+                    <option value="anomalo">Anmalo</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Decisin *</label>
+                <select name="decision" required class="form-control">
+                    <option value="">-- Seleccionar --</option>
+                    <option value="apto"> APTO - Continuar descongelado</option>
+                    <option value="observacion">️ EN OBSERVACIN - Revisar ms tarde</option>
+                    <option value="no_apto"> NO APTO - Descartar lote (genera incidencia)</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label class="form-label">Observaciones</label>
+            <textarea name="observaciones" rows="3" class="form-control" placeholder="Describir cualquier anomala..."></textarea>
+        </div>
+
+        <div style="margin-top: 30px;">
+            <button type="submit" class="btn btn-success btn-lg">
+                <i class="fas fa-save"></i> Registrar control
+            </button>
+        </div>
+    </form>
+</div>
+
+<style>
+    .badge-secondary {
+        background: #6c757d;
+        color: white;
+        padding: 4px 8px;
+        border-radius: 12px;
+    }
+
+    .badge-warning {
+        background: #ffc107;
+        color: black;
+        padding: 4px 8px;
+        border-radius: 12px;
+    }
+
+    .badge-success {
+        background: #28a745;
+        color: white;
+        padding: 4px 8px;
+        border-radius: 12px;
+    }
+
+    .badge-danger {
+        background: #dc3545;
+        color: white;
+        padding: 4px 8px;
+        border-radius: 12px;
+    }
+</style>
+{% endblock %}
+
+
+
+

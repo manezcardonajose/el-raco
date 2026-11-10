@@ -1,0 +1,190 @@
+{% extends "base.html" %}
+
+{% block title %}Cierre diario APPCC - El Raco ERP{% endblock %}
+
+{% block content %}
+<style>
+    .cierre-grid {
+        display: grid;
+        grid-template-columns: minmax(260px, 360px) 1fr;
+        gap: 18px;
+        align-items: start;
+    }
+    .panel {
+        background: #1e252b;
+        border: 1px solid #2c3e50;
+        border-radius: 8px;
+        padding: 16px;
+        margin-bottom: 18px;
+    }
+    .panel h3 {
+        color: #ff6b00;
+        margin: 0 0 12px;
+        font-size: 18px;
+    }
+    .kpi-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+        gap: 10px;
+        margin-bottom: 14px;
+    }
+    .kpi {
+        background: #202832;
+        border: 1px solid #2c3e50;
+        border-radius: 8px;
+        padding: 12px;
+    }
+    .kpi span,
+    .muted {
+        display: block;
+        color: #9fb0c0;
+        font-size: 12px;
+    }
+    .kpi strong {
+        color: #fff;
+        font-size: 24px;
+    }
+    .status-ok {
+        color: #7be08a;
+        font-weight: 700;
+    }
+    .status-ko {
+        color: #ff8d8d;
+        font-weight: 700;
+    }
+    .status-pending {
+        color: #ffd166;
+        font-weight: 700;
+    }
+    @media (max-width: 980px) {
+        .cierre-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+
+<div class="card">
+    <div class="card-header">
+        <h2><i class="fas fa-check-circle"></i> Cierre diario APPCC</h2>
+        <div>
+            <a href="{{ url_for('appcc.appcc_dashboard', fecha=fecha) }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Volver al panel
+            </a>
+        </div>
+    </div>
+
+    <div class="cierre-grid">
+        <div class="panel">
+            <h3>Validar dia</h3>
+            <form method="POST">
+                <input type="hidden" name="resumen"
+                       value="Registros {{ kpis.registros_hoy }}; no OK {{ kpis.no_ok_hoy }}; incidencias {{ kpis.incidencias_abiertas }}; sin verificar {{ kpis.sin_verificar }}">
+                <div class="form-group">
+                    <label class="form-label">Fecha</label>
+                    <input type="date" name="fecha" value="{{ fecha }}" class="form-control">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Responsable</label>
+                    <input type="text" name="responsable" class="form-control"
+                           value="{{ cierre.responsable if cierre else session.get('user_nombre', 'admin') }}">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Resultado del cierre</label>
+                    <select name="resultado" class="form-control">
+                        <option value="ok" {% if cierre and cierre.resultado == 'ok' %}selected{% endif %}>OK</option>
+                        <option value="pendiente" {% if cierre and cierre.resultado == 'pendiente' %}selected{% endif %}>Pendiente de corregir</option>
+                        <option value="no_ok" {% if cierre and cierre.resultado == 'no_ok' %}selected{% endif %}>No conforme</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Observaciones</label>
+                    <textarea name="observaciones" class="form-control" rows="6"
+                              placeholder="Indica acciones correctivas, registros pendientes o revision realizada.">{{ cierre.observaciones if cierre else '' }}</textarea>
+                </div>
+                <button type="submit" class="btn btn-success">
+                    <i class="fas fa-save"></i> Guardar cierre
+                </button>
+            </form>
+        </div>
+
+        <div>
+            <div class="panel">
+                <h3>Resumen del dia</h3>
+                <div class="kpi-grid">
+                    <div class="kpi"><span>Registros</span><strong>{{ kpis.registros_hoy }}</strong></div>
+                    <div class="kpi"><span>No OK</span><strong>{{ kpis.no_ok_hoy }}</strong></div>
+                    <div class="kpi"><span>Incidencias abiertas</span><strong>{{ kpis.incidencias_abiertas }}</strong></div>
+                    <div class="kpi"><span>Sin verificar</span><strong>{{ kpis.sin_verificar }}</strong></div>
+                    <div class="kpi"><span>Equipos sin lectura</span><strong>{{ kpis.equipos_sin_registro }}</strong></div>
+                    <div class="kpi"><span>Caducidad / vida util</span><strong>{{ kpis.alertas_caducidad }}</strong></div>
+                </div>
+                {% if cierre %}
+                    <p class="status-ok">Este dia ya tiene cierre registrado.</p>
+                {% else %}
+                    <p class="status-pending">Este dia todavia no esta cerrado.</p>
+                {% endif %}
+            </div>
+
+            <div class="panel">
+                <h3>Checklist por control</h3>
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Control</th>
+                                <th>Area / etapa</th>
+                                <th>Estado del dia</th>
+                                <th>Ultimo</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for c in controles %}
+                            <tr>
+                                <td><strong>{{ c.codigo or ('CTRL-' ~ c.id) }}</strong></td>
+                                <td>{{ c.area or '-' }}<br><span class="muted">{{ c.etapa or '-' }}</span></td>
+                                <td>
+                                    {% if c.no_ok_hoy %}
+                                        <span class="status-ko">{{ c.no_ok_hoy }} no OK</span>
+                                    {% elif c.registros_hoy %}
+                                        <span class="status-ok">{{ c.registros_hoy }} registro(s)</span>
+                                    {% else %}
+                                        <span class="status-pending">Sin registro hoy</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ c.ultimo_registro[:16] if c.ultimo_registro else '-' }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="panel">
+                <h3>Incidencias APPCC abiertas</h3>
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Fecha</th>
+                                <th>Descripcion</th>
+                                <th>Estado</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for i in incidencias %}
+                            <tr>
+                                <td>{{ i.fecha[:16] if i.fecha else '-' }}</td>
+                                <td>{{ i.descripcion or '-' }}</td>
+                                <td>{{ i.estado or '-' }}</td>
+                            </tr>
+                            {% else %}
+                            <tr><td colspan="3">No hay incidencias APPCC abiertas.</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,105 @@
+{% extends 'base.html' %}
+{% block title %}Nuevo candidato{% endblock %}
+{% block breadcrumb %}RRHH / Seleccion / Nuevo candidato{% endblock %}
+{% block content %}
+<div class="card">
+  <div class="card-header">
+    <h2><i class="fas fa-file-alt"></i> Nuevo candidato</h2>
+    <a class="btn btn-secondary" href="{{ url_for('rrhh.seleccion') }}">Volver</a>
+  </div>
+  <form method="post" enctype="multipart/form-data">
+    <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap:14px;">
+      <div class="form-group">
+        <label class="form-label">Oferta</label>
+        <select class="form-control" name="oferta_id">
+          <option value="">Bolsa general</option>
+          {% for o in ofertas %}
+          <option value="{{ o.id }}" {% if oferta_id_pre == o.id %}selected{% endif %}>{{ o.titulo }} ({{ o.estado or 'abierta' }})</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Estado inicial</label>
+        <select class="form-control" name="estado">
+          {% for codigo, nombre in estados %}
+          <option value="{{ codigo }}">{{ nombre }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Nombre</label>
+        <input class="form-control" name="nombre" required>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Apellidos</label>
+        <input class="form-control" name="apellidos">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Email</label>
+        <input class="form-control" type="email" name="email">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Telefono</label>
+        <input class="form-control" name="telefono">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Fuente</label>
+        <input class="form-control" name="fuente" placeholder="Web, InfoJobs, referido, puerta...">
+      </div>
+      <div class="form-group">
+        <label class="form-label">CV</label>
+        <input class="form-control" type="file" name="cv" accept=".pdf,.jpg,.jpeg,.png,.webp,.doc,.docx">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Disponibilidad</label>
+        <input class="form-control" name="disponibilidad" placeholder="Inmediata, fines de semana, temporada...">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Salario esperado</label>
+        <input class="form-control" type="number" step="0.01" name="salario_esperado">
+      </div>
+    </div>
+
+    <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap:14px;">
+      <div class="form-group">
+        <label class="form-label">Experiencia resumida</label>
+        <textarea class="form-control" name="experiencia_texto" rows="5"></textarea>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Formacion / carnets</label>
+        <textarea class="form-control" name="formacion_texto" rows="5"></textarea>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Carta / observaciones iniciales</label>
+        <textarea class="form-control" name="carta_presentacion" rows="5"></textarea>
+      </div>
+    </div>
+
+    <div class="card" style="margin:10px 0;">
+      <div class="card-header"><h3 style="margin:0;"><i class="fas fa-clipboard-check"></i> Escandallo del CV</h3></div>
+      <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap:12px;">
+        {% for criterio, etiqueta, peso in criterios %}
+        <div style="border:1px solid #334155; border-radius:8px; padding:10px;">
+          <label class="form-label">{{ etiqueta }} <small style="color:#94a3b8;">peso {{ peso }}</small></label>
+          <input class="form-control" type="number" min="0" max="5" name="score_{{ criterio }}" value="0">
+          <textarea class="form-control" name="comentario_{{ criterio }}" rows="2" placeholder="Comentario" style="margin-top:8px;"></textarea>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Notas internas</label>
+      <textarea class="form-control" name="notas" rows="4"></textarea>
+    </div>
+    <label style="display:flex; gap:8px; align-items:center; margin-bottom:14px;">
+      <input type="checkbox" name="privacidad_aceptada" value="1">
+      El candidato ha aceptado el tratamiento de sus datos para el proceso de seleccion
+    </label>
+    <div style="display:flex; gap:10px; flex-wrap:wrap;">
+      <button class="btn btn-success" type="submit">Guardar candidato</button>
+      <a class="btn btn-secondary" href="{{ url_for('rrhh.seleccion') }}">Cancelar</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

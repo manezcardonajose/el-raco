@@ -1,0 +1,62 @@
+{% extends 'base.html' %}
+{% block title %}Avisos{% endblock %}
+{% block breadcrumb %}Recepcion / Avisos{% endblock %}
+{% block content %}
+<div class="card">
+  <div class="card-header">
+    <h2><i class="fas fa-bell"></i> Avisos a departamentos</h2>
+    <a class="btn btn-info" href="{{ url_for('recepcion.prevision_servicios') }}"><i class="fas fa-utensils"></i> Prevision cocina</a>
+  </div>
+
+  <form method="get" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;align-items:end;margin-bottom:16px;">
+    <div class="form-group"><label class="form-label">Departamento</label><select class="form-control" name="departamento">
+      <option value="">Todos</option>
+      {% for key,label in departamentos.items() %}
+      <option value="{{ key }}" {% if filtros.departamento == key %}selected{% endif %}>{{ label }}</option>
+      {% endfor %}
+    </select></div>
+    <div class="form-group"><label class="form-label">Estado</label><select class="form-control" name="estado">
+      <option value="">Todos</option>
+      {% for e in ['pendiente','en_revision','resuelto','descartado'] %}
+      <option value="{{ e }}" {% if filtros.estado == e %}selected{% endif %}>{{ e|replace('_',' ') }}</option>
+      {% endfor %}
+    </select></div>
+    <button class="btn btn-primary" type="submit">Filtrar</button>
+  </form>
+
+  <div class="table-container">
+    <table>
+      <thead><tr><th>Prioridad</th><th>Departamento</th><th>Reserva</th><th>Viajero</th><th>Descripcion</th><th>Estado</th><th>Acciones</th></tr></thead>
+      <tbody>
+        {% for a in avisos %}
+        <tr>
+          <td>{{ a.prioridad }}</td>
+          <td>{{ a.departamentos or '-' }}</td>
+          <td>
+            {% if a.reserva_id %}
+            <a href="{{ url_for('recepcion.reserva_detalle', id=a.reserva_id) }}">{{ a.codigo or ('#' ~ a.reserva_id) }}</a><br>
+            <small>{{ a.habitacion_numero or a.habitacion_nombre or '-' }} - {{ a.fecha_entrada }} / {{ a.fecha_salida }}</small>
+            {% else %}-{% endif %}
+          </td>
+          <td>{{ a.viajero_nombre or '' }} {{ a.viajero_apellidos or '' }}</td>
+          <td>{{ a.descripcion }}</td>
+          <td>{{ a.estado }}</td>
+          <td>
+            <form method="post" action="{{ url_for('recepcion.cambiar_estado_aviso', id=a.id) }}" style="display:flex;gap:6px;flex-wrap:wrap;">
+              <select class="form-control" name="estado" style="min-width:130px;">
+                {% for e in ['pendiente','en_revision','resuelto','descartado'] %}
+                <option value="{{ e }}" {% if a.estado == e %}selected{% endif %}>{{ e|replace('_',' ') }}</option>
+                {% endfor %}
+              </select>
+              <button class="btn btn-sm btn-success" type="submit">Guardar</button>
+            </form>
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="7">No hay avisos con estos filtros.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

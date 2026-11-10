@@ -1,0 +1,167 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="card">
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+        <div>
+            <h2 style="color: #ff6b00;">MENÚS DIARIOS</h2>
+            <p style="color: #999;">Gestión de buffets y cartas por fechas</p>
+            <div style="display:inline-flex;align-items:center;gap:8px;padding:6px 10px;border:1px solid var(--border,#d5dde8);border-radius:8px;background:var(--card-bg,#fff);color:var(--text-muted,#475569);font-size:.9rem;">
+                <i class="fas fa-building"></i>
+                <span>Centro actual:</span>
+                <strong style="color:var(--text,#0f172a);">{{ centro_activo.nombre if centro_activo else 'Empresa completa' }}</strong>
+            </div>
+        </div>
+        {% if tiene_permiso('produccion_editar') %}
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <a href="{{ url_for('menus.importar_menus_centro') }}" class="btn btn-info">Importar menus</a>
+            <a href="{{ url_for('menus.nuevo_menu_diario') }}" class="btn btn-success">Nuevo menu</a>
+        </div>
+        {% endif %}
+    </div>
+
+<form method="get" style="margin-bottom:15px; display:flex; gap:10px; flex-wrap:wrap;">
+
+    <input type="text" name="q" placeholder="Buscar..."
+           value="{{ busqueda or '' }}" class="form-control" style="max-width:200px;">
+
+    <select name="tipo" class="form-control" style="max-width:200px;">
+        <option value="">Todos los tipos</option>
+        {% for t in tipos %}
+            <option value="{{ t.id }}" {% if tipo_id == t.id|string %}selected{% endif %}>
+                {{ t.nombre }}
+            </option>
+        {% endfor %}
+    </select>
+
+    <select name="servicio" class="form-control" style="max-width:200px;">
+        <option value="">Todos los servicios</option>
+        <option value="Desayuno" {% if servicio == 'Desayuno' %}selected{% endif %}>Desayuno</option>
+        <option value="Snack" {% if servicio == 'Snack' %}selected{% endif %}>Snack</option>
+        <option value="Almuerzo" {% if servicio == 'Almuerzo' %}selected{% endif %}>Almuerzo</option>
+        <option value="Cena" {% if servicio == 'Cena' %}selected{% endif %}>Cena</option>
+    </select>
+
+    <button type="submit" class="btn btn-primary">Filtrar</button>
+
+    <a href="/menus/exportar" class="btn btn-success">
+    Exportar Excel
+</a>
+
+</form>    
+
+    <table style="width: 100%; margin-top: 20px;">
+        <thead>
+            <tr>
+                <th>Fecha</th>
+                <th>Tipo</th>
+                <th>Secciones</th>
+                <th>Platos</th>
+                <th>Observaciones</th>
+                <th>Acciones</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for m in menus %}
+            <tr>
+                <td><strong>{{ m.fecha }}</strong></td>
+                <td>{{ m.tipo_nombre }}</td>
+                <td>{{ m.num_secciones or 0 }}</td>
+                <td>{{ m.num_platos or 0 }}</td>
+                <td>{{ m.observaciones or '' }}</td>
+                <td>
+                    <a href="{{ url_for('menus.ver_menu_diario', menu_id=m.id) }}" class="btn-small btn-info" title="Ver menú">Ver</a>
+                    {% if tiene_permiso('produccion_editar') %}
+                    <a href="{{ url_for('menus.editar_menu_diario', menu_id=m.id) }}" class="btn-small btn-primary" title="Editar menú">Editar</a>
+                    {% endif %}
+                    <a href="{{ url_for('menus.imprimir_menu_diario', menu_id=m.id) }}" class="btn-small btn-secondary" title="Imprimir menú" target="_blank">Imprimir</a>
+                    {% if tiene_permiso('produccion_editar') %}
+                    <form method="POST" action="{{ url_for('menus.eliminar_menu_diario', menu_id=m.id) }}" style="display: inline;" onsubmit="return confirm('¿Estás seguro de eliminar este menú? Esta acción no se puede deshacer.');">
+                        <button type="submit" class="btn-small btn-red" title="Eliminar menú">Eliminar</button>
+                    </form>
+                    {% endif %}
+                </td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="6" style="text-align: center; padding: 40px;">
+                    No hay menús creados.
+                    {% if tiene_permiso('produccion_editar') %}
+                    <a href="{{ url_for('menus.nuevo_menu_diario') }}" style="color: #ff6b00;">Crea el primero</a>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<style>
+    .btn-small {
+        padding: 5px 10px;
+        border-radius: 4px;
+        text-decoration: none;
+        font-size: 12px;
+        margin: 0 2px;
+        border: none;
+        cursor: pointer;
+        display: inline-block;
+        transition: all 0.2s;
+    }
+
+    .btn-small:hover {
+        opacity: 0.8;
+        transform: translateY(-2px);
+    }
+
+    .btn-info {
+        background: #17a2b8;
+        color: white;
+    }
+
+    .btn-primary {
+        background: #007bff;
+        color: white;
+    }
+
+    .btn-secondary {
+        background: #6c757d;
+        color: white;
+    }
+
+    .btn-red {
+        background: #dc3545;
+        color: white;
+    }
+
+    table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    th {
+        background: #1c1f23;
+        color: #ff6b00;
+        padding: 12px;
+        text-align: left;
+        font-weight: 600;
+        text-transform: uppercase;
+        font-size: 12px;
+        letter-spacing: 0.5px;
+    }
+
+    td {
+        padding: 12px;
+        border-bottom: 1px solid #444;
+    }
+
+    tr:hover {
+        background: #2b2f33;
+    }
+
+    form button.btn-small {
+        font-size: 12px;
+        padding: 5px 10px;
+    }
+</style>
+{% endblock %}

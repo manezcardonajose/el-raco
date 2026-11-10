@@ -1,0 +1,88 @@
+{% extends 'base.html' %}
+{% block title %}Fichajes{% endblock %}
+{% block breadcrumb %}RRHH / Fichajes{% endblock %}
+{% block content %}
+<div class="card">
+  <div class="card-header">
+    <h2><i class="fas fa-clock"></i> Fichajes</h2>
+    <div>
+      <a class="btn btn-primary" href="{{ url_for('rrhh.jornada_mensual') }}"><i class="fas fa-file-alt"></i> Jornada mensual</a>
+      <a class="btn btn-warning" href="{{ url_for('rrhh.alertas_rrhh') }}"><i class="fas fa-bell"></i> Alertas</a>
+      <button class="btn btn-info" onclick="window.print()"><i class="fas fa-print"></i> Imprimir</button>
+    </div>
+  </div>
+
+  <div class="alert alert-info">
+    El fichaje registra tiempo real. La pre-nómina solo abonará exceso de jornada cuando esté aprobado por responsable.
+  </div>
+
+  {% if puede_editar %}
+  <form method="post" action="{{ url_for('rrhh.registrar_fichaje') }}" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-bottom:20px;">
+    <select name="empleado_id" class="form-control">
+      {% for e in empleados %}<option value="{{ e.id }}">{{ e.nombre }} {{ e.apellidos or '' }}</option>{% endfor %}
+    </select>
+    <select name="tipo" class="form-control"><option value="entrada">Entrada</option><option value="salida">Salida</option><option value="pausa">Pausa</option><option value="reanudacion">Reanudación</option></select>
+    <input name="observaciones" class="form-control" placeholder="Observaciones">
+    <button class="btn btn-success"><i class="fas fa-plus"></i> Registrar</button>
+  </form>
+  {% endif %}
+
+  {% if puede_editar and solicitudes_correccion %}
+  <div class="card" style="margin-bottom:16px;">
+    <div class="card-header"><h2><i class="fas fa-clipboard-check"></i> Correcciones pendientes</h2></div>
+    <div class="table-container">
+      <table>
+        <thead><tr><th>Empleado</th><th>Fecha/hora solicitada</th><th>Tipo</th><th>Motivo</th><th>Resolver</th></tr></thead>
+        <tbody>
+        {% for s in solicitudes_correccion %}
+          <tr>
+            <td>{{ s.empleado_nombre }}<br><small>{{ s.departamento_nombre or '' }}</small></td>
+            <td>{{ s.fecha_hora_solicitada }}</td>
+            <td><span class="badge badge-info">{{ s.tipo }}</span></td>
+            <td>{{ s.motivo or '' }}</td>
+            <td>
+              <form method="post" action="{{ url_for('rrhh.aprobar_correccion_fichaje', id=s.id) }}" style="display:inline-flex;gap:6px;align-items:center;">
+                <input class="form-control" name="respuesta_rrhh" placeholder="Respuesta RRHH" style="min-width:180px;">
+                <button class="btn btn-sm btn-success" type="submit"><i class="fas fa-check"></i></button>
+              </form>
+              <form method="post" action="{{ url_for('rrhh.rechazar_correccion_fichaje', id=s.id) }}" style="display:inline-flex;gap:6px;align-items:center;margin-left:6px;">
+                <input class="form-control" name="respuesta_rrhh" placeholder="Motivo rechazo" style="min-width:180px;">
+                <button class="btn btn-sm btn-danger" type="submit"><i class="fas fa-times"></i></button>
+              </form>
+            </td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% endif %}
+
+  {% include 'rrhh/_herramientas_tabla.html' %}
+  <div class="table-container">
+    <table>
+      <thead><tr><th>Fecha/hora</th><th>Empleado</th><th>Departamento</th><th>Tipo</th><th>Origen</th><th>Estado</th><th>Desv.</th><th>Extra</th><th>Observaciones</th><th>Acciones</th></tr></thead>
+      <tbody>
+      {% for f in fichajes %}
+        <tr>
+          <td>{{ f.fecha_hora }}</td>
+          <td>{{ f.empleado_nombre }}</td>
+          <td>{{ f.departamento_nombre or '-' }}</td>
+          <td><span class="badge badge-info">{{ f.tipo }}</span></td>
+          <td>{{ f.origen or 'manual' }}</td>
+          <td>{{ f.estado or 'activo' }}</td>
+          <td>{{ f.minutos_desviacion or 0 }} min</td>
+          <td>{% if f.aprobado_extra %}<span class="badge badge-success">Aprobado</span>{% else %}<span class="badge badge-secondary">No aprobado</span>{% endif %}</td>
+          <td>
+            {{ f.observaciones or '' }}
+            {% if f.fichaje_origen_id %}<br><small>Corrige fichaje #{{ f.fichaje_origen_id }}</small>{% endif %}
+            {% if f.motivo_correccion %}<br><small>{{ f.motivo_correccion }}</small>{% endif %}
+          </td>
+          <td>{% if puede_editar %}<a class="btn btn-sm btn-primary" href="{{ url_for('rrhh.corregir_fichaje', id=f.id) }}"><i class="fas fa-edit"></i> Corregir</a>{% endif %}</td>
+        </tr>
+      {% else %}<tr><td colspan="10">No hay fichajes.</td></tr>{% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

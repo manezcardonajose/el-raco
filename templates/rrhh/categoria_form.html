@@ -1,0 +1,14 @@
+{% extends 'base.html' %}
+{% block title %}{% if categoria %}Editar categoría{% else %}Nueva categoría{% endif %}{% endblock %}
+{% block breadcrumb %}RRHH / Categorías / {% if categoria %}Editar{% else %}Nueva{% endif %}{% endblock %}
+{% block content %}
+<div class="card"><div class="card-header"><h2><i class="fas fa-id-badge"></i> {% if categoria %}Editar categoría laboral{% else %}Nueva categoría laboral{% endif %}</h2></div>
+<form method="post"><div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap:16px;">
+<div class="form-group"><label class="form-label">Nombre *</label><input class="form-control" name="nombre" value="{{ categoria.nombre if categoria else '' }}" required></div>
+<div class="form-group"><label class="form-label">Convenio</label><input class="form-control" name="convenio" value="{{ categoria.convenio if categoria else '' }}"></div>
+<div class="form-group"><label class="form-label">Salario base</label><input class="form-control" type="number" step="0.01" name="salario_base" value="{{ categoria.salario_base if categoria else '' }}"></div>
+{% if categoria %}<div class="form-group"><label class="form-label">Activa</label><label><input type="checkbox" name="activo" {% if categoria.activo %}checked{% endif %}> Sí</label></div>{% endif %}
+</div><div class="form-group"><label class="form-label">Descripción</label><textarea class="form-control" name="descripcion" rows="3">{{ categoria.descripcion if categoria else '' }}</textarea></div>
+{% if categoria %}<div class="form-group"><label class="form-label">Motivo del cambio</label><input class="form-control" name="motivo_cambio" placeholder="Ej. corrección de salario, cambio de convenio..."></div>{% endif %}
+<button class="btn btn-success" type="submit">Guardar</button> <a class="btn btn-secondary" href="{{ url_for('rrhh.lista_categorias') }}">Volver</a></form></div>
+{% endblock %}

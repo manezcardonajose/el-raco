@@ -1,0 +1,35 @@
+<h2>Pedido {{ pedido.numero_pedido }}</h2>
+<p><strong>Proveedor:</strong> {{ pedido.proveedor_nombre }}</p>
+<p><strong>Fecha:</strong> {{ pedido.fecha_pedido }}</p>
+
+<table border="1" cellpadding="5" style="border-collapse: collapse;">
+    <thead>
+        <tr>
+            <th>Código</th>
+            <th>Producto</th>
+            <th>Cantidad</th>
+            <th>Precio</th>
+            <th>Total</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for l in lineas %}
+        <tr>
+            <td>{{ l.codigo or '---' }}</td>
+            <td>{{ l.nombre }}</td>
+            <td>{{ l.cantidad_solicitada }}</td>
+            <td>{{ "%.2f"|format(l.precio_unitario) }} €</td>
+            <td>{{ "%.2f"|format(l.cantidad_solicitada * l.precio_unitario) }} €</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+    <tfoot>
+        <tr>
+            <th colspan="4">Total</th>
+            <th>{{ "%.2f"|format(pedido.total or 0) }} €</th>
+        </tr>
+    </tfoot>
+</table>
+
+
+

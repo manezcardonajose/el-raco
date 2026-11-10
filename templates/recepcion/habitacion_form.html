@@ -1,0 +1,33 @@
+{% extends 'base.html' %}
+{% block title %}{% if habitacion %}Editar habitacion{% else %}Nueva habitacion{% endif %}{% endblock %}
+{% block breadcrumb %}Recepcion / Habitaciones / {% if habitacion %}Editar{% else %}Nueva{% endif %}{% endblock %}
+{% block content %}
+<div class="card">
+  <div class="card-header"><h2><i class="fas fa-bed"></i> {% if habitacion %}Editar habitacion{% else %}Nueva habitacion{% endif %}</h2></div>
+  <form method="post">
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;">
+      <div class="form-group"><label class="form-label">Numero *</label><input class="form-control" name="numero" required value="{{ habitacion.numero if habitacion else '' }}"></div>
+      <div class="form-group"><label class="form-label">Nombre</label><input class="form-control" name="nombre" value="{{ habitacion.nombre if habitacion else '' }}"></div>
+      <div class="form-group"><label class="form-label">Bloque / edificio</label><input class="form-control" name="bloque" value="{{ habitacion.bloque if habitacion else '' }}"></div>
+      <div class="form-group"><label class="form-label">Tipo base</label><select class="form-control" name="tipo_habitacion_id">
+        <option value="">Sin tipo</option>
+        {% for t in tipos %}
+        <option value="{{ t.id }}" {% if habitacion and habitacion.tipo_habitacion_id == t.id %}selected{% endif %}>{{ t.nombre }} ({{ t.codigo }})</option>
+        {% endfor %}
+      </select></div>
+      <div class="form-group"><label class="form-label">Tipo libre</label><input class="form-control" name="tipo" placeholder="doble, suite, apartamento..." value="{{ habitacion.tipo if habitacion else '' }}"></div>
+      <div class="form-group"><label class="form-label">Planta</label><input class="form-control" name="planta" value="{{ habitacion.planta if habitacion else '' }}"></div>
+      <div class="form-group"><label class="form-label">Capacidad</label><input class="form-control" type="number" min="1" name="capacidad" value="{{ habitacion.capacidad if habitacion else 2 }}"></div>
+      <div class="form-group"><label class="form-label">Estado</label><select class="form-control" name="estado">
+        {% for estado in ['disponible','ocupada','limpieza','mantenimiento','bloqueada'] %}
+        <option value="{{ estado }}" {% if habitacion and habitacion.estado == estado %}selected{% endif %}>{{ estado }}</option>
+        {% endfor %}
+      </select></div>
+    </div>
+    <div class="form-group"><label class="form-label">Observaciones</label><textarea class="form-control" name="observaciones" rows="3">{{ habitacion.observaciones if habitacion else '' }}</textarea></div>
+    <label style="display:flex;gap:8px;align-items:center;margin-bottom:16px;"><input type="checkbox" name="activo" value="1" {% if not habitacion or habitacion.activo %}checked{% endif %}> Habitacion activa</label>
+    <button class="btn btn-success" type="submit">Guardar</button>
+    <a class="btn btn-secondary" href="{{ url_for('recepcion.habitaciones') }}">Volver</a>
+  </form>
+</div>
+{% endblock %}

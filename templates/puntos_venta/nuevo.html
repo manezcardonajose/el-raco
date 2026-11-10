@@ -1,0 +1,120 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="card">
+    <h2>Nuevo punto de venta</h2>
+
+    <form method="POST">
+        <div style="margin-bottom: 15px;">
+            <label>Nombre</label>
+            <input type="text" name="nombre" required style="width: 100%; padding: 8px;">
+        </div>
+
+        <div style="margin-bottom: 15px;">
+            <label>Tipo</label>
+            <select name="tipo" style="width: 100%; padding: 8px;">
+                <option value="buffet">Buffet</option>
+                <option value="carta">Carta</option>
+                <option value="bar">Bar</option>
+                <option value="habitaciones">Habitaciones</option>
+                <option value="terraza">Terraza</option>
+                <option value="recepcion">Recepción</option>
+                <option value="tpv">TPV</option>
+            </select>
+        </div>
+
+        <div style="margin-bottom: 15px;">
+            <label>Departamento principal</label>
+            <select name="departamento_id" style="width: 100%; padding: 8px;">
+                <option value="">-- Sin departamento --</option>
+                {% for d in departamentos %}
+                <option value="{{ d.id }}">{{ d.nombre }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div style="margin-bottom: 15px;">
+            <label>Subdepartamento</label>
+            <select name="subdepartamento_id" style="width: 100%; padding: 8px;">
+                <option value="">-- Sin subdepartamento --</option>
+                {% for s in subdepartamentos %}
+                <option value="{{ s.id }}">{{ s.nombre }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div style="margin-bottom: 15px;">
+            <label>Almacén asociado</label>
+            <select name="almacen_id" style="width: 100%; padding: 8px;">
+                <option value="">-- Sin almacén --</option>
+                {% for a in almacenes %}
+                <option value="{{ a.id }}">{{ a.nombre }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div style="margin-bottom: 15px;">
+            <label>
+                <input type="checkbox" name="imprimir_comanda" checked> Imprimir comanda automática
+            </label>
+        </div>
+
+        <div style="margin-bottom: 15px;">
+            <label>
+                <input type="checkbox" name="activo" checked> Punto de venta activo
+            </label>
+        </div>
+
+        <hr>
+
+        <h3>Relación con otros departamentos</h3>
+        <div id="relaciones-container">
+            <div class="relacion-fila" style="display:flex; gap:10px; margin-bottom:10px;">
+                <select name="departamentos_rel[]" style="flex:2; padding:8px;">
+                    <option value="">-- Departamento --</option>
+                    {% for d in departamentos %}
+                    <option value="{{ d.id }}">{{ d.nombre }}</option>
+                    {% endfor %}
+                </select>
+
+                <input type="text" name="roles_rel[]" placeholder="Rol operativo (produccion, servicio...)" style="flex:2; padding:8px;">
+
+                <button type="button" class="btn btn-danger" onclick="this.closest('.relacion-fila').remove()">Quitar</button>
+            </div>
+        </div>
+
+        <button type="button" class="btn btn-primary" onclick="anadirRelacion()">Añadir relación</button>
+
+        <div style="margin-top: 20px;">
+            <button type="submit" class="btn btn-success">Guardar</button>
+            <a href="{{ url_for('puntos_venta.listar_puntos_venta') }}" class="btn btn-red">Cancelar</a>
+        </div>
+    </form>
+</div>
+
+<script>
+function anadirRelacion() {
+    const container = document.getElementById('relaciones-container');
+    const fila = document.createElement('div');
+    fila.className = 'relacion-fila';
+    fila.style.display = 'flex';
+    fila.style.gap = '10px';
+    fila.style.marginBottom = '10px';
+
+    fila.innerHTML = `
+        <select name="departamentos_rel[]" style="flex:2; padding:8px;">
+            <option value="">-- Departamento --</option>
+            {% for d in departamentos %}
+            <option value="{{ d.id }}">{{ d.nombre }}</option>
+            {% endfor %}
+        </select>
+
+        <input type="text" name="roles_rel[]" placeholder="Rol operativo (produccion, servicio...)" style="flex:2; padding:8px;">
+
+        <button type="button" class="btn btn-danger" onclick="this.closest('.relacion-fila').remove()">Quitar</button>
+    `;
+
+    container.appendChild(fila);
+}
+</script>
+{% endblock %}

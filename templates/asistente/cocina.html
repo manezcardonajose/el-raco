@@ -1,0 +1,235 @@
+{% extends "base.html" %}
+
+{% block title %}IA Cocina{% endblock %}
+{% block breadcrumb %}<a href="{{ url_for('asistente.dashboard') }}">Asistente El Raco</a> / IA Cocina{% endblock %}
+
+{% block content %}
+<style>
+    .cook-head {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 18px;
+        align-items: end;
+        margin-bottom: 18px;
+    }
+    .cook-head h1 {
+        margin: 0 0 6px;
+        color: #ff6b00;
+        font-size: 28px;
+    }
+    .cook-head p {
+        margin: 0;
+        color: var(--text-muted, #5f6b7a);
+        max-width: 940px;
+        line-height: 1.45;
+    }
+    .cook-filter {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(150px, 1fr));
+        gap: 10px;
+        align-items: end;
+        min-width: 520px;
+    }
+    .cook-filter label {
+        display: block;
+        font-size: 12px;
+        color: var(--text-muted, #5f6b7a);
+        margin-bottom: 4px;
+    }
+    .cook-filter input,
+    .cook-filter select {
+        width: 100%;
+        min-height: 38px;
+        border: 1px solid var(--border-color, #d5dde7);
+        border-radius: 7px;
+        padding: 7px 10px;
+        background: var(--input-bg, #fff);
+        color: var(--text-color, #16202a);
+    }
+    .cook-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-bottom: 16px;
+    }
+    .cook-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 12px;
+        margin-bottom: 16px;
+    }
+    .cook-kpi,
+    .cook-card {
+        border: 1px solid var(--border-color, #d5dde7);
+        background: var(--card-bg, #fff);
+        border-radius: 8px;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, .04);
+    }
+    .cook-kpi {
+        padding: 14px;
+    }
+    .cook-kpi span {
+        display: block;
+        color: var(--text-muted, #5f6b7a);
+        font-size: 12px;
+        margin-bottom: 7px;
+    }
+    .cook-kpi strong {
+        color: var(--text-color, #16202a);
+        font-size: 25px;
+    }
+    .cook-list {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(330px, 1fr));
+        gap: 12px;
+    }
+    .cook-card {
+        padding: 14px;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+    .cook-card h2 {
+        margin: 0;
+        color: var(--text-color, #16202a);
+        font-size: 17px;
+    }
+    .cook-card p {
+        margin: 0;
+        line-height: 1.42;
+    }
+    .cook-badge {
+        display: inline-flex;
+        align-items: center;
+        min-height: 24px;
+        padding: 3px 8px;
+        border-radius: 999px;
+        font-size: 12px;
+        font-weight: 700;
+        color: #fff;
+    }
+    .cook-badge.critica { background: #dc2626; }
+    .cook-badge.alta { background: #ea580c; }
+    .cook-badge.media { background: #2563eb; }
+    .cook-badge.baja { background: #64748b; }
+    .cook-badge.info { background: #0891b2; }
+    .cook-data {
+        border-left: 3px solid rgba(255, 107, 0, .65);
+        padding: 8px 10px;
+        background: rgba(148, 163, 184, .1);
+        font-size: 13px;
+        color: var(--text-muted, #5f6b7a);
+        overflow-wrap: anywhere;
+    }
+    .cook-data ul {
+        margin: 6px 0 0;
+        padding-left: 18px;
+    }
+    @media (max-width: 980px) {
+        .cook-head { grid-template-columns: 1fr; }
+        .cook-filter { min-width: 0; grid-template-columns: 1fr; }
+    }
+</style>
+
+<div class="cook-head">
+    <div>
+        <h1><i class="fas fa-utensils"></i> IA Cocina</h1>
+        <p>Analiza recetas, menus, ingredientes, alergenos, costes y produccion real. Propone cambios para que el jefe decida: nunca modifica menus ni recetas por su cuenta.</p>
+    </div>
+    <form class="cook-filter" method="get" action="{{ url_for('asistente.cocina_ia') }}">
+        <div>
+            <label>Desde</label>
+            <input type="date" name="fecha_desde" value="{{ fecha_desde }}">
+        </div>
+        <div>
+            <label>Hasta</label>
+            <input type="date" name="fecha_hasta" value="{{ fecha_hasta }}">
+        </div>
+        <div>
+            <label>Objetivo</label>
+            <select name="objetivo">
+                {% for key, label in objetivos %}
+                <option value="{{ key }}" {% if objetivo == key %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div>
+            <label>Producto / idea</label>
+            <input name="ingrediente" value="{{ ingrediente }}" placeholder="pollo, halal, apio, verano...">
+        </div>
+        <div>
+            <button class="btn btn-primary" type="submit"><i class="fas fa-search"></i> Analizar</button>
+        </div>
+    </form>
+</div>
+
+<div class="cook-grid">
+    <div class="cook-kpi"><span>Altas</span><strong>{{ resumen.get('alta', 0) }}</strong></div>
+    <div class="cook-kpi"><span>Medias</span><strong>{{ resumen.get('media', 0) }}</strong></div>
+    <div class="cook-kpi"><span>Ideas</span><strong>{{ resumen.get('info', 0) + resumen.get('baja', 0) }}</strong></div>
+    <div class="cook-kpi"><span>Total</span><strong>{{ recomendaciones|length }}</strong></div>
+</div>
+
+<div class="cook-actions">
+    <form method="post" action="{{ url_for('asistente.guardar_cocina_ia') }}">
+        <input type="hidden" name="fecha_desde" value="{{ fecha_desde }}">
+        <input type="hidden" name="fecha_hasta" value="{{ fecha_hasta }}">
+        <input type="hidden" name="objetivo" value="{{ objetivo }}">
+        <input type="hidden" name="ingrediente" value="{{ ingrediente }}">
+        <button class="btn btn-success" type="submit"><i class="fas fa-save"></i> Guardar propuestas</button>
+    </form>
+    <a class="btn btn-secondary" href="{{ url_for('menus.lista_menus_principal') }}"><i class="fas fa-calendar-alt"></i> Menus</a>
+    <a class="btn btn-secondary" href="{{ url_for('recetas.recetas') }}"><i class="fas fa-book-open"></i> Recetas</a>
+    <a class="btn btn-secondary" href="{{ url_for('produccion.necesidades_planificacion') }}"><i class="fas fa-boxes"></i> Necesidades</a>
+    <a class="btn btn-secondary" href="{{ url_for('asistente.cocina_investigar', objetivo=objetivo, ingrediente=ingrediente) }}"><i class="fas fa-search"></i> Investigar fuera</a>
+</div>
+
+<div class="cook-list">
+    {% for rec in recomendaciones %}
+    <article class="cook-card">
+        <div>
+            <span class="cook-badge {{ rec.prioridad }}">{{ rec.prioridad|upper }}</span>
+            <span>{{ rec.categoria }}</span>
+        </div>
+        <h2>{{ rec.titulo }}</h2>
+        <p>{{ rec.detalle }}</p>
+        <div class="cook-data">
+            <strong>Datos usados</strong>
+            {% if rec.datos_usados %}
+            <ul>
+                {% for clave, valor in rec.datos_usados.items() %}
+                <li><strong>{{ clave }}:</strong>
+                    {% if valor is string or valor is number %}
+                        {{ valor }}
+                    {% elif valor is mapping %}
+                        {{ valor }}
+                    {% else %}
+                        {{ valor|join('; ') }}
+                    {% endif %}
+                </li>
+                {% endfor %}
+            </ul>
+            {% else %}
+            <div>Sin datos ampliados.</div>
+            {% endif %}
+        </div>
+        <p><strong>Accion propuesta:</strong> {{ rec.accion_propuesta }}</p>
+        {% set modulo = 'ia_cocina' %}
+        {% set origen = 'asistente/cocina' %}
+        {% set referencia_id = rec.titulo %}
+        {% set contenido = rec.titulo ~ '\n' ~ rec.detalle ~ '\nAccion propuesta: ' ~ rec.accion_propuesta %}
+        {% include "asistente/_reporte_contenido_ia.html" %}
+        {% if rec.enlace %}
+        <p><a class="btn btn-secondary" href="{{ rec.enlace }}"><i class="fas fa-arrow-right"></i> Ir al modulo</a></p>
+        {% endif %}
+    </article>
+    {% else %}
+    <article class="cook-card">
+        <div><span class="cook-badge info">INFO</span></div>
+        <h2>Sin propuestas claras</h2>
+        <p>No hay avisos fuertes con el filtro actual. Prueba con otro objetivo, producto o rango de fechas.</p>
+        <p><strong>Accion propuesta:</strong> Seguir registrando produccion real, alergenos, costes y sobrantes para que el asistente aprenda mejor.</p>
+    </article>
+    {% endfor %}
+</div>
+{% endblock %}

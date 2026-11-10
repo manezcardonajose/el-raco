@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;">
+        <div>
+            <h2 style="color:#ff6b00;margin:0;">Inventario de equipos del establecimiento</h2>
+            <small>Equipos, mobiliario e instalaciones por departamento, subdepartamento, punto de venta y ubicacion.</small>
+        </div>
+        <a href="{{ url_for('mantenimiento.nuevo_equipo') }}" class="btn btn-success">Nuevo equipo</a>
+    </div>
+
+    <div class="table-container" style="margin-top:20px;">
+        <table style="width:100%;">
+            <thead>
+                <tr>
+                    <th>Codigo</th>
+                    <th>Equipo</th>
+                    <th>Familia</th>
+                    <th>Ubicacion</th>
+                    <th>Departamento</th>
+                    <th>Enlaces</th>
+                    <th>Criticidad</th>
+                    <th>OT abiertas</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for e in equipos %}
+                <tr>
+                    <td>{{ e.codigo or ('EQ-' ~ e.id) }}</td>
+                    <td>
+                        <strong>{{ e.nombre }}</strong><br>
+                        <small>{{ e.tipo }}{% if e.marca or e.modelo %} · {{ e.marca or '' }} {{ e.modelo or '' }}{% endif %}</small>
+                        {% if e.requiere_appcc %}<br><span class="badge badge-info">Vinculo APPCC</span>{% endif %}
+                    </td>
+                    <td>{{ e.familia or e.clase_activo or '-' }}</td>
+                    <td>{{ e.ubicacion or '-' }}</td>
+                    <td>
+                        {{ e.departamento_nombre or '-' }}
+                        {% if e.subdepartamento_nombre %}<br><small>{{ e.subdepartamento_nombre }}</small>{% endif %}
+                        {% if e.punto_venta_nombre %}<br><small>{{ e.punto_venta_nombre }}</small>{% endif %}
+                    </td>
+                    <td>
+                        {% if e.equipo_appcc_nombre %}
+                            <span class="badge badge-info">APPCC</span><br>
+                            <small>{{ e.equipo_appcc_nombre }}</small>
+                            {% if e.appcc_rango_min is not none and e.appcc_rango_max is not none %}
+                                <br><small>{{ e.appcc_rango_min }} / {{ e.appcc_rango_max }} C</small>
+                            {% endif %}
+                        {% endif %}
+                        {% if e.almacen_nombre %}
+                            <br><span class="badge badge-secondary">Almacen</span><br>
+                            <small>{{ e.almacen_nombre }} · {{ e.almacen_tipo or '-' }}</small>
+                        {% endif %}
+                        {% if not e.equipo_appcc_nombre and not e.almacen_nombre %}-{% endif %}
+                    </td>
+                    <td>{{ e.criticidad or 'media' }}</td>
+                    <td>{{ e.ot_pendientes or 0 }}</td>
+                    <td>
+                        <a href="{{ url_for('mantenimiento.ver_equipo', equipo_id=e.id) }}" class="btn btn-sm btn-info">Ver</a>
+                        <a href="{{ url_for('mantenimiento.editar_equipo', equipo_id=e.id) }}" class="btn btn-sm btn-primary">Editar</a>
+                    </td>
+                </tr>
+                {% else %}
+                <tr><td colspan="9" style="text-align:center;padding:30px;">No hay equipos creados.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

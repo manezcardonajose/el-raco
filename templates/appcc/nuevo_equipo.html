@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="card">
+    <h2 style="color: #ff6b00;"> NUEVO EQUIPO</h2>
+    
+    <form method="POST">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+            <div>
+                <label>Nombre del equipo:</label>
+                <input type="text" name="nombre" required style="width: 100%; padding: 8px;">
+            </div>
+            
+            <div>
+                <label>Tipo:</label>
+                <select name="tipo" required style="width: 100%; padding: 8px;">
+                    <option value="cmara">️ Cmara frigorfica</option>
+                    <option value="congelador"> Congelador</option>
+                    <option value="abatidor"> Abatidor</option>
+                    <option value="buffet">️ Buffet</option>
+                    <option value="termo">️ Termo</option>
+                </select>
+            </div>
+            
+            <div>
+                <label>Ubicacin:</label>
+                <input type="text" name="ubicacion" placeholder="Ej: Cocina central" style="width: 100%; padding: 8px;">
+            </div>
+            
+            <div>
+                <label>Departamento:</label>
+                <select name="departamento_id" style="width: 100%; padding: 8px;">
+                    <option value="">-- Sin departamento --</option>
+                    {% for d in departamentos %}
+                    <option value="{{ d.id }}">{{ d.nombre }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div>
+                <label>Subdepartamento:</label>
+                <select name="subdepartamento_id" style="width: 100%; padding: 8px;">
+                    <option value="">-- Sin subdepartamento --</option>
+                    {% for s in subdepartamentos %}
+                    <option value="{{ s.id }}">{{ s.nombre }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div>
+                <label>Punto de venta:</label>
+                <select name="punto_venta_id" style="width: 100%; padding: 8px;">
+                    <option value="">-- Sin punto de venta --</option>
+                    {% for p in puntos_venta %}
+                    <option value="{{ p.id }}">{{ p.nombre }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div>
+                <label>Temperatura mnima (°C):</label>
+                <input type="number" step="0.1" name="rango_min" style="width: 100%; padding: 8px;">
+            </div>
+            
+            <div>
+                <label>Temperatura mxima (°C):</label>
+                <input type="number" step="0.1" name="rango_max" style="width: 100%; padding: 8px;">
+            </div>
+            
+            <div>
+                <label>Responsable:</label>
+                <input type="text" name="responsable" placeholder="Persona encargada" style="width: 100%; padding: 8px;">
+            </div>
+        </div>
+        
+        <div style="margin-top: 30px;">
+            <button type="submit" class="btn btn-success"> Guardar equipo</button>
+            <a href="/appcc/equipos" class="btn btn-red">Cancelar</a>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+
+

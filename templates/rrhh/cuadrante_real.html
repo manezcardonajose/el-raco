@@ -1,0 +1,164 @@
+{% extends 'base.html' %}
+{% block title %}Cuadrante real RRHH{% endblock %}
+{% block breadcrumb %}RRHH / Cuadrante real{% endblock %}
+{% block content %}
+<style>
+  .rrhh-grid-filtros{display:grid;grid-template-columns:repeat(5,minmax(140px,1fr));gap:12px;align-items:end;}
+  .cuadrante-real-table{table-layout:auto;min-width:1400px;}
+  .cuadrante-real-table th,.cuadrante-real-table td{vertical-align:top;min-width:160px;}
+  .trabajador-cell{min-width:220px;position:sticky;left:0;background:#252b33;z-index:1;}
+  .turno-chip{display:block;background:#1e3a2a;border-left:4px solid #28a745;border-radius:6px;padding:6px;margin:4px 0;font-size:12px;}
+  .turno-libre{background:#26313c;border-left-color:#9ca3af;}
+  .vac-chip{display:block;background:#3a2e1e;border-left:4px solid #ffc107;color:#ffe6a5;border-radius:6px;padding:6px;margin:4px 0;font-size:12px;}
+  .mini-form,.edit-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:8px;}
+  .mini-form .form-control,.edit-grid .form-control{padding:6px;font-size:12px;min-height:31px;}
+  .span-2{grid-column:1/3;}
+  .cobertura-card{background:#1e252b;border:1px solid #2c3e50;border-radius:6px;padding:10px;margin-bottom:8px;}
+  .ok{color:#a8e6b0}.ko{color:#f8a5a5}.warn{color:#ffe6a5}.muted{color:#9ca3af;}
+  .toolbar-rrhh{display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
+  .copy-panel{background:#1e252b;border:1px solid #2c3e50;border-radius:6px;padding:12px;margin-top:12px;}
+  .copy-grid{display:grid;grid-template-columns:repeat(5,minmax(140px,1fr));gap:10px;align-items:end;}
+  .days-checks{display:flex;gap:8px;flex-wrap:wrap;font-size:12px;}
+  details summary{cursor:pointer;color:#ff6b00;font-weight:600;}
+  @media(max-width:1100px){.rrhh-grid-filtros,.copy-grid{grid-template-columns:repeat(2,minmax(140px,1fr));}}
+  @media(max-width:700px){.rrhh-grid-filtros,.copy-grid{grid-template-columns:1fr;}}
+</style>
+
+<div class="card">
+  <div class="card-header">
+    <h2><i class="fas fa-calendar-week"></i> Cuadrante real por centro, departamento y puesto</h2>
+    <div class="toolbar-rrhh">
+      <a class="btn btn-secondary" href="{{ url_for('rrhh.cuadrante_real', fecha=(inicio - timedelta(days=7)).isoformat(), centro_id=centro_id, departamento_id=departamento_id, subdepartamento_id=subdepartamento_id, puesto_id=puesto_id) }}"><i class="fas fa-chevron-left"></i> Semana anterior</a>
+      <a class="btn btn-secondary" href="{{ url_for('rrhh.cuadrante_real', fecha=(inicio + timedelta(days=7)).isoformat(), centro_id=centro_id, departamento_id=departamento_id, subdepartamento_id=subdepartamento_id, puesto_id=puesto_id) }}">Semana siguiente <i class="fas fa-chevron-right"></i></a>
+      <a class="btn btn-info" href="{{ url_for('rrhh.necesidades_operativas') }}"><i class="fas fa-clipboard-list"></i> Necesidades</a>
+      <a class="btn btn-info" href="{{ url_for('rrhh.lista_puestos_operativos') }}"><i class="fas fa-briefcase"></i> Puestos</a>
+      <a class="btn btn-info no-print" target="_blank" href="{{ url_for('rrhh.imprimir_cuadrante_real', fecha=inicio.isoformat(), centro_id=centro_id, departamento_id=departamento_id, subdepartamento_id=subdepartamento_id, puesto_id=puesto_id) }}"><i class="fas fa-print"></i> Imprimir profesional</a>
+    </div>
+  </div>
+  <div class="alert alert-info">Esta pantalla no impone horarios. Cada departamento define su cobertura y asigna horarios reales según su establecimiento.</div>
+  <form method="get" class="card" style="padding:15px;">
+    <div class="rrhh-grid-filtros">
+      <div class="form-group"><label class="form-label">Semana</label><input type="date" name="fecha" value="{{ inicio.isoformat() }}" class="form-control"></div>
+      <div class="form-group"><label class="form-label">Centro</label><select name="centro_id" class="form-control"><option value="">Todos</option>{% for c in centros %}<option value="{{ c.id }}" {% if centro_id|string == c.id|string %}selected{% endif %}>{{ c.nombre }}</option>{% endfor %}</select></div>
+      <div class="form-group"><label class="form-label">Departamento</label><select name="departamento_id" class="form-control"><option value="">Todos</option>{% for d in departamentos %}<option value="{{ d.id }}" {% if departamento_id|string == d.id|string %}selected{% endif %}>{{ d.nombre }}</option>{% endfor %}</select></div>
+      <div class="form-group"><label class="form-label">Subdepartamento</label><select name="subdepartamento_id" class="form-control"><option value="">Todos</option>{% for sd in subdepartamentos %}<option value="{{ sd.id }}" data-departamento="{{ sd.departamento_id or '' }}" {% if subdepartamento_id|string == sd.id|string %}selected{% endif %}>{{ sd.nombre }}</option>{% endfor %}</select></div>
+      <div class="form-group"><label class="form-label">Puesto</label><select name="puesto_id" class="form-control"><option value="">Todos</option>{% for p in puestos %}<option value="{{ p.id }}" data-centro="{{ p.centro_id or '' }}" data-departamento="{{ p.departamento_id or '' }}" data-subdepartamento="{{ p.subdepartamento_id or '' }}" {% if puesto_id|string == p.id|string %}selected{% endif %}>{{ p.nombre }}</option>{% endfor %}</select></div>
+    </div>
+    <button class="btn btn-primary"><i class="fas fa-search"></i> Ver plantilla</button>
+  </form>
+
+  {% if puede_editar %}
+  <details class="copy-panel">
+    <summary><i class="fas fa-copy"></i> Copiar cuadrante de una semana a otra</summary>
+    <form method="post" action="{{ url_for('rrhh.copiar_semana_cuadrante_real') }}" class="copy-grid" style="margin-top:10px;">
+      <input type="hidden" name="centro_id" value="{{ centro_id }}">
+      <input type="hidden" name="departamento_id" value="{{ departamento_id }}">
+      <input type="hidden" name="subdepartamento_id" value="{{ subdepartamento_id }}">
+      <input type="hidden" name="puesto_id" value="{{ puesto_id }}">
+      <div class="form-group"><label class="form-label">Semana origen</label><input type="date" name="origen_fecha" value="{{ inicio.isoformat() }}" class="form-control"></div>
+      <div class="form-group"><label class="form-label">Semana destino</label><input type="date" name="destino_fecha" value="{{ (inicio + timedelta(days=7)).isoformat() }}" class="form-control"></div>
+      <div class="form-group"><label class="form-label">Estrategia</label><select name="estrategia" class="form-control"><option value="vacios">Solo vacíos</option><option value="sobrescribir">Sobrescribir destino</option><option value="duplicar">Duplicar si no existe igual</option></select></div>
+      <div class="form-group"><label class="form-label">Copiar</label><select name="modo" class="form-control"><option value="semana">Toda la semana</option><option value="laborables">Lunes a viernes</option></select></div>
+      <div class="form-group"><button class="btn btn-warning" onclick="return confirm('¿Copiar la semana con los filtros actuales?')"><i class="fas fa-copy"></i> Copiar semana</button></div>
+    </form>
+  </details>
+  {% endif %}
+</div>
+
+<div class="card">
+  <div class="card-header"><h2><i class="fas fa-users"></i> Plantilla semanal</h2></div>
+  {% include 'rrhh/_herramientas_tabla.html' %}
+  <div class="table-container">
+    <table class="cuadrante-real-table">
+      <thead><tr><th class="trabajador-cell">Trabajador</th>{% for dia in dias %}<th>{{ ['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'][dia.weekday()] }}<br><small>{{ dia.strftime('%d/%m/%Y') }}</small></th>{% endfor %}</tr></thead>
+      <tbody>
+        {% for e in empleados %}
+        <tr>
+          <td class="trabajador-cell"><strong>{{ e.nombre }} {{ e.apellidos or '' }}</strong><br><small>{{ e.departamento_nombre or 'Sin depto' }}{% if e.subdepartamento_nombre %} / {{ e.subdepartamento_nombre }}{% endif %}</small><br>{% if e.categoria_nombre %}<span class="badge badge-secondary">{{ e.categoria_nombre }}</span>{% endif %}</td>
+          {% for dia in dias %}
+          {% set clave = (e.id, dia.isoformat()) %}
+          <td>
+            {% for v in vacaciones_por_empleado_dia.get(clave, []) %}<span class="vac-chip"><i class="fas fa-umbrella-beach"></i> {{ v.tipo|replace('_',' ') }}<br>{{ v.estado }}</span>{% endfor %}
+            {% for t in turnos_por_empleado_dia.get(clave, []) %}
+              {% set tipo_turno = (t.tipo or '')|lower %}
+              <span class="turno-chip {% if tipo_turno in ['libre','descanso','dia_libre','día libre'] %}turno-libre{% endif %}">
+                {% if tipo_turno in ['libre','descanso','dia_libre','día libre'] %}
+                  <strong>LIBRE / DESCANSO</strong><br>
+                {% else %}
+                  <strong>{{ t.hora_inicio or '--:--' }} - {{ t.hora_fin or '--:--' }}</strong><br>
+                  {{ t.puesto_nombre or 'Sin puesto' }}<br>
+                {% endif %}
+                {% if t.centro_nombre %}<small>{{ t.centro_nombre }}</small>{% endif %}
+                {% if t.observaciones and tipo_turno not in ['libre','descanso','dia_libre','día libre'] %}<small class="muted">{{ t.observaciones }}</small>{% endif %}
+                {% if puede_editar %}
+                <details class="no-print" style="margin-top:6px;">
+                  <summary>Editar / copiar / anular</summary>
+                  <form method="post" action="{{ url_for('rrhh.guardar_turno_cuadrante_real', id=t.id) }}" class="edit-grid">
+                    <input type="hidden" name="empleado_id" value="{{ t.empleado_id }}"><input type="hidden" name="fecha" value="{{ t.fecha }}">
+                    <input type="hidden" name="filtro_fecha" value="{{ inicio.isoformat() }}"><input type="hidden" name="filtro_centro_id" value="{{ centro_id }}"><input type="hidden" name="filtro_departamento_id" value="{{ departamento_id }}"><input type="hidden" name="filtro_subdepartamento_id" value="{{ subdepartamento_id }}"><input type="hidden" name="filtro_puesto_id" value="{{ puesto_id }}">
+                    <input type="time" name="hora_inicio" value="{{ t.hora_inicio or '' }}" class="form-control"><input type="time" name="hora_fin" value="{{ t.hora_fin or '' }}" class="form-control">
+                    <select name="centro_id" class="form-control span-2"><option value="">Centro</option>{% for c in centros %}<option value="{{ c.id }}" {% if t.centro_id == c.id %}selected{% endif %}>{{ c.nombre }}</option>{% endfor %}</select>
+                    <select name="departamento_id" class="form-control span-2"><option value="">Departamento</option>{% for d in departamentos %}<option value="{{ d.id }}" {% if t.departamento_id == d.id %}selected{% endif %}>{{ d.nombre }}</option>{% endfor %}</select>
+                    <select name="subdepartamento_id" class="form-control span-2"><option value="">Subdepartamento</option>{% for sd in subdepartamentos %}<option value="{{ sd.id }}" {% if t.subdepartamento_id == sd.id %}selected{% endif %}>{{ sd.nombre }}</option>{% endfor %}</select>
+                    <select name="puesto_id" class="form-control span-2"><option value="">Puesto</option>{% for p in puestos %}<option value="{{ p.id }}" {% if t.puesto_id == p.id %}selected{% endif %}>{{ p.nombre }}</option>{% endfor %}</select>
+                    <input type="text" name="observaciones" value="{{ t.observaciones or '' }}" class="form-control span-2" placeholder="Observaciones">
+                    <input type="text" name="motivo_cambio" value="Corrección cuadrante" class="form-control span-2" placeholder="Motivo">
+                    <button class="btn btn-success btn-sm span-2"><i class="fas fa-save"></i> Guardar cambio</button>
+                  </form>
+                  <form method="post" action="{{ url_for('rrhh.copiar_turno_cuadrante_real_dia', id=t.id) }}" class="edit-grid" style="margin-top:6px;">
+                    <input type="hidden" name="filtro_fecha" value="{{ inicio.isoformat() }}"><input type="hidden" name="filtro_centro_id" value="{{ centro_id }}"><input type="hidden" name="filtro_departamento_id" value="{{ departamento_id }}"><input type="hidden" name="filtro_subdepartamento_id" value="{{ subdepartamento_id }}"><input type="hidden" name="filtro_puesto_id" value="{{ puesto_id }}">
+                    <select name="modo" class="form-control"><option value="semana">Toda semana</option><option value="laborables">Laborables</option><option value="seleccionados">Días marcados</option></select>
+                    <select name="estrategia" class="form-control"><option value="vacios">Solo vacíos</option><option value="sobrescribir">Sobrescribir</option><option value="duplicar">Duplicar si no existe</option></select>
+                    <div class="days-checks span-2"><label><input type="checkbox" name="dias_destino" value="0"> L</label><label><input type="checkbox" name="dias_destino" value="1"> M</label><label><input type="checkbox" name="dias_destino" value="2"> X</label><label><input type="checkbox" name="dias_destino" value="3"> J</label><label><input type="checkbox" name="dias_destino" value="4"> V</label><label><input type="checkbox" name="dias_destino" value="5"> S</label><label><input type="checkbox" name="dias_destino" value="6"> D</label></div>
+                    <button class="btn btn-info btn-sm span-2"><i class="fas fa-copy"></i> Copiar horario</button>
+                  </form>
+                  <form method="post" action="{{ url_for('rrhh.anular_turno_rrhh', id=t.id) }}" onsubmit="return confirm('¿Anular este turno?')" style="margin-top:6px;">
+                    <input type="hidden" name="filtro_fecha" value="{{ inicio.isoformat() }}"><input type="hidden" name="filtro_centro_id" value="{{ centro_id }}"><input type="hidden" name="filtro_departamento_id" value="{{ departamento_id }}"><input type="hidden" name="filtro_subdepartamento_id" value="{{ subdepartamento_id }}"><input type="hidden" name="filtro_puesto_id" value="{{ puesto_id }}">
+                    <button class="btn btn-warning btn-sm"><i class="fas fa-ban"></i> Anular</button>
+                  </form>
+                </details>
+                {% endif %}
+              </span>
+            {% endfor %}
+            {% if puede_editar %}
+            <form method="post" action="{{ url_for('rrhh.asignar_cuadrante_real') }}" class="mini-form">
+              <input type="hidden" name="empleado_id" value="{{ e.id }}"><input type="hidden" name="fecha" value="{{ dia.isoformat() }}">
+              <input type="hidden" name="filtro_fecha" value="{{ inicio.isoformat() }}"><input type="hidden" name="filtro_centro_id" value="{{ centro_id }}"><input type="hidden" name="filtro_departamento_id" value="{{ departamento_id }}"><input type="hidden" name="filtro_subdepartamento_id" value="{{ subdepartamento_id }}"><input type="hidden" name="filtro_puesto_id" value="{{ puesto_id }}">
+              <input type="hidden" name="centro_id" value="{{ centro_id }}"><input type="hidden" name="departamento_id" value="{{ departamento_id }}"><input type="hidden" name="subdepartamento_id" value="{{ subdepartamento_id }}">
+              <select name="puesto_id" class="form-control span-2"><option value="">Puesto</option>{% for p in puestos %}<option value="{{ p.id }}" {% if puesto_id|string == p.id|string %}selected{% endif %}>{{ p.nombre }}</option>{% endfor %}</select>
+              <input type="time" name="hora_inicio" class="form-control"><input type="time" name="hora_fin" class="form-control">
+              <input type="text" name="observaciones" placeholder="Obs." class="form-control span-2">
+              <button class="btn btn-success btn-sm span-2"><i class="fas fa-plus"></i> Asignar</button>
+            </form>
+            <form method="post" action="{{ url_for('rrhh.marcar_dia_libre_cuadrante_real_v2') }}" class="mini-form" style="margin-top:4px;">
+              <input type="hidden" name="empleado_id" value="{{ e.id }}"><input type="hidden" name="fecha" value="{{ dia.isoformat() }}">
+              <input type="hidden" name="centro_id" value="{{ centro_id }}"><input type="hidden" name="departamento_id" value="{{ departamento_id }}"><input type="hidden" name="subdepartamento_id" value="{{ subdepartamento_id }}">
+              <input type="hidden" name="filtro_fecha" value="{{ inicio.isoformat() }}"><input type="hidden" name="filtro_centro_id" value="{{ centro_id }}"><input type="hidden" name="filtro_departamento_id" value="{{ departamento_id }}"><input type="hidden" name="filtro_subdepartamento_id" value="{{ subdepartamento_id }}"><input type="hidden" name="filtro_puesto_id" value="{{ puesto_id }}">
+              <button class="btn btn-secondary btn-sm span-2"><i class="fas fa-bed"></i> Marcar libre</button>
+            </form>
+            {% endif %}
+          </td>
+          {% endfor %}
+        </tr>
+        {% else %}<tr><td colspan="8">No hay trabajadores para estos filtros.</td></tr>{% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header"><h2><i class="fas fa-clipboard-check"></i> Cobertura definida por el establecimiento</h2></div>
+  {% if necesidades %}
+    {% for n in necesidades %}
+      {% set cubiertos = asignados_necesidad.get(n.id, 0) %}
+      <div class="cobertura-card">
+        <strong>{{ ['Lunes','Martes','Miércoles','Jueves','Viernes','Sábado','Domingo'][n.dia_semana] }}</strong> · {{ n.centro_nombre or 'Centro general' }} · {{ n.departamento_nombre or 'Depto general' }}{% if n.subdepartamento_nombre %} / {{ n.subdepartamento_nombre }}{% endif %} · <strong>{{ n.puesto_nombre or 'Puesto general' }}</strong><br>
+        Necesarias: {{ n.personas_necesarias }} · Asignadas: {{ cubiertos }}
+        {% if cubiertos < n.personas_necesarias %}<span class="ko">Faltan {{ n.personas_necesarias - cubiertos }}</span>{% elif cubiertos > n.personas_necesarias %}<span class="warn">Sobran {{ cubiertos - n.personas_necesarias }}</span>{% else %}<span class="ok">Cobertura correcta</span>{% endif %}
+      </div>
+    {% endfor %}
+  {% else %}
+    <p>No hay necesidades operativas definidas todavía. Crea la base de cobertura en <a href="{{ url_for('rrhh.necesidades_operativas') }}">Necesidades</a>.</p>
+  {% endif %}
+</div>
+{% endblock %}

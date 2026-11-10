@@ -1,0 +1,15 @@
+{% extends 'base.html' %}
+{% block title %}{% if nomina %}Editar nómina{% else %}Nueva nómina{% endif %}{% endblock %}
+{% block breadcrumb %}RRHH / Nóminas / {% if nomina %}Editar{% else %}Nueva{% endif %}{% endblock %}
+{% block content %}
+<div class="card"><div class="card-header"><h2><i class="fas fa-file-invoice-dollar"></i> {% if nomina %}Editar nómina registrada{% else %}Nueva nómina registrada{% endif %}</h2></div>
+<form method="post"><div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap:16px;">
+<div class="form-group"><label class="form-label">Empleado *</label><select class="form-control" name="empleado_id" required><option value="">Seleccionar</option>{% for e in empleados %}<option value="{{ e.id }}" {% if nomina and nomina.empleado_id == e.id %}selected{% endif %}>{{ e.nombre }} {{ e.apellidos or '' }}</option>{% endfor %}</select></div>
+{% for field,label,type in [('mes','Mes','number'),('anio','Año','number'),('periodo_desde','Periodo desde','date'),('periodo_hasta','Periodo hasta','date'),('salario_base','Salario base','number'),('complementos','Complementos','number'),('horas_extra','Horas extra','number'),('pluses','Pluses','number'),('prorrata_pagas','Prorrata pagas','number'),('irpf','IRPF','number'),('seguridad_social_trabajador','SS trabajador','number'),('seguridad_social_empresa','SS empresa','number'),('anticipos_embargos','Anticipos / embargos','number'),('bruto','Bruto','number'),('neto','Neto','number'),('coste_empresa','Coste empresa','number'),('fecha_pago','Fecha pago','date'),('forma_pago','Forma pago','text'),('archivo','Archivo/ruta','text')] %}
+<div class="form-group"><label class="form-label">{{ label }}</label><input class="form-control" type="{{ 'number' if type=='number' else type }}" {% if type=='number' %}step="0.01"{% endif %} name="{{ field }}" value="{{ nomina[field] if nomina and field in nomina.keys() else '' }}" {% if field in ['mes','anio'] %}required{% endif %}></div>
+{% endfor %}
+<div class="form-group"><label class="form-label">Estado</label><select class="form-control" name="estado">{% for s in ['pendiente','revisada','pagada','anulada'] %}<option value="{{ s }}" {% if nomina and nomina.estado == s %}selected{% endif %}>{{ s }}</option>{% endfor %}</select></div>
+</div><div class="form-group"><label class="form-label">Observaciones</label><textarea class="form-control" name="observaciones" rows="3">{{ nomina.observaciones if nomina else '' }}</textarea></div>
+{% if nomina %}<div class="form-group"><label class="form-label">Motivo del cambio</label><input class="form-control" name="motivo_cambio" required></div>{% endif %}
+<button class="btn btn-success" type="submit">Guardar</button> <a class="btn btn-secondary" href="{{ url_for('rrhh.lista_nominas') }}">Volver</a></form></div>
+{% endblock %}

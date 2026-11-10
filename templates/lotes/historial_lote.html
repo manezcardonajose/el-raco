@@ -1,0 +1,350 @@
+{% extends "base.html" %}
+
+{% block content %}
+{% set l = lote %}
+<div class="card">
+    <div class="card-header">
+        <h2><i class="fas fa-history"></i> HISTORIAL DEL LOTE</h2>
+        <div>
+            <a href="{{ next_url or url_for('lotes.lista_lotes') }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Volver
+            </a>
+            <a href="{{ url_for('lotes.etiqueta_lote', lote_id=lote.id, next=next_url or url_for('lotes.lista_lotes')) }}" class="btn btn-info" target="_blank">Etiqueta</a>
+            <a href="{{ url_for('lotes.deterioro_lote', lote_id=lote.id) }}" class="btn btn-danger">Deterioro</a>
+        </div>
+    </div>
+
+    <!-- informescin del lote -->
+    <div style="background: #1e252b; padding: 20px; border-radius: 8px; margin-bottom: 30px;">
+        <h3 style="color: #ff6b00;">{{ lote.producto_nombre }}</h3>
+        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px;">
+            <p><strong>Lote:</strong> {{ lote.codigo_lote }}</p>
+            <p><strong>Proveedor:</strong> {{ lote.proveedor_nombre or '---' }}</p>
+            <p><strong>Fecha recepcin:</strong> {{ lote.fecha_recepcion or '---' }}</p>
+            <p><strong>Temperatura recepcin:</strong> {{ lote.temperatura_recepcion or '---' }}°C</p>
+            <p><strong>Caducidad:</strong> {{ lote.fecha_caducidad or '---' }}</p>
+            <p><strong>Ubicacin actual:</strong> {{ lote.ubicacion_actual or '---' }}</p>
+            <p>
+                <strong>Estado:</strong>
+                <span class="badge
+                    {% if lote.estado == 'activo' %}badge-success
+                    {% elif lote.estado == 'consumido' %}badge-secondary
+                    {% elif lote.estado == 'caducado' %}badge-danger
+                    {% endif %}">
+                    {{ lote.estado }}
+                </span>
+            </p>
+            <p>
+                <strong>Estado descongelado:</strong>
+                <span class="badge
+                    {% if lote.estado_descongelado == 'apto' %}badge-success
+                    {% elif lote.estado_descongelado == 'no_apto' %}badge-danger
+                    {% elif lote.estado_descongelado == 'pendiente' %}badge-secondary
+                    {% elif lote.estado_descongelado == 'en_curso' %}badge-warning
+                    {% endif %}">
+                    {{ lote.estado_descongelado or '---' }}
+                </span>
+            </p>
+        </div>
+    </div>
+
+    <!-- Pestaas -->
+    <div style="margin-bottom: 20px;">
+        <div style="display: flex; gap: 10px; border-bottom: 2px solid #3a3f44;">
+            <button class="tab-btn active" onclick="showTab('movimientos')"> Movimientos</button>
+            <button class="tab-btn" onclick="showTab('controles')">️ Controles descongelado</button>
+            <button class="tab-btn" onclick="showTab('desinfeccion')"> Desinfeccion</button>
+            <button class="tab-btn" onclick="showTab('deterioros')">Deterioros</button>
+            <button class="tab-btn" onclick="showTab('consumos')"> Consumos</button>
+        </div>
+    </div>
+
+    <!-- Tab: Movimientos -->
+    <div id="tab-movimientos" class="tab-content">
+        <h3> Historial de movimientos</h3>
+        {% if movimientos %}
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Fecha</th>
+                        <th>Tipo</th>
+                        <th>Origen</th>
+                        <th>Destino</th>
+                        <th>Cantidad</th>
+                        <th>Temperatura</th>
+                        <th>Responsable</th>
+                        <th>Documento</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for m in movimientos %}
+                    <tr>
+                        <td>{{ m.fecha[:16] }}</td>
+                        <td>
+                            <span class="badge
+                                {% if m.tipo == 'recepcion' %}badge-success
+                                {% elif m.tipo == 'descongelado' %}badge-info
+                                {% elif m.tipo == 'control' %}badge-warning
+                                {% elif m.tipo == 'consumo' %}badge-primary
+                                {% elif m.tipo == 'merma' %}badge-danger
+                                {% endif %}">
+                                {{ m.tipo }}
+                            </span>
+                        </td>
+                        <td>{{ m.ubicacion_origen or '---' }}</td>
+                        <td>{{ m.ubicacion_destino or '---' }}</td>
+                        <td>{{ m.cantidad or '---' }}</td>
+                        <td>{{ m.temperatura or '---' }}°C</td>
+                        <td>{{ m.responsable }}</td>
+                        <td>{{ m.documento or '---' }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <p style="color: #999;">No hay movimientos registrados</p>
+        {% endif %}
+    </div>
+
+    <!-- Tab: Controles descongelado -->
+    <div id="tab-controles" class="tab-content" style="display: none;">
+        <h3>️ Controles de descongelado</h3>
+        {% if controles %}
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Fecha</th>
+                        <th>Temperatura</th>
+                        <th>Aspecto</th>
+                        <th>Olfativo</th>
+                        <th>Decisin</th>
+                        <th>Responsable</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for c in controles %}
+                    <tr>
+                        <td>{{ c.fecha_control[:16] }}</td>
+                        <td>{{ c.temperatura }}°C</td>
+                        <td>{{ c.aspecto or '---' }}</td>
+                        <td>{{ c.olfativo or '---' }}</td>
+                        <td>
+                            <span class="badge
+                                {% if c.decision == 'apto' %}badge-success
+                                {% elif c.decision == 'no_apto' %}badge-danger
+                                {% else %}badge-warning{% endif %}">
+                                {{ c.decision }}
+                            </span>
+                        </td>
+                        <td>{{ c.responsable }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <p style="color: #999;">No hay controles de descongelado</p>
+        {% endif %}
+    </div>
+
+    <div id="tab-desinfeccion" class="tab-content" style="display: none;">
+        <h3>Desinfeccion APPCC</h3>
+        {% if desinfecciones %}
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Fecha</th>
+                        <th>Producto</th>
+                        <th>Dosis</th>
+                        <th>Tiempo</th>
+                        <th>Resultado</th>
+                        <th>Responsable</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for d in desinfecciones %}
+                    <tr>
+                        <td>{{ d.fecha[:16] }}</td>
+                        <td>{{ d.producto_usado or '---' }}</td>
+                        <td>{{ d.dosis or '---' }}</td>
+                        <td>{{ d.tiempo_contacto or '---' }}</td>
+                        <td>{{ d.resultado or '---' }}</td>
+                        <td>{{ d.responsable or '---' }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <p style="color: #999;">No hay desinfecciones registradas</p>
+        {% endif %}
+    </div>
+
+    <div id="tab-deterioros" class="tab-content" style="display: none;">
+        <h3>Deterioros / no aptos</h3>
+        {% if deterioros %}
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Fecha</th>
+                        <th>Cantidad</th>
+                        <th>Motivo</th>
+                        <th>Decision</th>
+                        <th>Destino</th>
+                        <th>Temperatura</th>
+                        <th>Responsable</th>
+                        <th>Incidencia</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for d in deterioros %}
+                    <tr>
+                        <td>{{ d.fecha[:16] }}</td>
+                        <td>{{ d.cantidad }}</td>
+                        <td>{{ d.motivo or '---' }}</td>
+                        <td>{{ d.decision or '---' }}</td>
+                        <td>{{ d.destino or '---' }}</td>
+                        <td>{{ d.temperatura if d.temperatura is not none else '---' }}°C</td>
+                        <td>{{ d.responsable or '---' }}</td>
+                        <td>{{ d.incidencia_id or '---' }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <p style="color: #999;">No hay deterioros registrados</p>
+        {% endif %}
+    </div>
+
+    <!-- Tab: Consumos -->
+    <div id="tab-consumos" class="tab-content" style="display: none;">
+        <h3> Consumos en produccin</h3>
+        {% if consumos %}
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Fecha</th>
+                        <th>Turno</th>
+                        <th>Receta</th>
+                        <th>Cantidad</th>
+                        <th>Usuario</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for c in consumos %}
+                    <tr>
+                        <td>{{ c.fecha_produccion }}</td>
+                        <td>{{ c.turno or '---' }}</td>
+                        <td>{{ c.receta_nombre }}</td>
+                        <td>{{ c.cantidad_consumida }}</td>
+                        <td>{{ c.usuario }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <p style="color: #999;">No se ha consumido en ninguna produccin</p>
+        {% endif %}
+    </div>
+</div>
+
+<td style="text-align: center;">
+    {% if l.estado_descongelado in ['pendiente', 'en_curso'] and l.fecha_descongelado %}
+    <a href="{{ url_for('lotes.control_descongelado', lote_id=l.id) }}" class="btn-icon" title="Control descongelado">️</a>
+    {% endif %}
+    <a href="{{ url_for('lotes.historial_lote', lote_id=l.id) }}" class="btn-icon" title="Ver historial"></a>
+</td>
+
+<style>
+    .badge-success {
+        background: #28a745;
+        color: white;
+        padding: 4px 8px;
+        border-radius: 12px;
+    }
+
+    .badge-secondary {
+        background: #6c757d;
+        color: white;
+        padding: 4px 8px;
+        border-radius: 12px;
+    }
+
+    .badge-danger {
+        background: #dc3545;
+        color: white;
+        padding: 4px 8px;
+        border-radius: 12px;
+    }
+
+    .badge-warning {
+        background: #ffc107;
+        color: black;
+        padding: 4px 8px;
+        border-radius: 12px;
+    }
+
+    .badge-info {
+        background: #17a2b8;
+        color: white;
+        padding: 4px 8px;
+        border-radius: 12px;
+    }
+
+    .badge-primary {
+        background: #007bff;
+        color: white;
+        padding: 4px 8px;
+        border-radius: 12px;
+    }
+
+    .tab-btn {
+        background: none;
+        border: none;
+        color: #999;
+        padding: 10px 20px;
+        cursor: pointer;
+        font-size: 16px;
+        border-bottom: 2px solid transparent;
+    }
+
+        .tab-btn.active {
+            color: #ff6b00;
+            border-bottom: 2px solid #ff6b00;
+        }
+
+        .tab-btn:hover {
+            color: #ff6b00;
+        }
+</style>
+
+<script>
+function showTab(tab) {
+    // Ocultar todos los tabs
+    document.getElementById('tab-movimientos').style.display = 'none';
+    document.getElementById('tab-controles').style.display = 'none';
+    document.getElementById('tab-desinfeccion').style.display = 'none';
+    document.getElementById('tab-deterioros').style.display = 'none';
+    document.getElementById('tab-consumos').style.display = 'none';
+
+    // Mostrar el seleccionado
+    document.getElementById('tab-' + tab).style.display = 'block';
+
+    // Actualizar botones
+    document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+    event.target.classList.add('active');
+}
+</script>
+{% endblock %}
+
+
+
+

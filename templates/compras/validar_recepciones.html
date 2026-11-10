@@ -1,0 +1,245 @@
+{% extends "base.html" %}
+{% block content %}
+
+<style>
+    .recepciones-toolbar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap;
+        margin-bottom: 12px;
+    }
+    .metric-mini {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 4px 8px;
+        border: 1px solid rgba(255,255,255,.12);
+        border-radius: 6px;
+        font-size: 12px;
+        margin: 2px 4px 2px 0;
+    }
+</style>
+
+<div class="card">
+    <div class="card-header recepciones-toolbar">
+        <div>
+            <h3 style="margin:0;"><i class="fas fa-clipboard-check"></i> Control de recepciones</h3>
+            <small>Stock fisico, incidencias, OCR y validacion economica en una sola bandeja.</small>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <a href="{{ url_for('compras.incidencias_compras') }}" class="btn btn-warning btn-sm">
+                <i class="fas fa-exclamation-triangle"></i> Incidencias compras
+            </a>
+            <a href="{{ url_for('compras.recepcion_pedido') }}" class="btn btn-secondary btn-sm">Volver a recepcion</a>
+        </div>
+    </div>
+
+    <div class="card-body">
+        <div class="alert alert-info">
+            El pedido conserva su precio autorizado. La recepcion guarda el precio real del albaran/factura y aqui se compara la diferencia antes de cerrar economato.
+        </div>
+
+        {% if mostrar_laboratorio_hotel1 and resumen_simulacion_recepciones and resumen_simulacion_recepciones.total %}
+        <div class="alert alert-info" style="display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap;">
+            <div>
+                <strong>Recepciones simuladas Hotel 1:</strong>
+                {{ resumen_simulacion_recepciones.total }} albaranes,
+                {{ resumen_simulacion_recepciones.operativas or 0 }} validados operativamente,
+                {{ resumen_simulacion_recepciones.economicas or 0 }} validados economicamente.
+                <br>
+                <small>
+                    Periodo {{ resumen_simulacion_recepciones.fecha_desde or '-' }} / {{ resumen_simulacion_recepciones.fecha_hasta or '-' }}
+                    · {{ '%.2f'|format(resumen_simulacion_recepciones.importe or 0) }} EUR
+                </small>
+            </div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                <a class="btn btn-primary btn-sm" href="{{ url_for('compras.validar_recepciones', simulacion='hotel1', fecha_desde=resumen_simulacion_recepciones.fecha_desde, fecha_hasta=resumen_simulacion_recepciones.fecha_hasta) }}">
+                    Ver recepciones simuladas
+                </a>
+                <a class="btn btn-secondary btn-sm" href="{{ url_for('compras.lista_pedidos', simulacion='hotel1', fecha_desde=resumen_simulacion_recepciones.fecha_desde, fecha_hasta=resumen_simulacion_recepciones.fecha_hasta) }}">
+                    Ver pedidos simulados
+                </a>
+            </div>
+        </div>
+        {% endif %}
+
+        {% set estados = [
+            ('incidencias', 'Incidencias'),
+            ('ocr', 'OCR pendiente'),
+            ('fisico', 'Fisico'),
+            ('precios', 'Precios'),
+            ('rapido', 'Validacion rapida'),
+            ('validado', 'Validado'),
+            ('cerrado', 'Cerrado')
+        ] %}
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(135px,1fr));gap:8px;margin-bottom:12px;">
+            <a href="{{ url_for('compras.validar_recepciones') }}" style="text-decoration:none;color:inherit;border:1px solid rgba(255,255,255,.14);border-radius:8px;padding:10px;">
+                <small>Total</small><br><strong style="font-size:22px;">{{ resumen.total if resumen else 0 }}</strong>
+            </a>
+            {% for estado_id, etiqueta in estados %}
+            <a href="{{ url_for('compras.validar_recepciones', estado=estado_id) }}" style="text-decoration:none;color:inherit;border:1px solid rgba(255,255,255,.14);border-radius:8px;padding:10px;">
+                <small>{{ etiqueta }}</small><br><strong style="font-size:22px;">{{ resumen.get(estado_id, 0) if resumen else 0 }}</strong>
+            </a>
+            {% endfor %}
+        </div>
+
+        <form method="get" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;align-items:end;margin-bottom:14px;">
+            <div>
+                <label>Buscar</label>
+                <input name="buscar" class="form-control" value="{{ filtros.buscar or '' }}" placeholder="Albaran, pedido, proveedor...">
+            </div>
+            <div>
+                <label>Proveedor</label>
+                <select name="proveedor" class="form-control">
+                    <option value="">Todos</option>
+                    {% for p in proveedores %}
+                    <option value="{{ p.id }}" {% if filtros.proveedor == p.id|string %}selected{% endif %}>{{ p.nombre }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label>Departamento</label>
+                <select name="departamento" class="form-control">
+                    <option value="">Todos</option>
+                    {% for d in departamentos %}
+                    <option value="{{ d.id }}" {% if filtros.departamento == d.id|string %}selected{% endif %}>{{ d.nombre }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label>Estado</label>
+                <select name="estado" class="form-control">
+                    <option value="">Todos</option>
+                    {% for estado_id, etiqueta in estados %}
+                    <option value="{{ estado_id }}" {% if filtros.estado == estado_id %}selected{% endif %}>{{ etiqueta }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label>Simulacion</label>
+                <select name="simulacion" class="form-control">
+                    <option value="">Todas</option>
+                    {% if mostrar_laboratorio_hotel1 %}
+                    <option value="hotel1" {% if filtros.simulacion == 'hotel1' %}selected{% endif %}>Hotel 1</option>
+                    {% endif %}
+                </select>
+            </div>
+            <div>
+                <label>Desde</label>
+                <input type="date" name="fecha_desde" class="form-control" value="{{ filtros.fecha_desde or '' }}">
+            </div>
+            <div>
+                <label>Hasta</label>
+                <input type="date" name="fecha_hasta" class="form-control" value="{{ filtros.fecha_hasta or '' }}">
+            </div>
+            <div>
+                <button class="btn btn-primary">Filtrar</button>
+                <a class="btn btn-secondary" href="{{ url_for('compras.validar_recepciones') }}">Limpiar</a>
+            </div>
+        </form>
+
+        <div class="table-responsive">
+            <table class="table" style="min-width:1350px;">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Estado</th>
+                        <th>Departamento</th>
+                        <th>Proveedor</th>
+                        <th>Pedido</th>
+                        <th>Albaran</th>
+                        <th>Doc. econ.</th>
+                        <th>Fecha</th>
+                        <th>Lineas</th>
+                        <th>Comparativa</th>
+                        <th>Checks</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for r in recepciones %}
+                    <tr>
+                        <td>{{ r.id }}</td>
+                        <td>
+                            <span class="badge {{ r.estado_clase }}">{{ r.estado_unificado }}</span>
+                            {% if r.pendientes_ocr %}
+                            <br><small>{{ r.pendientes_ocr }} OCR sin asociar</small>
+                            {% endif %}
+                        </td>
+                        <td>{{ r.departamento_nombre or '-' }}</td>
+                        <td>{{ r.proveedor_nombre or '-' }}</td>
+                        <td>{{ r.numero_pedido or 'Directa' }}</td>
+                        <td>{{ r.numero_albaran or '-' }}</td>
+                        <td>
+                            <span class="badge bg-secondary">{{ r.documento_economico_tipo or r.documento_habitual or 'sin clasificar' }}</span>
+                            {% if r.estado_facturacion %}
+                            <br><small>{{ r.estado_facturacion }}</small>
+                            {% endif %}
+                        </td>
+                        <td>{{ r.fecha_recepcion or '-' }}</td>
+                        <td>
+                            <span class="metric-mini">Lineas {{ r.num_lineas or 0 }}</span>
+                            <span class="metric-mini">Incidencias {{ r.num_incidencias or 0 }}</span>
+                        </td>
+                        <td>
+                            {% if ver_precios and r.pedido_id %}
+                                <div>Pedido: {{ '%.2f'|format(r.importe_pedido_recibido or 0) }} EUR</div>
+                                <div>Factura: {{ '%.2f'|format(r.importe_recepcion or 0) }} EUR</div>
+                                <span class="badge {{ 'bg-danger' if r.diferencia_importe > 0.01 else ('bg-success' if r.diferencia_importe < -0.01 else 'bg-secondary') }}">
+                                    Dif. {{ '%+.2f'|format(r.diferencia_importe or 0) }} EUR
+                                </span>
+                                {% if r.num_diferencias_precio %}
+                                    <span class="badge bg-warning text-dark">{{ r.num_diferencias_precio }} linea(s) con cambio</span>
+                                {% endif %}
+                                {% if r.num_sin_precio %}
+                                    <span class="badge bg-danger">{{ r.num_sin_precio }} sin precio</span>
+                                {% endif %}
+                            {% elif ver_precios %}
+                                <div>Factura: {{ '%.2f'|format(r.importe_recepcion or 0) }} EUR</div>
+                                {% if r.num_sin_precio %}
+                                    <span class="badge bg-danger">{{ r.num_sin_precio }} sin precio</span>
+                                {% endif %}
+                            {% else %}
+                                -
+                            {% endif %}
+                        </td>
+                        <td>
+                            <span class="badge {{ 'bg-success' if r.validada_operativamente else 'bg-secondary' }}">Fisico</span>
+                            <span class="badge {{ 'bg-success' if r.stock_aplicado else 'bg-secondary' }}">Stock</span>
+                            <span class="badge {{ 'bg-success' if r.validada_economicamente else 'bg-secondary' }}">Economico</span>
+                        </td>
+                        <td style="display:flex;gap:6px;flex-wrap:wrap;">
+                            {% if ver_precios %}
+                            <a class="btn btn-warning btn-sm" href="{{ url_for('compras.pantalla_validacion_economica', id=r.id) }}">Precios</a>
+                            {% if r.puede_validar_rapido and not r.validada_economicamente %}
+                            <form method="post" action="{{ url_for('compras.validar_economica', id=r.id) }}" style="display:inline;">
+                                <button type="submit" class="btn btn-success btn-sm" onclick="return confirm('Validar economicamente sin cambios de precio?')">Validar rapido</button>
+                            </form>
+                            {% endif %}
+                            {% endif %}
+                            <a class="btn btn-primary btn-sm" href="{{ url_for('compras.editar_recepcion', recepcion_id=r.id) }}">Editar</a>
+                            <a class="btn btn-success btn-sm" href="{{ url_for('compras.desinfeccion_recepcion', recepcion_id=r.id) }}">Desinfeccion</a>
+                            <a class="btn btn-secondary btn-sm" href="{{ url_for('compras.etiquetas_recepcion', recepcion_id=r.id) }}" target="_blank">Etiquetas</a>
+                            {% if r.pedido_id %}
+                            <a class="btn btn-secondary btn-sm" href="{{ url_for('compras.ver_pedido', pedido_id=r.pedido_id) }}">Pedido</a>
+                            {% endif %}
+                            <a class="btn btn-info btn-sm" href="{{ url_for('compras.hoja_conformidad_recepcion_id', recepcion_id=r.id) }}">Conformidad</a>
+                            <a class="btn btn-info btn-sm" href="{{ url_for('compras.hoja_incidencias_recepcion_id', recepcion_id=r.id) }}">Incidencias</a>
+                            {% if r.nombre_archivo %}
+                            <a class="btn btn-secondary btn-sm" href="{{ url_for('compras.ver_documento_compra', documento_id=r.documento_id) }}">Documento</a>
+                            <a class="btn btn-outline-warning btn-sm" href="{{ url_for('compras.revisar_lineas_detectadas', documento_id=r.documento_id) }}">OCR</a>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="12" style="text-align:center;">No hay recepciones.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

@@ -1,0 +1,140 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="card">
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+        <div>
+            <h2 style="color: #ff6b00;"> CONTROL DE CADUCIDADES</h2>
+            <p style="color: #999;">Alertas y gestin de lotes</p>
+        </div>
+        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+            <form method="post" action="{{ url_for('appcc.generar_alertas_caducidad') }}" style="display:inline;">
+                <button type="submit" class="btn btn-warning">Actualizar alertas</button>
+            </form>
+            <a href="/appcc" class="btn btn-red"> Volver</a>
+        </div>
+    </div>
+    
+    <!-- Alertas activas -->
+    {% if alertas %}
+    <div style="background: #ffc107; color: black; padding: 15px; border-radius: 4px; margin: 20px 0;">
+        <h4 style="margin-top: 0;">️ Alertas activas ({{ alertas|length }})</h4>
+        <table style="width: 100%; background: transparent;">
+            <thead>
+                <tr>
+                    <th>Producto</th>
+                    <th>Lote</th>
+                    <th>Tipo</th>
+                    <th>Fecha alerta</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for a in alertas %}
+                <tr>
+                    <td>{{ a.producto_nombre }}</td>
+                    <td>{{ a.codigo_lote }}</td>
+                    <td>
+                        {% if a.tipo == 'proximo' %}️ Prximo a caducar
+                        {% elif a.tipo == 'caducado' %} CADUCADO
+                        {% endif %}
+                    </td>
+                    <td>{{ a.fecha_alerta }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+    
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+        <!-- Prximos a caducar -->
+        <div>
+            <h3 style="color: #ffc107;">️ Prximos a caducar (7 das)</h3>
+            <table style="width: 100%;">
+                <thead>
+                    <tr>
+                        <th>Producto</th>
+                        <th>Lote</th>
+                        <th>Caducidad</th>
+                        <th>Das</th>
+                        <th>Almacn</th>
+                        <th>Accin</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for l in proximos %}
+                    <tr>
+                        <td>{{ l.producto_nombre }}</td>
+                        <td>{{ l.codigo_lote }}</td>
+                        <td>{{ l.fecha_caducidad }}</td>
+                        <td><strong>{{ l.dias_restantes|int }} das</strong></td>
+                        <td>{{ l.almacen_nombre or '---' }}</td>
+                        <td>
+                            <form method="post" action="{{ url_for('appcc.marcar_lote_consumido', lote_id=l.id) }}" style="display:inline;">
+                                <button type="submit" class="btn-small btn-success" onclick="return confirm('Marcar como consumido?')">Consumir</button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="6" style="text-align: center;">No hay lotes prximos a caducar</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- Caducados -->
+        <div>
+            <h3 style="color: #dc3545;"> Caducados</h3>
+            <table style="width: 100%;">
+                <thead>
+                    <tr>
+                        <th>Producto</th>
+                        <th>Lote</th>
+                        <th>Caducidad</th>
+                        <th>Almacn</th>
+                        <th>Accin</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for l in caducados %}
+                    <tr>
+                        <td>{{ l.producto_nombre }}</td>
+                        <td>{{ l.codigo_lote }}</td>
+                        <td style="color: #dc3545;">{{ l.fecha_caducidad }}</td>
+                        <td>{{ l.almacen_nombre or '---' }}</td>
+                        <td>
+                            <form method="post" action="{{ url_for('appcc.marcar_lote_consumido', lote_id=l.id) }}" style="display:inline;">
+                                <button type="submit" class="btn-small btn-warning" onclick="return confirm('Descartar este lote?')">Descartar</button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="5" style="text-align: center;">No hay lotes caducados</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<style>
+    .btn-small {
+        padding: 3px 8px;
+        border-radius: 3px;
+        text-decoration: none;
+        font-size: 11px;
+        display: inline-block;
+        border: 0;
+        cursor: pointer;
+    }
+    .btn-success { background: #28a745; color: white; }
+    .btn-warning { background: #ffc107; color: black; }
+</style>
+{% endblock %}
+
+
+

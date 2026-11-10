@@ -1,0 +1,52 @@
+{% extends 'base.html' %}
+{% block title %}Facturacion recepcion{% endblock %}
+{% block breadcrumb %}Recepcion / Facturacion{% endblock %}
+{% block content %}
+<div class="card">
+  <div class="card-header">
+    <h2><i class="fas fa-file-invoice-dollar"></i> Facturacion</h2>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+      <a class="btn btn-success" href="{{ url_for('recepcion.exportar_facturas', q=filtros.q, tipo=filtros.tipo, estado=filtros.estado, desde=filtros.desde, hasta=filtros.hasta) }}">Exportar CSV</a>
+      <a class="btn btn-secondary" href="{{ url_for('recepcion.reservas') }}">Reservas</a>
+    </div>
+  </div>
+
+  <form method="get" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;align-items:end;margin-bottom:16px;">
+    <div class="form-group"><label class="form-label">Buscar</label><input class="form-control" name="q" value="{{ filtros.q }}" placeholder="Numero, cliente, reserva"></div>
+    <div class="form-group"><label class="form-label">Tipo</label><select class="form-control" name="tipo">
+      <option value="">Todos</option>
+      {% for t in ['factura','proforma','rectificativa'] %}<option value="{{ t }}" {% if filtros.tipo == t %}selected{% endif %}>{{ t }}</option>{% endfor %}
+    </select></div>
+    <div class="form-group"><label class="form-label">Estado</label><select class="form-control" name="estado">
+      <option value="">Todos</option>
+      {% for e in ['emitida','cobrada','anulada','rectificada'] %}<option value="{{ e }}" {% if filtros.estado == e %}selected{% endif %}>{{ e }}</option>{% endfor %}
+    </select></div>
+    <div class="form-group"><label class="form-label">Desde</label><input class="form-control" type="date" name="desde" value="{{ filtros.desde }}"></div>
+    <div class="form-group"><label class="form-label">Hasta</label><input class="form-control" type="date" name="hasta" value="{{ filtros.hasta }}"></div>
+    <button class="btn btn-primary" type="submit">Filtrar</button>
+  </form>
+
+  <div class="table-container">
+    <table>
+      <thead><tr><th>Numero</th><th>Fecha</th><th>Reserva</th><th>Habitacion</th><th>Cliente</th><th>Total</th><th>Saldo</th><th>Estado</th><th>Acciones</th></tr></thead>
+      <tbody>
+        {% for f in facturas %}
+        <tr>
+          <td><strong>{{ f.numero_completo }}</strong><br><small>{{ f.tipo }}</small></td>
+          <td>{{ f.fecha }}</td>
+          <td><a href="{{ url_for('recepcion.reserva_detalle', id=f.reserva_id) }}">{{ f.reserva_codigo or ('#' ~ f.reserva_id) }}</a></td>
+          <td>{{ f.habitacion_numero or f.habitacion_nombre or '-' }}</td>
+          <td>{{ f.cliente_nombre or '-' }}<br><small>{{ f.cliente_nif or '' }}</small></td>
+          <td>{{ '%.2f'|format(f.total or 0) }} &euro;</td>
+          <td>{{ '%.2f'|format(f.saldo or 0) }} &euro;</td>
+          <td>{{ f.estado }}</td>
+          <td><a class="btn btn-sm btn-primary" href="{{ url_for('recepcion.factura_detalle', id=f.id) }}">Ver</a></td>
+        </tr>
+        {% else %}
+        <tr><td colspan="9">No hay facturas con estos filtros.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

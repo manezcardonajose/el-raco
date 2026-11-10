@@ -1,0 +1,216 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="card">
+    <div class="card-header" style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:12px;">
+        <div>
+            <h2><i class="fas fa-clipboard-list"></i> Partes de produccion</h2>
+            <div style="font-size:13px; opacity:.8;">Trabajo planificado por fecha, servicio y subdepartamento.</div>
+            <div style="display:inline-flex;align-items:center;gap:8px;padding:6px 10px;border:1px solid var(--border,#d5dde8);border-radius:8px;background:var(--card-bg,#fff);color:var(--text-muted,#475569);font-size:.9rem;margin-top:8px;">
+                <i class="fas fa-building"></i>
+                <span>Centro actual:</span>
+                <strong style="color:var(--text,#0f172a);">{{ centro_activo.nombre if centro_activo else 'Empresa completa' }}</strong>
+            </div>
+        </div>
+
+        <div style="display:flex; gap:8px; flex-wrap:wrap; justify-content:flex-end;">
+            <a href="{{ url_for('produccion.produccion_departamentos', fecha=fecha) }}" class="btn btn-info">Por departamentos</a>
+            <a href="{{ url_for('produccion.costes_produccion', fecha_desde=fecha, fecha_hasta=fecha) }}" class="btn btn-primary">Costes</a>
+            <a href="{{ url_for('produccion.tarjetas_servicio', fecha=fecha) }}" class="btn btn-warning">Tarjetas servicio</a>
+            <a href="{{ url_for('produccion.asignacion_tarjetas_buffet', fecha=fecha) }}" class="btn btn-warning">Asignar tarjetas</a>
+            <a href="{{ url_for('produccion.trazabilidad_produccion', fecha_desde=fecha, fecha_hasta=fecha) }}" class="btn btn-info">Trazabilidad APPCC</a>
+            <a href="{{ url_for('produccion.necesidades_planificacion') }}" class="btn btn-secondary">Necesidades</a>
+            <a href="{{ url_for('produccion.nuevo_parte') }}" class="btn btn-success">Nuevo</a>
+        </div>
+    </div>
+
+    <div style="padding:15px; display:flex; gap:10px; flex-wrap:wrap; align-items:end;">
+        <form method="GET" style="display:flex; gap:10px; flex-wrap:wrap; align-items:end;">
+            <div>
+                <label style="display:block; font-size:12px; opacity:.75;">Fecha</label>
+                <input type="date" name="fecha" value="{{ fecha }}" class="form-control">
+            </div>
+            <label style="display:flex; gap:6px; align-items:center; padding-bottom:8px;">
+                <input type="checkbox" name="ver_todo" value="1" {% if ver_todo %}checked{% endif %}>
+                Ver todo
+            </label>
+            <button type="submit" class="btn btn-primary">Filtrar</button>
+        </form>
+
+        <input type="text" id="buscador" placeholder="Buscar parte, servicio o receta..." class="form-control" style="max-width:300px; margin-left:auto;">
+    </div>
+
+    <div id="produccion-datos-vivos" style="padding:0 15px 15px;" aria-live="polite">
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin-bottom:12px;">
+            <div style="background:#20252a;border:1px solid #344150;border-radius:8px;padding:12px;">
+                <div style="font-size:12px;opacity:.75;">Coste estimado</div>
+                <div style="font-size:22px;font-weight:700;">{{ "%.2f"|format(costes_totales.coste_estimado or 0) }} EUR</div>
+            </div>
+            <div style="background:#20252a;border:1px solid #344150;border-radius:8px;padding:12px;">
+                <div style="font-size:12px;opacity:.75;">Coste real</div>
+                <div style="font-size:22px;font-weight:700;">{{ "%.2f"|format(costes_totales.coste_total_real or 0) }} EUR</div>
+            </div>
+            <div style="background:#20252a;border:1px solid #344150;border-radius:8px;padding:12px;">
+                <div style="font-size:12px;opacity:.75;">Merma real</div>
+                <div style="font-size:22px;font-weight:700;color:#ff6b6b;">{{ "%.2f"|format(costes_totales.valor_merma or 0) }} EUR</div>
+            </div>
+            <div style="background:#20252a;border:1px solid #344150;border-radius:8px;padding:12px;">
+                <div style="font-size:12px;opacity:.75;">Reaprovechado</div>
+                <div style="font-size:22px;font-weight:700;color:#51cf66;">{{ "%.2f"|format(costes_totales.valor_reaprovechado or 0) }} EUR</div>
+            </div>
+            <div style="background:#20252a;border:1px solid #344150;border-radius:8px;padding:12px;">
+                <div style="font-size:12px;opacity:.75;">Desviacion</div>
+                <div style="font-size:22px;font-weight:700;color:{% if costes_totales.desviacion > 0 %}#ff6b6b{% else %}#51cf66{% endif %};">{{ "%.2f"|format(costes_totales.desviacion or 0) }} EUR</div>
+            </div>
+            <div style="background:#20252a;border:1px solid #344150;border-radius:8px;padding:12px;">
+                <div style="font-size:12px;opacity:.75;">Raciones</div>
+                <div style="font-size:22px;font-weight:700;">{{ "%.0f"|format(costes_totales.raciones or 0) }}</div>
+            </div>
+        </div>
+
+        <div class="table-container" style="margin-bottom:15px;">
+            <table class="table" style="margin-bottom:0;">
+                <thead>
+                    <tr>
+                        <th>Servicio</th>
+                        <th style="text-align:right;">Partes</th>
+                        <th style="text-align:right;">Recetas</th>
+                        <th style="text-align:right;">Raciones</th>
+                        <th style="text-align:right;">Estimado</th>
+                        <th style="text-align:right;">Real</th>
+                        <th style="text-align:right;">Extra</th>
+                        <th style="text-align:right;">Merma</th>
+                        <th style="text-align:right;">Guardado</th>
+                        <th style="text-align:right;">Desv.</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for c in costes_servicios %}
+                    <tr>
+                        <td>{{ c.servicio }}</td>
+                        <td style="text-align:right;">{{ c.partes or 0 }}</td>
+                        <td style="text-align:right;">{{ c.recetas or 0 }}</td>
+                        <td style="text-align:right;">{{ "%.0f"|format(c.raciones or 0) }}</td>
+                        <td style="text-align:right;">{{ "%.2f"|format(c.coste_estimado or 0) }}</td>
+                        <td style="text-align:right;">{{ "%.2f"|format(c.coste_total_real or 0) }}</td>
+                        <td style="text-align:right;">{{ "%.2f"|format(c.coste_extra or 0) }}</td>
+                        <td style="text-align:right;color:#ff6b6b;">{{ "%.2f"|format(c.valor_merma or 0) }}</td>
+                        <td style="text-align:right;color:#51cf66;">{{ "%.2f"|format(c.valor_reaprovechado or 0) }}</td>
+                        <td style="text-align:right;color:{% if c.desviacion > 0 %}#ff6b6b{% else %}#51cf66{% endif %};">{{ "%.2f"|format(c.desviacion or 0) }}</td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="10" style="text-align:center;padding:18px;">No hay costes para la jornada filtrada.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="table-container">
+        <table class="table table-hover" id="tabla">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Fecha</th>
+                    <th>Servicio</th>
+                    <th>Subdepartamento</th>
+                    <th style="text-align:right;">Recetas</th>
+                    <th style="text-align:right;">Raciones</th>
+                    <th>Estado</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+
+            <tbody>
+                {% for p in partes %}
+                <tr>
+                    <td>#{{ p.id }}</td>
+                    <td>{{ p.fecha }}</td>
+                    <td>{{ p.turno or '-' }}</td>
+                    <td>{{ p.subdepartamento_nombre or p.punto_venta_nombre or '-' }}</td>
+                    <td style="text-align:right;">{{ p.num_lineas or 0 }}</td>
+                    <td style="text-align:right;">{{ "%.0f"|format(p.raciones_planificadas or 0) }}</td>
+
+                    <td>
+                        <span class="badge
+                            {% if p.estado == 'planificado' %}badge-secondary
+                            {% elif p.estado == 'en_curso' %}badge-warning
+                            {% elif p.estado == 'completado' %}badge-success
+                            {% endif %}">
+                            {{ p.estado }}
+                        </span>
+                    </td>
+
+                    <td style="display:flex; gap:5px; flex-wrap:wrap;">
+                        <a href="{{ url_for('produccion.gestionar_parte_subdepartamento', parte_id=p.id) }}" class="btn-sm btn-warning">Gestionar</a>
+                        <a href="{{ url_for('produccion.recogida_sobrantes_parte', parte_id=p.id) }}" class="btn-sm btn-info">Recogida buffet</a>
+                        <a href="{{ url_for('produccion.tarjetas_servicio', fecha=p.fecha, servicio=p.turno) }}" class="btn-sm btn-success">Tarjetas servicio</a>
+                        <a href="{{ url_for('produccion.ver_parte', parte_id=p.id) }}" class="btn-sm btn-info">Ver</a>
+                        <a href="{{ url_for('produccion.editar_parte', parte_id=p.id) }}" class="btn-sm btn-primary">Editar</a>
+
+                        {% if p.estado == 'planificado' %}
+                        <form method="POST" action="{{ url_for('produccion.iniciar_parte', parte_id=p.id) }}" style="display:inline;">
+                            <button class="btn-sm btn-warning" type="submit">Iniciar</button>
+                        </form>
+                        {% endif %}
+
+                        {% if p.estado == 'en_curso' %}
+                        <form method="POST" action="{{ url_for('produccion.completar_parte', parte_id=p.id) }}" style="display:inline;">
+                            <button class="btn-sm btn-success">Completar</button>
+                        </form>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="8" style="text-align:center; padding:25px;">No hay partes para este filtro.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+function filtrarProduccion() {
+    const filtro = document.getElementById('buscador').value.toLowerCase();
+    document.querySelectorAll("#tabla tbody tr").forEach(tr => {
+        tr.style.display = tr.innerText.toLowerCase().includes(filtro) ? "" : "none";
+    });
+}
+document.getElementById('buscador').addEventListener('input', filtrarProduccion);
+let actualizandoProduccion = false;
+async function actualizarProduccion() {
+    const activo = document.activeElement;
+    if (actualizandoProduccion || document.hidden || (activo && activo.matches('input,select,textarea'))) return;
+    actualizandoProduccion = true;
+    try {
+        const respuesta = await fetch(window.location.href, {cache: 'no-store', credentials: 'same-origin'});
+        if (!respuesta.ok || respuesta.redirected) return;
+        const pagina = new DOMParser().parseFromString(await respuesta.text(), 'text/html');
+        const nuevos = pagina.getElementById('produccion-datos-vivos');
+        const actuales = document.getElementById('produccion-datos-vivos');
+        if (!nuevos || !actuales || document.activeElement?.matches('input,select,textarea')) return;
+        const token = document.querySelector('meta[name="csrf-token"]')?.content;
+        nuevos.querySelectorAll('form[method="POST"],form[method="post"]').forEach(form => {
+            if (token && !form.querySelector('[name="csrf_token"]')) {
+                const campo = document.createElement('input');
+                campo.type = 'hidden'; campo.name = 'csrf_token'; campo.value = token;
+                form.appendChild(campo);
+            }
+        });
+        actuales.replaceWith(nuevos);
+        filtrarProduccion();
+    } catch (_) {
+        // Mantener la ultima lectura si falla la conexion.
+    } finally {
+        actualizandoProduccion = false;
+    }
+}
+setInterval(actualizarProduccion, 15000);
+document.addEventListener('visibilitychange', () => { if (!document.hidden) actualizarProduccion(); });
+</script>
+
+{% endblock %}

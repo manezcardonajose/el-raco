@@ -1,0 +1,50 @@
+{% extends 'base.html' %}
+{% block title %}Reservas{% endblock %}
+{% block breadcrumb %}Recepcion / Reservas{% endblock %}
+{% block content %}
+<div class="card">
+  <div class="card-header">
+    <h2><i class="fas fa-calendar-check"></i> Reservas</h2>
+    <a class="btn btn-success" href="{{ url_for('recepcion.reserva_form') }}"><i class="fas fa-plus"></i> Nueva reserva</a>
+  </div>
+
+  <form method="get" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;align-items:end;margin-bottom:16px;">
+    <div class="form-group"><label class="form-label">Buscar</label><input class="form-control" name="q" value="{{ filtros.q }}" placeholder="Codigo, cliente, habitacion"></div>
+    <div class="form-group"><label class="form-label">Estado</label><select class="form-control" name="estado">
+      <option value="">Todos</option>
+      {% for key,label in estados.items() %}<option value="{{ key }}" {% if filtros.estado == key %}selected{% endif %}>{{ label }}</option>{% endfor %}
+    </select></div>
+    <div class="form-group"><label class="form-label">Desde</label><input class="form-control" type="date" name="desde" value="{{ filtros.desde }}"></div>
+    <div class="form-group"><label class="form-label">Hasta</label><input class="form-control" type="date" name="hasta" value="{{ filtros.hasta }}"></div>
+    <button class="btn btn-primary" type="submit"><i class="fas fa-search"></i> Filtrar</button>
+  </form>
+
+  <div class="table-container">
+    <table>
+      <thead><tr><th>Codigo</th><th>Fechas</th><th>Habitacion</th><th>Titular</th><th>Canal</th><th>Regimen</th><th>Personas</th><th>Viajeros</th><th>Saldo</th><th>Estado</th><th>Acciones</th></tr></thead>
+      <tbody>
+        {% for r in reservas %}
+        <tr>
+          <td><strong>{{ r.codigo or ('#' ~ r.id) }}</strong></td>
+          <td>{{ r.fecha_entrada }}<br><small>{{ r.fecha_salida }}</small></td>
+          <td>{{ r.habitacion_numero or r.habitacion_nombre or '-' }}</td>
+          <td>{{ r.titular_nombre or '-' }}<br><small>{{ r.titular_telefono or r.titular_email or '' }}</small></td>
+          <td>{{ r.canal_nombre or r.origen or '-' }}{% if r.localizador_externo %}<br><small>{{ r.localizador_externo }}</small>{% endif %}</td>
+          <td>{{ regimenes.get(r.regimen, r.regimen) }}</td>
+          <td>{{ (r.adultos or 0) + (r.menores or 0) }}</td>
+          <td>{{ r.viajeros or 0 }}</td>
+          <td>{{ '%.2f'|format(r.saldo or 0) }} &euro;</td>
+          <td>{{ estados.get(r.estado, r.estado) }}</td>
+          <td>
+            <a class="btn btn-sm btn-primary" href="{{ url_for('recepcion.reserva_detalle', id=r.id) }}">Ver</a>
+            <a class="btn btn-sm btn-secondary" href="{{ url_for('recepcion.reserva_form', id=r.id) }}">Editar</a>
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="11">No hay reservas para estos filtros.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

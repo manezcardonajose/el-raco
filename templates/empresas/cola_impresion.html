@@ -1,0 +1,130 @@
+{% extends "base.html" %}
+{% block title %}Cola de impresion - El Raco ERP{% endblock %}
+{% block content %}
+
+<div class="card">
+    <div class="card-header" style="display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap;">
+        <div>
+            <h2><i class="fas fa-list-check"></i> Cola de impresion</h2>
+            <p style="color:#64748b;margin-top:6px;">Trabajos enviados desde etiquetas, recepciones y produccion hacia los equipos configurados.</p>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <a href="{{ url_for('empresas.dispositivos_impresion') }}" class="btn btn-primary"><i class="fas fa-print"></i> Dispositivos</a>
+            <a href="{{ url_for('empresas.configurar_etiquetas') }}" class="btn btn-secondary"><i class="fas fa-tags"></i> Formatos</a>
+        </div>
+    </div>
+
+    <form method="get" class="filter-bar">
+        <label>Estado
+            <select class="form-control" name="estado">
+                <option value="">Todos</option>
+                {% for e in ['pendiente','procesando','impreso','error','cancelado'] %}
+                <option value="{{ e }}" {% if estado == e %}selected{% endif %}>{{ e|capitalize }}</option>
+                {% endfor %}
+            </select>
+        </label>
+        <button class="btn btn-primary" type="submit">Filtrar</button>
+        <a class="btn btn-secondary" href="{{ url_for('empresas.cola_impresion') }}">Limpiar</a>
+    </form>
+
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Trabajo</th>
+                    <th>Equipo</th>
+                    <th>Impresora</th>
+                    <th>Estado</th>
+                    <th>Fecha</th>
+                    <th>Error</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for t in trabajos %}
+                {% set dispositivo = (dispositivos|selectattr('device_uid', 'equalto', t.device_uid)|list|first) %}
+                <tr>
+                    <td><strong>{{ t.id }}</strong></td>
+                    <td>
+                        {{ t.titulo or '-' }}<br>
+                        <small>{{ t.tipo or '-' }} · {{ t.origen_tabla or '-' }} #{{ t.origen_id or '-' }} · {{ t.formato_codigo or '-' }} · {{ t.lenguaje_impresion or 'html' }}</small>
+                    </td>
+                    <td>
+                        {{ dispositivo.nombre if dispositivo else (t.device_uid[-10:] if t.device_uid else '-') }}<br>
+                        <small>{{ dispositivo.ubicacion if dispositivo else '' }}</small>
+                        {% if dispositivo %}
+                            {% if dispositivo.online %}
+                            <br><span class="badge badge-success">Online</span>
+                            {% else %}
+                            <br><span class="badge badge-secondary">Offline</span>
+                            {% endif %}
+                        {% endif %}
+                    </td>
+                    <td>{{ t.impresora_nombre or '-' }}</td>
+                    <td>
+                        <span class="badge {% if t.estado == 'impreso' %}badge-success{% elif t.estado == 'error' %}badge-danger{% elif t.estado == 'pendiente' %}badge-warning{% else %}badge-info{% endif %}">
+                            {{ t.estado or 'pendiente' }}
+                        </span>
+                        {% if t.intentos %}<small>{{ t.intentos }} intento/s</small>{% endif %}
+                    </td>
+                    <td>{{ t.created_at or '-' }}<br><small>{{ t.processed_at or '' }}</small></td>
+                    <td>{{ t.error or '-' }}</td>
+                    <td>
+                        <div class="queue-actions">
+                            {% if t.estado in ['error', 'procesando', 'cancelado', 'impreso'] %}
+                            <form method="post" action="{{ url_for('empresas.accion_trabajo_impresion', job_id=t.id) }}">
+                                <input type="hidden" name="accion" value="reintentar">
+                                <input type="hidden" name="estado_filtro" value="{{ estado }}">
+                                <button class="btn btn-sm btn-primary" type="submit">Reintentar</button>
+                            </form>
+                            {% endif %}
+                            {% if t.estado in ['pendiente', 'procesando', 'error'] %}
+                            <form method="post" action="{{ url_for('empresas.accion_trabajo_impresion', job_id=t.id) }}">
+                                <input type="hidden" name="accion" value="cancelar">
+                                <input type="hidden" name="estado_filtro" value="{{ estado }}">
+                                <button class="btn btn-sm btn-secondary" type="submit">Cancelar</button>
+                            </form>
+                            {% endif %}
+                            {% if t.estado in ['pendiente', 'procesando', 'error'] %}
+                            <form method="post" action="{{ url_for('empresas.accion_trabajo_impresion', job_id=t.id) }}">
+                                <input type="hidden" name="accion" value="marcar_impreso">
+                                <input type="hidden" name="estado_filtro" value="{{ estado }}">
+                                <button class="btn btn-sm btn-success" type="submit">Marcar impreso</button>
+                            </form>
+                            {% endif %}
+                        </div>
+                    </td>
+                </tr>
+                {% else %}
+                <tr><td colspan="8">No hay trabajos de impresion.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<style>
+.filter-bar {
+    display:flex;
+    gap:10px;
+    align-items:end;
+    flex-wrap:wrap;
+    margin-bottom:12px;
+}
+.filter-bar label {
+    color:#334155;
+    font-weight:600;
+    min-width:180px;
+}
+.queue-actions {
+    display:flex;
+    gap:6px;
+    flex-wrap:wrap;
+}
+.queue-actions form {
+    margin:0;
+}
+</style>
+
+{% endblock %}

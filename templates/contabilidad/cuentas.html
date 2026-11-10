@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block breadcrumb %}Contabilidad / Cuentas{% endblock %}
+{% block content %}
+
+<div class="card">
+    <div class="card-header">
+        <div>
+            <h2><i class="fas fa-list-ol"></i> Cuentas sugeridas</h2>
+            <div style="font-size:13px;opacity:.8;">Base simple inspirada en el PGC para clasificar documentos y exportar a asesoria.</div>
+        </div>
+        <a href="{{ url_for('contabilidad.dashboard') }}" class="btn btn-secondary">Panel</a>
+    </div>
+
+    <div class="table-container">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Codigo</th>
+                    <th>Nombre</th>
+                    <th>Grupo</th>
+                    <th>Tipo</th>
+                    <th>Descripcion</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for c in cuentas %}
+                <tr>
+                    <td><strong>{{ c.codigo }}</strong></td>
+                    <td>{{ c.nombre }}</td>
+                    <td>{{ c.grupo or '-' }}</td>
+                    <td>{{ c.tipo or '-' }}</td>
+                    <td>{{ c.descripcion or '-' }}</td>
+                </tr>
+                {% else %}
+                <tr><td colspan="5" style="text-align:center;padding:18px;">No hay cuentas configuradas.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{% endblock %}

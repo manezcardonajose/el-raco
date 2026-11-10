@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="card">
+    <h2 style="color: #ff6b00;">️ REGISTRAR TEMPERATURA</h2>
+    <h3>{{ equipo.nombre }}</h3>
+    
+    <div style="background: #3a3f44; padding: 15px; border-radius: 4px; margin: 20px 0;">
+        <p><strong>Ubicacin:</strong> {{ equipo.ubicacion or 'No especificada' }}</p>
+        {% if equipo.rango_min and equipo.rango_max %}
+        <p><strong>Rango ptimo:</strong> {{ equipo.rango_min }}°C - {{ equipo.rango_max }}°C</p>
+        {% else %}
+        <p><strong>Rango ptimo:</strong> No definido</p>
+        {% endif %}
+    </div>
+    
+    <form method="POST">
+        <div style="margin-bottom: 15px;">
+            <label>Temperatura (°C):</label>
+            <input type="number" step="0.1" name="temperatura" required style="width: 100%; padding: 8px;">
+        </div>
+        
+        <div style="margin-bottom: 15px;">
+            <label>Observaciones:</label>
+            <textarea name="observaciones" rows="3" style="width: 100%; padding: 8px;"></textarea>
+        </div>
+        
+        <div style="background: #2b2f33; padding: 15px; border-radius: 4px; margin: 20px 0;">
+            <p style="color: #ffc107;">️ Si la temperatura est fuera de rango, se generar automticamente una incidencia.</p>
+        </div>
+        
+        <button type="submit" class="btn btn-success"> Registrar</button>
+        <a href="/appcc/equipos" class="btn btn-red">Cancelar</a>
+    </form>
+</div>
+{% endblock %}
+
+
+

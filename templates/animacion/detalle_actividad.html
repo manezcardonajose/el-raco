@@ -1,0 +1,289 @@
+{% extends "base.html" %}
+
+{% block title %}{{ actividad.titulo }}{% endblock %}
+{% block breadcrumb %}<a href="{{ url_for('animacion.dashboard') }}">Animacion</a> / {{ actividad.titulo }}{% endblock %}
+
+{% block content %}
+<style>
+    .ani-layout {
+        display: grid;
+        grid-template-columns: minmax(0, 1.25fr) minmax(320px, .75fr);
+        gap: 16px;
+    }
+    .ani-panel {
+        border: 1px solid var(--border-color, #d5dde7);
+        background: var(--card-bg, #fff);
+        border-radius: 8px;
+        overflow: hidden;
+        box-shadow: 0 1px 2px rgba(0,0,0,.04);
+    }
+    .ani-panel h1, .ani-panel h2 {
+        margin: 0;
+        padding: 14px 16px;
+        color: #ff6b00;
+        border-bottom: 1px solid var(--border-color, #d5dde7);
+        background: rgba(255,107,0,.07);
+    }
+    .ani-panel h1 { font-size: 24px; }
+    .ani-panel h2 { font-size: 18px; }
+    .ani-body { padding: 14px; }
+    .ani-grid-form {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(180px, 1fr));
+        gap: 10px;
+    }
+    .ani-field label {
+        display: block;
+        color: var(--text-muted, #5f6b7a);
+        font-size: 12px;
+        margin-bottom: 4px;
+    }
+    .ani-field input, .ani-field select, .ani-field textarea {
+        width: 100%;
+        min-height: 36px;
+        border: 1px solid var(--border-color, #d5dde7);
+        border-radius: 7px;
+        padding: 7px 9px;
+        background: var(--input-bg, #fff);
+        color: var(--text-color, #16202a);
+    }
+    .ani-field textarea {
+        min-height: 80px;
+        resize: vertical;
+    }
+    .span-2 { grid-column: 1 / -1; }
+    .ani-actions {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        margin-top: 12px;
+    }
+    .ani-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    .ani-table th, .ani-table td {
+        padding: 9px 8px;
+        border-bottom: 1px solid var(--border-color, #d5dde7);
+        text-align: left;
+    }
+    .ani-table th {
+        color: #ff6b00;
+        font-size: 12px;
+        text-transform: uppercase;
+    }
+    @media (max-width: 980px) {
+        .ani-layout, .ani-grid-form { grid-template-columns: 1fr; }
+    }
+</style>
+
+<div class="ani-layout">
+    <section class="ani-panel">
+        <h1><i class="fas fa-star"></i> {{ actividad.titulo }}</h1>
+        <div class="ani-body">
+            {% if puede_gestionar %}
+            <form method="post">
+                <div class="ani-grid-form">
+                    <div class="ani-field span-2">
+                        <label>Titulo</label>
+                        <input name="titulo" value="{{ actividad.titulo }}" required>
+                    </div>
+                    <div class="ani-field">
+                        <label>Fecha</label>
+                        <input type="date" name="fecha" value="{{ actividad.fecha }}" required>
+                    </div>
+                    <div class="ani-field">
+                        <label>Responsable</label>
+                        <input name="responsable" value="{{ actividad.responsable or '' }}">
+                    </div>
+                    <div class="ani-field">
+                        <label>Modelo</label>
+                        <select name="modelo_prestacion">
+                            {% for key, label in modelos_prestacion %}
+                            <option value="{{ key }}" {% if (actividad.modelo_prestacion or 'propia') == key %}selected{% endif %}>{{ label }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="ani-field">
+                        <label>Proveedor externo</label>
+                        <select name="proveedor_id">
+                            <option value="">Sin proveedor</option>
+                            {% for p in proveedores|default([]) %}
+                            <option value="{{ p.id }}" {% if actividad.proveedor_id == p.id %}selected{% endif %}>{{ p.nombre }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="ani-field">
+                        <label>Hora inicio</label>
+                        <input type="time" name="hora_inicio" value="{{ actividad.hora_inicio or '' }}">
+                    </div>
+                    <div class="ani-field">
+                        <label>Hora fin</label>
+                        <input type="time" name="hora_fin" value="{{ actividad.hora_fin or '' }}">
+                    </div>
+                    <div class="ani-field">
+                        <label>Tipo</label>
+                        <select name="tipo">
+                            {% for key, label in tipos %}
+                            <option value="{{ key }}" {% if actividad.tipo == key %}selected{% endif %}>{{ label }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="ani-field">
+                        <label>Publico</label>
+                        <select name="publico">
+                            {% for key, label in publicos %}
+                            <option value="{{ key }}" {% if actividad.publico == key %}selected{% endif %}>{{ label }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="ani-field">
+                        <label>Idioma</label>
+                        <input name="idioma" value="{{ actividad.idioma or 'multi' }}">
+                    </div>
+                    <div class="ani-field">
+                        <label>Ubicacion</label>
+                        <input name="ubicacion" value="{{ actividad.ubicacion or '' }}">
+                    </div>
+                    <div class="ani-field">
+                        <label>Capacidad</label>
+                        <input type="number" name="capacidad" value="{{ actividad.capacidad or 0 }}">
+                    </div>
+                    <div class="ani-field">
+                        <label>Estado</label>
+                        <select name="estado">
+                            {% for estado in ['planificada', 'en_curso', 'realizada', 'cancelada'] %}
+                            <option value="{{ estado }}" {% if actividad.estado == estado %}selected{% endif %}>{{ estado }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="ani-field">
+                        <label>Coste estimado</label>
+                        <input name="coste_estimado" value="{{ actividad.coste_estimado or 0 }}">
+                    </div>
+                    <div class="ani-field">
+                        <label>Coste real</label>
+                        <input name="coste_real" value="{{ actividad.coste_real or 0 }}">
+                    </div>
+                    <div class="ani-field">
+                        <label>Coste personal interno</label>
+                        <input name="coste_personal_interno" value="{{ actividad.coste_personal_interno or 0 }}">
+                    </div>
+                    <div class="ani-field">
+                        <label>Coste proveedor</label>
+                        <input name="coste_proveedor" value="{{ actividad.coste_proveedor or 0 }}">
+                    </div>
+                    <div class="ani-field">
+                        <label>Coste materiales</label>
+                        <input name="coste_materiales" value="{{ actividad.coste_materiales or 0 }}">
+                    </div>
+                    <div class="ani-field">
+                        <label>Ingreso directo</label>
+                        <input name="ingreso_directo" value="{{ actividad.ingreso_directo or 0 }}">
+                    </div>
+                    <div class="ani-field">
+                        <label>Venta indirecta estimada</label>
+                        <input name="venta_indirecta_estimada" value="{{ actividad.venta_indirecta_estimada or 0 }}">
+                    </div>
+                    <div class="ani-field">
+                        <label>Contrato / referencia</label>
+                        <input name="contrato_referencia" value="{{ actividad.contrato_referencia or '' }}">
+                    </div>
+                    <div class="ani-field span-2">
+                        <label>Observaciones</label>
+                        <textarea name="observaciones">{{ actividad.observaciones or '' }}</textarea>
+                    </div>
+                </div>
+                <div class="ani-actions">
+                    <button class="btn btn-success" type="submit"><i class="fas fa-save"></i> Guardar</button>
+                    <a class="btn btn-secondary" href="{{ url_for('animacion.dashboard', desde=actividad.fecha, hasta=actividad.fecha) }}">Volver</a>
+                </div>
+            </form>
+            {% else %}
+            <p>{{ actividad.fecha|fecha_es }} {{ actividad.hora_inicio }} - {{ actividad.hora_fin }}</p>
+            <p>{{ actividad.tipo }} / {{ actividad.publico }} / {{ actividad.ubicacion }}</p>
+            {% endif %}
+        </div>
+    </section>
+
+    <section class="ani-panel">
+        <h2>Registrar asistencia</h2>
+        <div class="ani-body">
+            <form method="post" action="{{ url_for('animacion.registrar_asistencia', actividad_id=actividad.id) }}">
+                <div class="ani-grid-form">
+                    <div class="ani-field span-2">
+                        <label>Reserva vinculada</label>
+                        <select name="reserva_id">
+                            <option value="">Sin reserva / cliente externo</option>
+                            {% for r in reservas %}
+                            <option value="{{ r.id }}">{{ r.codigo }} - {{ r.titular_nombre }} - {{ r.habitacion }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="ani-field">
+                        <label>Habitacion</label>
+                        <input name="habitacion">
+                    </div>
+                    <div class="ani-field">
+                        <label>Cliente / grupo</label>
+                        <input name="cliente_nombre">
+                    </div>
+                    <div class="ani-field">
+                        <label>Adultos</label>
+                        <input type="number" name="adultos" value="0">
+                    </div>
+                    <div class="ani-field">
+                        <label>Menores</label>
+                        <input type="number" name="menores" value="0">
+                    </div>
+                    <div class="ani-field">
+                        <label>Pax total</label>
+                        <input type="number" name="pax" value="1">
+                    </div>
+                    <div class="ani-field">
+                        <label>Satisfaccion 1-5</label>
+                        <input type="number" name="satisfaccion" min="1" max="5">
+                    </div>
+                    <div class="ani-field span-2">
+                        <label>Comentarios</label>
+                        <textarea name="comentarios"></textarea>
+                    </div>
+                </div>
+                <div class="ani-actions">
+                    <button class="btn btn-primary" type="submit"><i class="fas fa-check"></i> Registrar</button>
+                </div>
+            </form>
+        </div>
+    </section>
+</div>
+
+<section class="ani-panel" style="margin-top:16px;">
+    <h2>Asistencia registrada</h2>
+    <div class="ani-body" style="overflow-x:auto;">
+        <table class="ani-table">
+            <thead>
+                <tr>
+                    <th>Cliente</th>
+                    <th>Habitacion</th>
+                    <th>Pax</th>
+                    <th>Satisfaccion</th>
+                    <th>Comentarios</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for a in asistencias %}
+                <tr>
+                    <td>{{ a.cliente_nombre or a.reserva_id or 'Sin nombre' }}</td>
+                    <td>{{ a.habitacion or '-' }}</td>
+                    <td>{{ a.pax }} pax<br><small>{{ a.adultos }} adultos / {{ a.menores }} menores</small></td>
+                    <td>{{ a.satisfaccion or '-' }}</td>
+                    <td>{{ a.comentarios or '' }}</td>
+                </tr>
+                {% else %}
+                <tr><td colspan="5">Sin asistencias registradas.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</section>
+{% endblock %}

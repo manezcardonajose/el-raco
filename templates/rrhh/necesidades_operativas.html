@@ -1,0 +1,282 @@
+{% extends 'base.html' %}
+{% block title %}Necesidades operativas{% endblock %}
+{% block breadcrumb %}RRHH / Necesidades operativas{% endblock %}
+
+{% block content %}
+{% set ns = namespace(personas=0, plantilla=0, horas=0, personas_lunes=0, plantilla_lunes=0, horas_lunes=0) %}
+{% for n in necesidades %}
+    {% set ns.personas = ns.personas + (n.personas_necesarias or 0) %}
+    {% set ns.plantilla = ns.plantilla + (n.plantilla_objetivo or 0) %}
+    {% set ns.horas = ns.horas + ((n.personas_necesarias or 0) * (n.horas_dia or 0)) %}
+    {% if n.dia_semana == 0 %}
+        {% set ns.personas_lunes = ns.personas_lunes + (n.personas_necesarias or 0) %}
+        {% set ns.plantilla_lunes = ns.plantilla_lunes + (n.plantilla_objetivo or 0) %}
+        {% set ns.horas_lunes = ns.horas_lunes + ((n.personas_necesarias or 0) * (n.horas_dia or 0)) %}
+    {% endif %}
+{% endfor %}
+
+<style>
+    .ops-kpis {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 12px;
+        margin: 14px 0 18px;
+    }
+    .ops-kpi {
+        border: 1px solid var(--border-color, #cbd5e1);
+        border-radius: 6px;
+        background: var(--card-bg, #fff);
+        padding: 12px 14px;
+    }
+    .ops-kpi span {
+        display: block;
+        color: var(--text-muted, #64748b);
+        font-size: 12px;
+        margin-bottom: 5px;
+    }
+    .ops-kpi strong {
+        display: block;
+        font-size: 24px;
+        line-height: 1;
+    }
+    .ops-form {
+        padding: 16px;
+        margin: 18px 0;
+    }
+    .ops-form-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+        gap: 12px;
+        align-items: end;
+    }
+    .ops-form .wide {
+        grid-column: span 2;
+    }
+    .ops-pill {
+        display: inline-flex;
+        align-items: center;
+        border: 1px solid var(--border-color, #cbd5e1);
+        border-radius: 999px;
+        padding: 3px 8px;
+        font-size: 12px;
+        color: var(--text-muted, #475569);
+        background: color-mix(in srgb, var(--card-bg, #fff) 86%, var(--accent-color, #ff6b00) 14%);
+        white-space: nowrap;
+    }
+    .ops-table td {
+        vertical-align: top;
+    }
+    .ops-main-cell strong {
+        display: block;
+        margin-bottom: 4px;
+    }
+    .ops-muted {
+        color: var(--text-muted, #64748b);
+        font-size: 12px;
+    }
+    .ops-note {
+        max-width: 460px;
+        line-height: 1.35;
+    }
+    @media (max-width: 900px) {
+        .ops-form .wide {
+            grid-column: span 1;
+        }
+        .ops-table {
+            min-width: 980px;
+        }
+    }
+</style>
+
+<div class="card">
+    <div class="card-header">
+        <h2><i class="fas fa-clipboard-list"></i> Necesidades operativas</h2>
+        <a class="btn btn-info" href="{{ url_for('rrhh.cuadrante_real') }}">
+            <i class="fas fa-calendar-week"></i> Ver cuadrante real
+        </a>
+    </div>
+
+    <div class="alert alert-info">
+        Esta pantalla marca la cobertura mínima por centro, departamento, puesto, día y horario.
+        La plantilla objetivo calcula el refuerzo necesario para cubrir dos días libres por persona.
+    </div>
+
+    <div class="ops-kpis">
+        <div class="ops-kpi">
+            <span>Necesidades activas</span>
+            <strong>{{ necesidades|length }}</strong>
+        </div>
+        <div class="ops-kpi">
+            <span>Personas día base</span>
+            <strong>{{ ns.personas_lunes|round(0)|int }}</strong>
+        </div>
+        <div class="ops-kpi">
+            <span>Horas día base</span>
+            <strong>{{ ns.horas_lunes|round(1) }}</strong>
+        </div>
+        <div class="ops-kpi">
+            <span>Plantilla objetivo base</span>
+            <strong>{{ ns.plantilla_lunes|round(1) }}</strong>
+        </div>
+    </div>
+
+    <form method="post" class="card ops-form">
+        <h3 style="color:#ff6b00;margin-bottom:15px;">Nueva necesidad</h3>
+        <div class="ops-form-grid">
+            <div class="form-group">
+                <label class="form-label">Centro</label>
+                <select name="centro_id" class="form-control">
+                    <option value="">General</option>
+                    {% for c in centros %}<option value="{{ c.id }}">{{ c.nombre }}</option>{% endfor %}
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Departamento</label>
+                <select name="departamento_id" class="form-control">
+                    <option value="">General</option>
+                    {% for d in departamentos %}<option value="{{ d.id }}">{{ d.nombre }}</option>{% endfor %}
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Subdepartamento</label>
+                <select name="subdepartamento_id" class="form-control">
+                    <option value="">General</option>
+                    {% for sd in subdepartamentos %}<option value="{{ sd.id }}">{{ sd.nombre }}</option>{% endfor %}
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Puesto</label>
+                <select name="puesto_id" class="form-control">
+                    <option value="">General</option>
+                    {% for p in puestos %}<option value="{{ p.id }}">{{ p.nombre }}</option>{% endfor %}
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Día base</label>
+                <select name="dia_semana" class="form-control">
+                    {% for valor, nombre in dias_semana %}<option value="{{ valor }}">{{ nombre }}</option>{% endfor %}
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Personas necesarias</label>
+                <input type="number" name="personas_necesarias" value="1" min="1" class="form-control">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Inicio</label>
+                <input type="time" name="hora_inicio" class="form-control">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Fin</label>
+                <input type="time" name="hora_fin" class="form-control">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Tipo turno</label>
+                <select name="tipo_turno" class="form-control">
+                    <option value="">Sin definir</option>
+                    <option value="seguido">Seguido</option>
+                    <option value="partido">Partido</option>
+                    <option value="servicio">Servicio</option>
+                    <option value="noche">Noche</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Horas día</label>
+                <input type="number" step="0.25" min="0" name="horas_dia" class="form-control" placeholder="8">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Plantilla objetivo</label>
+                <input type="number" step="0.1" min="0" name="plantilla_objetivo" class="form-control" placeholder="Calculada o manual">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Etiqueta</label>
+                <input name="etiqueta_operativa" class="form-control" placeholder="H1-BUFFET-CENA">
+            </div>
+            <div class="form-group wide">
+                <label class="form-label">Libranzas</label>
+                <input name="cobertura_libranzas" class="form-control" placeholder="Ej: 2 días libres cubiertos con plantilla objetivo">
+            </div>
+            <div class="form-group wide">
+                <label class="form-label">Observaciones</label>
+                <input name="observaciones" class="form-control" placeholder="Ej: refuerzo buffet, apertura, producción alta...">
+            </div>
+        </div>
+        <button class="btn btn-success"><i class="fas fa-save"></i> Guardar necesidad</button>
+    </form>
+
+    {% include 'rrhh/_herramientas_tabla.html' %}
+    <div class="table-container">
+        <table class="ops-table">
+            <thead>
+                <tr>
+                    <th>Área</th>
+                    <th>Puesto</th>
+                    <th>Día</th>
+                    <th>Horario</th>
+                    <th>Personas</th>
+                    <th>Plantilla</th>
+                    <th>Observaciones</th>
+                    <th style="width:300px;">Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for n in necesidades %}
+                <tr>
+                    <td class="ops-main-cell">
+                        <strong>{{ n.departamento_nombre or 'General' }}</strong>
+                        <span class="ops-muted">{{ n.centro_nombre or 'General' }}{% if n.subdepartamento_nombre %} · {{ n.subdepartamento_nombre }}{% endif %}</span>
+                    </td>
+                    <td>
+                        <strong>{{ n.puesto_nombre or 'General' }}</strong>
+                        {% if n.etiqueta_operativa %}<span class="ops-muted">{{ n.etiqueta_operativa }}</span>{% endif %}
+                    </td>
+                    <td>{{ ['Lunes','Martes','Miércoles','Jueves','Viernes','Sábado','Domingo'][n.dia_semana] }}</td>
+                    <td>
+                        {% if n.hora_inicio or n.hora_fin %}
+                            <span class="ops-pill">{{ n.hora_inicio or '--:--' }} - {{ n.hora_fin or '--:--' }}</span>
+                        {% else %}
+                            <span class="ops-muted">Sin horario</span>
+                        {% endif %}
+                        {% if n.tipo_turno %}<div class="ops-muted">{{ n.tipo_turno }}{% if n.horas_dia %} · {{ n.horas_dia }} h{% endif %}</div>{% endif %}
+                    </td>
+                    <td><strong>{{ n.personas_necesarias }}</strong></td>
+                    <td>
+                        {% if n.plantilla_objetivo %}
+                            <strong>{{ n.plantilla_objetivo|round(1) }}</strong>
+                            <div class="ops-muted">con libranzas</div>
+                        {% else %}
+                            <span class="ops-muted">No calculada</span>
+                        {% endif %}
+                    </td>
+                    <td class="ops-note">
+                        {{ n.observaciones or '' }}
+                        {% if n.cobertura_libranzas %}
+                            <div class="ops-muted">{{ n.cobertura_libranzas }}</div>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;">
+                            <a class="btn btn-sm btn-primary" href="{{ url_for('rrhh.editar_necesidad_operativa', id=n.id) }}">
+                                <i class="fas fa-edit"></i> Editar
+                            </a>
+
+                            <form method="post" action="{{ url_for('rrhh.copiar_necesidad_operativa', id=n.id) }}" style="display:inline;">
+                                <input type="hidden" name="modo" value="semana">
+                                <button class="btn btn-sm btn-success" title="Copia esta misma necesidad al resto de días de la semana">
+                                    <i class="fas fa-copy"></i> Semana
+                                </button>
+                            </form>
+
+                            <form method="post" action="{{ url_for('rrhh.desactivar_necesidad_operativa', id=n.id) }}" style="display:inline" onsubmit="return confirm('¿Desactivar necesidad?')">
+                                <button class="btn btn-sm btn-warning"><i class="fas fa-ban"></i></button>
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+            {% else %}
+                <tr><td colspan="8">No hay necesidades definidas.</td></tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

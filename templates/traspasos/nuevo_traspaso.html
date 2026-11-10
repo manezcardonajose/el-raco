@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="card">
+    <h2> Nuevo Traspaso</h2>
+    
+    <form method="POST">
+        <div style="margin-bottom: 15px;">
+            <label>Producto:</label>
+            <select name="producto_id" required style="width: 100%; padding: 8px;">
+                <option value=""> Seleccionar producto --</option>
+                {% for p in productos %}
+                <option value="{{ p.id }}">{{ p.codigo or '' }} {{ p.nombre }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        
+        <div style="margin-bottom: 15px;">
+            <label>Almacén de origen:</label>
+            <select name="origen_id" required style="width: 100%; padding: 8px;">
+                <option value=""> Seleccionar origen --</option>
+                {% for a in almacenes %}
+                <option value="{{ a.id }}">{{ a.nombre }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        
+        <div style="margin-bottom: 15px;">
+            <label>Almacén de destino:</label>
+            <select name="destino_id" required style="width: 100%; padding: 8px;">
+                <option value="">-- Seleccionar destino --</option>
+                {% for a in almacenes %}
+                <option value="{{ a.id }}">{{ a.nombre }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        
+        <div style="margin-bottom: 15px;">
+            <label>Cantidad:</label>
+            <input type="number" step="0.01" name="cantidad" required style="width: 100%; padding: 8px;">
+        </div>
+        
+        <div style="margin-bottom: 15px;">
+            <label>Observaciones:</label>
+            <textarea name="observaciones" rows="3" style="width: 100%; padding: 8px;"></textarea>
+        </div>
+        
+        <div style="margin-top: 20px; display: flex; gap: 10px;">
+            <button type="submit" class="btn btn-success"> Realizar traspaso</button>
+            <a href="/traspasos" class="btn btn-red">❌ Cancelar</a>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+
+

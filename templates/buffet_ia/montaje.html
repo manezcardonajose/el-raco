@@ -1,0 +1,119 @@
+{% extends "base.html" %}
+{% block title %}Montaje buffet{% endblock %}
+{% block breadcrumb %}IA Buffet / Montaje propuesto{% endblock %}
+{% block content %}
+<style>
+    .buffet-board{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px}
+    .buffet-card{border:1px solid var(--border-color);border-radius:6px;background:var(--card-bg);padding:12px}
+    .buffet-card h4{margin:0 0 8px;color:#ff6b00}
+    .buffet-meta{color:var(--text-muted);font-size:12px;line-height:1.45}
+    .buffet-alert{border-left:4px solid #ffc107;padding:8px 10px;background:rgba(255,193,7,.12);margin-top:8px}
+    .score-big{font-size:28px;font-weight:800}
+</style>
+
+<div class="card">
+    <div class="card-header">
+        <h2><i class="fas fa-map-marked-alt"></i> Montaje buffet {{ montaje.fecha }}</h2>
+        <a class="btn btn-secondary" href="{{ url_for('buffet_ia.panel') }}">Volver</a>
+    </div>
+
+    <div class="alert alert-info">
+        {{ montaje.centro_nombre }} · {{ montaje.tipo_menu or 'Menu' }} · {{ montaje.servicio }} · estado {{ montaje.estado }}
+    </div>
+
+    <div class="buffet-board" style="margin-bottom:14px;">
+        <div class="buffet-card"><h4>Visual</h4><div class="score-big">{{ montaje.score_visual or 0 }}/100</div></div>
+        <div class="buffet-card"><h4>APPCC</h4><div class="score-big">{{ montaje.score_appcc or 0 }}/100</div></div>
+        <div class="buffet-card"><h4>Flujo</h4><div class="score-big">{{ montaje.score_flujo or 0 }}/100</div></div>
+    </div>
+
+    {% if montaje.contexto_fisico %}
+    <div class="alert alert-info">{{ montaje.contexto_fisico }}</div>
+    {% endif %}
+
+    {% if montaje.alertas %}
+    <div class="alert alert-warning">
+        <strong>Alertas APPCC:</strong><br>
+        {{ montaje.alertas.replace('\n', '<br>')|safe }}
+    </div>
+    {% endif %}
+
+    <div class="buffet-board" style="margin-bottom:18px;">
+        <div class="buffet-card">
+            <h4>Checklist apertura</h4>
+            <div class="buffet-meta">{{ (montaje.checklist or '').replace('\n', '<br>')|safe }}</div>
+        </div>
+        <div class="buffet-card">
+            <h4>Reposicion inteligente</h4>
+            <div class="buffet-meta">{{ montaje.plan_reposicion or 'Sin plan de reposicion generado.' }}</div>
+        </div>
+        <div class="buffet-card">
+            <h4>Oportunidades visuales</h4>
+            <div class="buffet-meta">{{ (montaje.oportunidades_visuales or 'Sin oportunidades especificas.').replace('\n', '<br>')|safe }}</div>
+        </div>
+    </div>
+
+    {% set modulo = 'ia_montaje_buffet' %}
+    {% set origen = 'buffet_ia/montaje' %}
+    {% set referencia_id = montaje.id %}
+    {% set contenido = (montaje.alertas or '') ~ '\n' ~ (montaje.checklist or '') ~ '\n' ~ (montaje.plan_reposicion or '') ~ '\n' ~ (montaje.oportunidades_visuales or '') %}
+    {% include "asistente/_reporte_contenido_ia.html" %}
+
+    <div class="buffet-board">
+        {% for item in detalle %}
+        <div class="buffet-card">
+            <h4>{{ item.linea or 'Linea sin asignar' }} · {{ item.hueco or '-' }}</h4>
+            <strong>{{ item.plato }}</strong>
+            <div class="buffet-meta">
+                Posicion: {{ item.posicion or '-' }}<br>
+                Menaje: {{ item.menaje or '-' }}{% if item.menaje_tipo %} ({{ item.menaje_tipo }}){% endif %}<br>
+                Temperatura: {{ item.temperatura or '-' }} · Reposicion: {{ item.reposicion or '-' }}<br>
+                Decoracion: {{ item.decoracion or '-' }}<br>
+                Fase: {{ item.fase_montaje or '-' }} · Responsable: {{ item.equipo_responsable or '-' }}<br>
+                Scores: visual {{ item.score_visual or 0 }}, APPCC {{ item.score_appcc or 0 }}, flujo {{ item.score_flujo or 0 }}
+            </div>
+            {% if item.alerta_appcc %}
+            <div class="buffet-alert">{{ item.alerta_appcc }}</div>
+            {% endif %}
+            <div class="buffet-meta" style="margin-top:8px;">{{ item.razon_ia }}</div>
+        </div>
+        {% else %}
+        <p>No hay lineas de montaje.</p>
+        {% endfor %}
+    </div>
+
+    <h3 style="color:#ff6b00;margin-top:24px;">Lista operativa</h3>
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>Orden</th>
+                    <th>Plato</th>
+                    <th>Linea</th>
+                    <th>Hueco</th>
+                    <th>Menaje</th>
+                    <th>Reposicion</th>
+                    <th>Fase</th>
+                    <th>Responsable</th>
+                    <th>APPCC</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in detalle %}
+                <tr>
+                    <td>{{ item.orden_visual }}</td>
+                    <td>{{ item.plato }}</td>
+                    <td>{{ item.linea }}</td>
+                    <td>{{ item.hueco }}</td>
+                    <td>{{ item.menaje }}</td>
+                    <td>{{ item.reposicion }}</td>
+                    <td>{{ item.fase_montaje }}</td>
+                    <td>{{ item.equipo_responsable }}</td>
+                    <td>{{ item.alerta_appcc or '-' }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+        <h1>Alta masiva de almacenes</h1>
+        <a href="{{ url_for('almacenes.almacenes') }}" class="btn btn-secondary">Volver</a>
+    </div>
+
+    <div class="card">
+        <form method="POST">
+            <div style="display:grid; grid-template-columns:repeat(3,minmax(220px,1fr)); gap:14px;">
+                <div class="form-group">
+                    <label class="form-label">Departamento</label>
+                    <select name="departamento_id" class="form-control" required>
+                        <option value="">Selecciona</option>
+                        {% for d in departamentos %}
+                        <option value="{{ d.id }}">{{ d.nombre }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Tipo</label>
+                    <select name="tipo" class="form-control">
+                        <option value="seco">Seco</option>
+                        <option value="refrigerado">Refrigerado</option>
+                        <option value="congelado">Congelado</option>
+                        <option value="botellero">Botellero</option>
+                        <option value="camara">Camara</option>
+                        <option value="vitrina">Vitrina refrigerada</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Criticidad</label>
+                    <select name="criticidad" class="form-control">
+                        <option value="baja">Baja</option>
+                        <option value="media" selected>Media</option>
+                        <option value="alta">Alta</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Desde planta</label>
+                    <input type="number" name="planta_desde" class="form-control" value="1">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Hasta planta</label>
+                    <input type="number" name="planta_hasta" class="form-control" value="7">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Almacenes por planta</label>
+                    <input type="number" name="cantidad_por_planta" class="form-control" value="1" min="1">
+                </div>
+                <div class="form-group" style="grid-column:1/-1;">
+                    <label class="form-label">Nombre patron</label>
+                    <input name="patron" class="form-control" value="Office planta {planta}{sufijo}">
+                </div>
+                <div class="form-group" style="grid-column:1/-1;">
+                    <label class="form-label">Ubicacion patron</label>
+                    <input name="ubicacion_base" class="form-control" value="Planta {planta}{sufijo}">
+                </div>
+                <label class="form-label">
+                    <input type="checkbox" name="crear_equipo">
+                    Crear equipo de mantenimiento
+                </label>
+                <label class="form-label">
+                    <input type="checkbox" name="requiere_control_temperatura">
+                    Control temperatura / APPCC
+                </label>
+            </div>
+
+            <div style="margin-top:20px;">
+                <button class="btn btn-success">Crear almacenes</button>
+                <a href="{{ url_for('almacenes.almacenes') }}" class="btn btn-secondary">Cancelar</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

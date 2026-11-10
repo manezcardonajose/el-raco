@@ -1,0 +1,253 @@
+{% extends "base.html" %}
+
+{% block title %}Operativa APPCC - El Raco ERP{% endblock %}
+
+{% block content %}
+<style>
+    .appcc-kpis {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 12px;
+        margin-bottom: 18px;
+    }
+
+    .appcc-kpi {
+        background: #1e252b;
+        border: 1px solid #2c3e50;
+        border-radius: 8px;
+        padding: 14px;
+    }
+
+    .appcc-kpi span {
+        display: block;
+        color: #9fb0c0;
+        font-size: 12px;
+        margin-bottom: 6px;
+    }
+
+    .appcc-kpi strong {
+        font-size: 24px;
+        color: #fff;
+    }
+
+    .appcc-filter {
+        background: #1e252b;
+        border: 1px solid #2c3e50;
+        border-radius: 8px;
+        padding: 16px;
+        margin-bottom: 18px;
+    }
+
+    .appcc-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+        gap: 12px;
+        align-items: end;
+    }
+
+    .appcc-origin-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 10px;
+        margin-bottom: 18px;
+    }
+
+    .appcc-origin {
+        background: #202832;
+        border: 1px solid #2c3e50;
+        border-radius: 8px;
+        padding: 12px;
+    }
+
+    .appcc-origin strong {
+        display: block;
+        color: #fff;
+        margin-bottom: 4px;
+    }
+
+    .muted {
+        color: #9fb0c0;
+        font-size: 12px;
+    }
+
+    .estado-ok {
+        color: #7be08a;
+        font-weight: 700;
+    }
+
+    .estado-ko {
+        color: #ff8d8d;
+        font-weight: 700;
+    }
+
+    .estado-pendiente {
+        color: #ffd166;
+        font-weight: 700;
+    }
+</style>
+
+<div class="card">
+    <div class="card-header">
+        <h2><i class="fas fa-clipboard-list"></i> Registros APPCC por operativa</h2>
+        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+            <a href="{{ url_for('appcc.exportar_informe_appcc', tipo='operativa', desde=filtros.desde, hasta=filtros.hasta, origen=filtros.origen, resultado=filtros.resultado, codigo=filtros.codigo, q=filtros.q) }}" class="btn btn-info">
+                <i class="fas fa-file-excel"></i> Exportar
+            </a>
+            <a href="{{ url_for('appcc.plan_appcc') }}" class="btn btn-secondary">
+                <i class="fas fa-shield-alt"></i> Plan APPCC
+            </a>
+        </div>
+    </div>
+
+    <div class="appcc-kpis">
+        <div class="appcc-kpi"><span>Total registros</span><strong>{{ resumen.total or 0 }}</strong></div>
+        <div class="appcc-kpi"><span>OK</span><strong>{{ resumen.ok or 0 }}</strong></div>
+        <div class="appcc-kpi"><span>No OK</span><strong>{{ resumen.no_ok or 0 }}</strong></div>
+        <div class="appcc-kpi"><span>Pendientes</span><strong>{{ resumen.pendientes or 0 }}</strong></div>
+        <div class="appcc-kpi"><span>Incidencias</span><strong>{{ resumen.incidencias or 0 }}</strong></div>
+        <div class="appcc-kpi"><span>Verificados</span><strong>{{ resumen.verificados or 0 }}</strong></div>
+    </div>
+
+    <div class="appcc-filter">
+        <form method="GET" class="appcc-grid">
+            <div>
+                <label class="form-label">Desde</label>
+                <input type="date" name="desde" value="{{ filtros.desde }}" class="form-control">
+            </div>
+            <div>
+                <label class="form-label">Hasta</label>
+                <input type="date" name="hasta" value="{{ filtros.hasta }}" class="form-control">
+            </div>
+            <div>
+                <label class="form-label">Operativa</label>
+                <select name="origen" class="form-control">
+                    <option value="">Todas</option>
+                    {% for o in origenes %}
+                    <option value="{{ o.origen }}" {% if filtros.origen == o.origen %}selected{% endif %}>
+                        {{ origen_label(o.origen) }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label class="form-label">Control</label>
+                <select name="codigo" class="form-control">
+                    <option value="">Todos</option>
+                    {% for c in controles %}
+                    <option value="{{ c.codigo }}" {% if filtros.codigo == c.codigo %}selected{% endif %}>
+                        {{ c.codigo }} - {{ c.area }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label class="form-label">Resultado</label>
+                <select name="resultado" class="form-control">
+                    <option value="">Todos</option>
+                    <option value="ok" {% if filtros.resultado == 'ok' %}selected{% endif %}>OK</option>
+                    <option value="no_ok" {% if filtros.resultado == 'no_ok' %}selected{% endif %}>No OK</option>
+                    <option value="pendiente" {% if filtros.resultado == 'pendiente' %}selected{% endif %}>Pendiente</option>
+                    <option value="bloqueado" {% if filtros.resultado == 'bloqueado' %}selected{% endif %}>Bloqueado</option>
+                </select>
+            </div>
+            <div>
+                <label class="form-label">Buscar</label>
+                <input type="text" name="q" value="{{ filtros.q }}" class="form-control" placeholder="Lote, plato, observacion...">
+            </div>
+            <div style="display:flex; gap:8px;">
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-filter"></i> Filtrar
+                </button>
+                <a href="{{ url_for('appcc.operativa_appcc') }}" class="btn btn-secondary">Limpiar</a>
+            </div>
+        </form>
+    </div>
+
+    {% if resumen_origen %}
+    <div class="appcc-origin-grid">
+        {% for r in resumen_origen %}
+        <div class="appcc-origin">
+            <strong>{{ origen_label(r.origen) }}</strong>
+            <span class="muted">{{ r.total }} registros{% if r.no_ok %} · {{ r.no_ok }} no OK{% endif %}</span>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th style="width: 10%;">Fecha</th>
+                    <th style="width: 13%;">Operativa</th>
+                    <th style="width: 13%;">Control</th>
+                    <th style="width: 10%;">Resultado</th>
+                    <th style="width: 18%;">Valor</th>
+                    <th style="width: 18%;">Observaciones</th>
+                    <th style="width: 10%;">Incidencia</th>
+                    <th style="width: 8%;">Verif.</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for r in registros %}
+                <tr>
+                    <td>{{ r.fecha[:16] if r.fecha else '-' }}</td>
+                    <td>
+                        <strong>{{ origen_label(r.origen_tabla) }}</strong>
+                        {% if r.origen_id %}
+                            <br><span class="muted">#{{ r.origen_id }}</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <strong>{{ r.codigo }}</strong><br>
+                        <span class="muted">{{ r.area or '-' }}</span>
+                        {% if r.etapa %}<br><span class="muted">{{ r.etapa }}</span>{% endif %}
+                    </td>
+                    <td>
+                        {% if r.resultado == 'ok' %}
+                            <span class="estado-ok">OK</span>
+                        {% elif r.resultado == 'no_ok' %}
+                            <span class="estado-ko">No OK</span>
+                        {% else %}
+                            <span class="estado-pendiente">{{ r.resultado or 'pendiente' }}</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ r.valor or '-' }}</td>
+                    <td>
+                        {{ r.observaciones or '-' }}
+                        {% if r.accion_correctiva %}
+                            <br><span class="muted">Correctiva: {{ r.accion_correctiva }}</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if r.incidencia_id %}
+                            <span class="badge badge-danger">#{{ r.incidencia_id }}</span>
+                            {% if r.incidencia_estado %}
+                                <br><span class="muted">{{ r.incidencia_estado }}</span>
+                            {% endif %}
+                        {% else %}
+                            -
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if r.verificado_por %}
+                            <span class="badge badge-success">Si</span>
+                            <br><span class="muted">{{ r.verificado_por }}</span>
+                        {% else %}
+                            <form method="POST" action="{{ url_for('appcc.verificar_registro_appcc', registro_id=r.id) }}">
+                                <input type="hidden" name="next" value="{{ request.full_path }}">
+                                <button type="submit" class="btn btn-success btn-sm">Verificar</button>
+                            </form>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="8">No hay registros APPCC con estos filtros.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

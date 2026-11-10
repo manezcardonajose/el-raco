@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<h2>Nueva sección menú fijo</h2>
+
+<form method="POST">
+
+    <label>Subdepartamento</label>
+    <select name="subdepartamento_id" required>
+        {% for s in subdeptos %}
+            <option value="{{ s.id }}">
+                {{ s.departamento_nombre }} → {{ s.nombre }}
+            </option>
+        {% endfor %}
+    </select>
+
+    <br><br>
+
+    <label>Nombre sección</label>
+    <input type="text" name="seccion">
+
+    <br><br>
+
+    <label>Orden</label>
+    <input type="number" name="orden" value="0">
+
+    <br><br>
+
+    <button class="btn btn-success">Guardar</button>
+    <a href="{{ url_for('menus.ver_menu_fijo', menu_id=menu_id) }}" class="btn btn-secondary">Cancelar</a>
+
+</form>
+
+{% endblock %}

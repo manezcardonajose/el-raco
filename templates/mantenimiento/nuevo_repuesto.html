@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="card">
+    <h2 style="color: #ff6b00;"> NUEVO REPUESTO</h2>
+    
+    <form method="POST">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+            <div>
+                <label>Cdigo:</label>
+                <input type="text" name="codigo" required style="width: 100%; padding: 8px;" placeholder="Ej: REP-001">
+            </div>
+            
+            <div>
+                <label>Nombre:</label>
+                <input type="text" name="nombre" required style="width: 100%; padding: 8px;">
+            </div>
+            
+            <div>
+                <label>Proveedor:</label>
+                <select name="proveedor_id" style="width: 100%; padding: 8px;">
+                    <option value="">-- Ninguno --</option>
+                    {% for p in proveedores %}
+                    <option value="{{ p.id }}">{{ p.nombre }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div>
+                <label>Referencia proveedor:</label>
+                <input type="text" name="referencia_proveedor" style="width: 100%; padding: 8px;">
+            </div>
+            
+            <div>
+                <label>Stock actual:</label>
+                <input type="number" step="0.01" name="stock_actual" value="0" style="width: 100%; padding: 8px;">
+            </div>
+            
+            <div>
+                <label>Stock mnimo:</label>
+                <input type="number" step="0.01" name="stock_minimo" value="0" style="width: 100%; padding: 8px;">
+            </div>
+            
+            <div>
+                <label>Precio compra ():</label>
+                <input type="number" step="0.01" name="precio_compra" value="0" style="width: 100%; padding: 8px;">
+            </div>
+            
+            <div>
+                <label>Unidad:</label>
+                <select name="unidad" style="width: 100%; padding: 8px;">
+                    <option value="ud">Unidad (ud)</option>
+                    <option value="kg">Kilogramo (kg)</option>
+                    <option value="g">Gramo (g)</option>
+                    <option value="l">Litro (l)</option>
+                    <option value="ml">Mililitro (ml)</option>
+                </select>
+            </div>
+            
+            <div>
+                <label>Ubicacin en almacn:</label>
+                <input type="text" name="ubicacion_almacen" style="width: 100%; padding: 8px;" placeholder="Ej: Estante A3">
+            </div>
+        </div>
+        
+        <div style="margin-top: 20px;">
+            <label>Descripcin:</label>
+            <textarea name="descripcion" rows="3" style="width: 100%; padding: 8px;"></textarea>
+        </div>
+        
+        <div style="margin-top: 20px;">
+            <label>Equipos compatibles:</label>
+            <textarea name="compatible_con" rows="2" style="width: 100%; padding: 8px;" placeholder="Ej: Horno modelo X, Nevera Y..."></textarea>
+        </div>
+        
+        <div style="margin-top: 30px;">
+            <button type="submit" class="btn btn-success"> Guardar repuesto</button>
+            <a href="/mantenimiento/repuestos" class="btn btn-red">Cancelar</a>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+
+

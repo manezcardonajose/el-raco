@@ -1,0 +1,66 @@
+{% extends 'base.html' %}
+{% block title %}{% if empleado %}Editar empleado{% else %}Nuevo empleado{% endif %}{% endblock %}
+{% block breadcrumb %}RRHH / Personal / {% if empleado %}Editar{% else %}Nuevo{% endif %}{% endblock %}
+{% block content %}
+{% if empleado %}
+<div class="card" style="margin-bottom:16px;">
+    <div class="card-header">
+        <h2><i class="fas fa-key"></i> Acceso empleado</h2>
+    </div>
+    {% set usuario_acceso = credenciales.usuario if credenciales else None %}
+    <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap:12px; margin-bottom:14px;">
+        <div><small style="color:#94a3b8;">Usuario</small><br><strong>{{ usuario_acceso.nombre if usuario_acceso else 'Sin usuario vinculado' }}</strong></div>
+        <div><small style="color:#94a3b8;">Codigo</small><br><strong>{{ usuario_acceso.codigo_acceso if usuario_acceso and usuario_acceso.codigo_acceso else '-' }}</strong></div>
+        <div><small style="color:#94a3b8;">Email acceso</small><br><strong>{{ usuario_acceso.email if usuario_acceso else empleado.email or '-' }}</strong></div>
+        <div><small style="color:#94a3b8;">PIN fichaje</small><br><strong>{% if empleado.pin_fichaje_hash %}Configurado{% else %}Sin configurar{% endif %}</strong></div>
+    </div>
+    <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap:14px; align-items:start;">
+        {% if usuario_acceso %}
+        <form method="post" action="{{ url_for('rrhh.gestionar_credenciales_empleado', id=empleado.id) }}" style="border:1px solid #334155; border-radius:8px; padding:12px;">
+            <input type="hidden" name="accion" value="reset_password">
+            <h3 style="margin-top:0;">Reiniciar contrasena</h3>
+            <div class="form-group">
+                <label class="form-label">Nueva contrasena</label>
+                <input class="form-control" type="password" name="password" autocomplete="new-password" placeholder="Vacio = generar automaticamente">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Repetir contrasena</label>
+                <input class="form-control" type="password" name="password_repetir" autocomplete="new-password">
+            </div>
+            <button class="btn btn-warning" type="submit" onclick="return confirm('Reiniciar la contrasena de este empleado?');"><i class="fas fa-sync-alt"></i> Reiniciar</button>
+        </form>
+        {% else %}
+        <form method="post" action="{{ url_for('rrhh.gestionar_credenciales_empleado', id=empleado.id) }}" style="border:1px solid #334155; border-radius:8px; padding:12px;">
+            <input type="hidden" name="accion" value="crear_usuario">
+            <h3 style="margin-top:0;">Crear acceso portal</h3>
+            <div class="form-group">
+                <label class="form-label">Email acceso</label>
+                <input class="form-control" type="email" name="email" value="{{ empleado.email or '' }}" placeholder="Si queda vacio se genera interno">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Contrasena inicial</label>
+                <input class="form-control" type="password" name="password" autocomplete="new-password" placeholder="Vacio = generar automaticamente">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Repetir contrasena</label>
+                <input class="form-control" type="password" name="password_repetir" autocomplete="new-password">
+            </div>
+            <button class="btn btn-success" type="submit"><i class="fas fa-user-plus"></i> Crear acceso</button>
+        </form>
+        {% endif %}
+        <form method="post" action="{{ url_for('rrhh.gestionar_credenciales_empleado', id=empleado.id) }}" style="border:1px solid #334155; border-radius:8px; padding:12px;">
+            <input type="hidden" name="accion" value="reset_pin">
+            <h3 style="margin-top:0;">Reiniciar PIN</h3>
+            <div class="form-group">
+                <label class="form-label">Nuevo PIN</label>
+                <input class="form-control" type="password" name="pin_fichaje" inputmode="numeric" minlength="4" maxlength="8" autocomplete="new-password" placeholder="Vacio = generar PIN">
+            </div>
+            <button class="btn btn-warning" type="submit" onclick="return confirm('Reiniciar el PIN de fichaje de este empleado?');"><i class="fas fa-fingerprint"></i> Reiniciar PIN</button>
+        </form>
+    </div>
+    <small style="display:block; color:#94a3b8; margin-top:10px;">Las claves temporales se muestran una sola vez tras guardar.</small>
+</div>
+{% endif %}
+<div class="card"><div class="card-header"><h2><i class="fas fa-user-plus"></i> {% if empleado %}Editar empleado{% else %}Nuevo empleado{% endif %}</h2></div>
+<form method="post">{% include 'rrhh/_form_fields.html' %}<div style="display:flex; gap:10px;"><button class="btn btn-success" type="submit">Guardar</button><a class="btn btn-secondary" href="{{ url_for('rrhh.lista_empleados') }}">Volver</a></div></form></div>
+{% endblock %}

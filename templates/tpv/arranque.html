@@ -1,0 +1,133 @@
+{% extends 'base.html' %}
+{% block title %}Arranque TPV{% endblock %}
+{% block breadcrumb %}TPV / Arranque{% endblock %}
+{% block content %}
+<style>
+  .tpv-start{max-width:720px;margin:auto;}
+  .tpv-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px;align-items:end;}
+  .tpv-note{color:#94a3b8;font-size:12px;line-height:1.35;}
+  .tpv-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
+  .comandero-start{display:none;}
+  .point-buttons{display:grid;gap:10px;margin-top:12px;}
+  .point-card{width:100%;min-height:72px;border:1px solid #334155;border-radius:10px;background:#0f172a;color:#e5e7eb;text-align:left;padding:14px;font-weight:800;font-size:18px;}
+  .point-card small{display:block;color:#94a3b8;font-size:12px;font-weight:500;margin-top:4px;}
+  .device-choice{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:12px 0;}
+  .device-choice button{min-height:56px;}
+  .device-choice button.is-active{outline:3px solid #38bdf8;}
+  @media (max-width:640px){
+    .content{padding:0;background:#0b1220;}
+    .tpv-start{max-width:none;margin:0;}
+    .card.tpv-start{min-height:100dvh;border-radius:0;border:0;padding:14px;background:#0b1220;}
+    .card-header{display:block;}
+    .card-header h2{font-size:22px;margin-bottom:4px;}
+    .tpv-actions,.device-choice,.tpv-grid,.desktop-start-note{display:none;}
+    .comandero-start{display:block;}
+  }
+</style>
+
+<div class="card tpv-start">
+  <div class="card-header">
+    <h2><i class="fas fa-power-off"></i> Arranque de terminal</h2>
+    <div class="tpv-actions">
+      <a class="btn btn-secondary" href="{{ url_for('tpv.dashboard') }}">TPV</a>
+      <a class="btn btn-secondary" href="{{ url_for('tpv.terminales') }}">Terminales</a>
+    </div>
+  </div>
+  <p class="tpv-note desktop-start-note">Cada tablet, comandero, pantalla o TPV usa un codigo fijo de dispositivo. El navegador lo guarda automaticamente; si el equipo cambia de ubicacion, solo cambia el punto de venta.</p>
+  <div class="comandero-start">
+    <p class="tpv-note">Selecciona el punto de venta para usar este telefono como comandero.</p>
+    <div class="point-buttons">
+      {% for p in puntos %}
+      <form method="post">
+        <input type="hidden" name="punto_venta_id" value="{{ p.id }}">
+        <input type="hidden" name="codigo" class="tpv-device-code-output">
+        <input type="hidden" name="nombre" value="Comandero movil">
+        <input type="hidden" name="tipo" value="comandero">
+        <input type="hidden" name="ubicacion" value="Movil">
+        <input type="hidden" name="servicio_actual" value="desayuno">
+        <input type="hidden" name="turno_actual" value="manana">
+        <input type="hidden" name="fecha_servicio" value="{{ fecha_hoy }}">
+        <button class="point-card" type="submit">
+          {{ p.nombre }}
+          <small>Entrar como comandero</small>
+        </button>
+      </form>
+      {% else %}
+      <div class="tpv-note">No hay puntos de venta creados.</div>
+      {% endfor %}
+    </div>
+  </div>
+  <div class="device-choice" aria-label="Tipo de dispositivo">
+    <button class="btn btn-secondary" type="button" data-device-type="tpv"><i class="fas fa-desktop"></i> Este equipo es caja / TPV</button>
+    <button class="btn btn-primary" type="button" data-device-type="comandero"><i class="fas fa-mobile-alt"></i> Este telefono es comandero</button>
+  </div>
+  <form method="post" class="tpv-grid">
+    <div class="form-group"><label class="form-label">Punto de venta</label><select class="form-control" name="punto_venta_id" required>
+      <option value="">Seleccionar</option>
+      {% for p in puntos %}<option value="{{ p.id }}" {% if request.args.get('punto_venta_id')|string == p.id|string %}selected{% endif %}>{{ p.nombre }}</option>{% endfor %}
+    </select></div>
+    <div class="form-group"><label class="form-label">Codigo dispositivo</label><input class="form-control" name="codigo" id="tpv-device-code" placeholder="BAR-PISCINA-CMD-01" autocomplete="off"></div>
+    <div class="form-group"><label class="form-label">Nombre visible</label><input class="form-control" name="nombre" placeholder="Comandero piscina"></div>
+    <div class="form-group"><label class="form-label">Tipo</label><select class="form-control" name="tipo" id="tpv-device-type">
+      {% for key,label in tipos_terminal.items() %}<option value="{{ key }}" {% if request.args.get('tipo') == key %}selected{% endif %}>{{ label }}</option>{% endfor %}
+    </select></div>
+    <div class="form-group"><label class="form-label">Ubicacion</label><input class="form-control" name="ubicacion" placeholder="Bar piscina"></div>
+    <div class="form-group"><label class="form-label">Servicio</label><select class="form-control" name="servicio_actual">
+      {% for key,label in servicios.items() %}<option value="{{ key }}">{{ label }}</option>{% endfor %}
+    </select></div>
+    <div class="form-group"><label class="form-label">Turno</label><select class="form-control" name="turno_actual">
+      {% for key,label in turnos.items() %}<option value="{{ key }}">{{ label }}</option>{% endfor %}
+    </select></div>
+    <div class="form-group"><label class="form-label">Fecha servicio</label><input class="form-control" name="fecha_servicio" type="date" value="{{ fecha_hoy }}"></div>
+    <button class="btn btn-primary" type="submit"><i class="fas fa-play"></i> Entrar</button>
+  </form>
+</div>
+<script>
+  (function(){
+    const input = document.getElementById('tpv-device-code');
+    const typeSelect = document.getElementById('tpv-device-type');
+    const typeButtons = Array.from(document.querySelectorAll('[data-device-type]'));
+    if (!input) return;
+    const storageKey = 'erp_tpv_device_code';
+    const typeKey = 'erp_tpv_device_type';
+    let code = '';
+    try {
+      code = localStorage.getItem(storageKey) || '';
+      if (!code) {
+        if (window.crypto && crypto.getRandomValues) {
+          const data = new Uint32Array(2);
+          crypto.getRandomValues(data);
+          code = `AUTO-${data[0].toString(36)}${data[1].toString(36)}`.toUpperCase();
+        } else {
+          code = `AUTO-${Date.now().toString(36)}`.toUpperCase();
+        }
+        localStorage.setItem(storageKey, code);
+      }
+    } catch (err) {
+      code = `AUTO-${Date.now().toString(36)}`.toUpperCase();
+    }
+    if (!input.value) input.value = code;
+    document.querySelectorAll('.tpv-device-code-output').forEach((item) => { item.value = code; });
+    function setType(value, persist) {
+      if (!typeSelect) return;
+      typeSelect.value = value || 'tpv';
+      typeButtons.forEach((btn) => btn.classList.toggle('is-active', btn.dataset.deviceType === typeSelect.value));
+      if (persist) {
+        try { localStorage.setItem(typeKey, typeSelect.value); } catch (err) {}
+      }
+    }
+    let storedType = '';
+    try { storedType = localStorage.getItem(typeKey) || ''; } catch (err) {}
+    const queryType = new URLSearchParams(window.location.search).get('tipo') || '';
+    const mobileDefault = window.matchMedia && window.matchMedia('(max-width: 860px)').matches ? 'comandero' : 'tpv';
+    setType(queryType || storedType || mobileDefault, false);
+    typeButtons.forEach((btn) => {
+      btn.addEventListener('click', () => setType(btn.dataset.deviceType || 'tpv', true));
+    });
+    typeSelect?.addEventListener('change', () => setType(typeSelect.value, true));
+    typeSelect?.form?.addEventListener('submit', () => {
+      try { localStorage.setItem(typeKey, typeSelect.value || 'tpv'); } catch (err) {}
+    });
+  })();
+</script>
+{% endblock %}

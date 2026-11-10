@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="card">
+    <h2 style="color: #ff6b00;"> NUEVO PLAN DE LIMPIEZA</h2>
+    
+    <form method="POST">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+            <div>
+                <label>Área:</label>
+                <input type="text" name="area" placeholder="Ej: Cocina, Cmaras, Sala..." required style="width: 100%; padding: 8px;">
+            </div>
+            
+            <div>
+                <label>Tarea:</label>
+                <input type="text" name="tarea" placeholder="Ej: Limpiar superficies" required style="width: 100%; padding: 8px;">
+            </div>
+            
+            <div>
+                <label>Frecuencia:</label>
+                <select name="frecuencia" required style="width: 100%; padding: 8px;">
+                    <option value="diario"> Diario</option>
+                    <option value="semanal"> Semanal</option>
+                    <option value="mensual"> Mensual</option>
+                </select>
+            </div>
+            
+            <div>
+                <label>Departamento:</label>
+                <select name="departamento_id" style="width: 100%; padding: 8px;">
+                    <option value="">-- Ninguno --</option>
+                    {% for d in departamentos %}
+                    <option value="{{ d.id }}">{{ d.nombre }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div>
+                <label>Subdepartamento:</label>
+                <select name="subdepartamento_id" style="width: 100%; padding: 8px;">
+                    <option value="">-- Ninguno --</option>
+                    {% for s in subdepartamentos %}
+                    <option value="{{ s.id }}">{{ s.nombre }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div>
+                <label>Punto de venta:</label>
+                <select name="punto_venta_id" style="width: 100%; padding: 8px;">
+                    <option value="">-- Ninguno --</option>
+                    {% for p in puntos_venta %}
+                    <option value="{{ p.id }}">{{ p.nombre }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div>
+                <label>Responsable:</label>
+                <input type="text" name="responsable" placeholder="Persona o equipo" style="width: 100%; padding: 8px;">
+            </div>
+            
+            <div>
+                <label>Productos:</label>
+                <input type="text" name="productos" placeholder="Ej: Leja, detergente..." style="width: 100%; padding: 8px;">
+            </div>
+        </div>
+        
+        <div style="margin-top: 20px;">
+            <label>Instrucciones:</label>
+            <textarea name="instrucciones" rows="4" style="width: 100%; padding: 8px;"></textarea>
+        </div>
+        
+        <div style="margin-top: 30px;">
+            <button type="submit" class="btn btn-success"> Guardar plan</button>
+            <a href="/appcc/limpieza" class="btn btn-secondary">Cancelar</a>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+
+

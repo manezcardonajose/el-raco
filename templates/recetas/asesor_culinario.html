@@ -1,0 +1,225 @@
+{% extends "base.html" %}
+
+{% block content %}
+<style>
+    .asesor-page { max-width: 1500px; margin: 0 auto; }
+    .asesor-grid { display: grid; grid-template-columns: 430px 1fr; gap: 14px; align-items: start; }
+    .asesor-panel { border: 1px solid #2c3e50; background: #1e252b; border-radius: 8px; padding: 14px; }
+    .asesor-panel h3 { color: #ff6b00; margin: 0 0 12px; }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .muted { color: #9ca3af; font-size: 12px; }
+    .solution { border: 1px solid #34495e; background: #111827; border-radius: 8px; padding: 12px; margin-bottom: 12px; }
+    .solution h4 { margin: 0 0 6px; color: #fff; }
+    .tag { display: inline-block; border: 1px solid #34495e; border-radius: 999px; padding: 3px 8px; margin: 2px; font-size: 12px; color: #d1d5db; }
+    .score-grid { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 6px; margin: 8px 0; }
+    .score-box { border: 1px solid #34495e; border-radius: 6px; padding: 6px; text-align: center; }
+    .score-box span { display: block; color: #9ca3af; font-size: 10px; }
+    .score-box strong { color: #fff; font-size: 15px; }
+    .diagnostico { border: 1px solid #ff6b00; border-radius: 8px; background: #111827; padding: 12px; margin-bottom: 12px; }
+    .guide-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-bottom: 12px; }
+    .guide-box { border: 1px solid #34495e; border-radius: 8px; padding: 10px; background: #0b1220; }
+    .guide-box h4 { margin: 0 0 8px; color: #fff; }
+    .guide-box ul { margin: 0; padding-left: 18px; }
+    @media (max-width: 1000px) {
+        .asesor-grid, .form-row, .score-grid, .guide-grid { grid-template-columns: 1fr; }
+    }
+</style>
+
+<div class="asesor-page">
+    <div class="card">
+        <div class="card-header">
+            <h2><i class="fas fa-lightbulb"></i> Asesor culinario IA</h2>
+            <a href="{{ url_for('recetas.biblioteca_recetas') }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Volver
+            </a>
+        </div>
+
+        <div class="asesor-grid">
+            <aside class="asesor-panel">
+                <h3>Pregunta o problema</h3>
+                <p class="muted">Memoria privada: {{ memoria_total }} ideas{% if memoria_actualizada %} - {{ memoria_actualizada }}{% endif %}</p>
+                <form method="post">
+                    <label>Que necesitas resolver</label>
+                    <textarea name="consulta" rows="5" placeholder="Ej: tengo merluza y verduras, quiero una receta elegante para balneario sin fritos">{{ formulario.consulta }}</textarea>
+
+                    <label>Contexto</label>
+                    <input name="contexto" value="{{ formulario.contexto }}" placeholder="hotel termal, antiguo monasterio, resort familiar...">
+
+                    <div class="form-row">
+                        <div>
+                            <label>Servicio</label>
+                            <input name="servicio" value="{{ formulario.servicio }}" placeholder="buffet, carta, banquete...">
+                        </div>
+                        <div>
+                            <label>Objetivo</label>
+                            <input name="objetivo" value="{{ formulario.objetivo }}" placeholder="coste, APPCC, elegante, saludable...">
+                        </div>
+                    </div>
+
+                    <label>Restricciones</label>
+                    <input name="restricciones" value="{{ formulario.restricciones }}" placeholder="sin gluten, sin lactosa, bajo en sal...">
+
+                    <label>Stock o productos a usar</label>
+                    <input name="stock" value="{{ formulario.stock }}" placeholder="merluza, pollo, arroz, calabacin...">
+
+                    <button class="btn btn-success" type="submit" style="width:100%; margin-top:12px;">
+                        <i class="fas fa-brain"></i> Asesorar
+                    </button>
+                </form>
+            </aside>
+
+            <section class="asesor-panel">
+                <h3>Respuesta de asesor</h3>
+                {% if resultado %}
+                <div class="diagnostico">
+                    <strong>Diagnostico</strong>
+                    <p>{{ resultado.diagnostico }}</p>
+                    <span class="tag">{{ resultado.intencion }}</span>
+                    <span class="tag">{{ resultado.candidatos_revisados }} referencias revisadas</span>
+                </div>
+
+                <div class="solution">
+                    <h4>Receta guia propuesta</h4>
+                    <div>
+                        <span class="tag">{{ resultado.receta_guia.nombre }}</span>
+                        <span class="tag">{{ resultado.receta_guia.tecnicas|join(', ') }}</span>
+                    </div>
+                    <p>{{ resultado.receta_guia.formato }}</p>
+                    <div class="guide-grid">
+                        <div class="guide-box">
+                            <h4>Base</h4>
+                            <ul>
+                                {% for item in resultado.receta_guia.ingredientes_base %}
+                                <li>{{ item }}</li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                        <div class="guide-box">
+                            <h4>Pasos</h4>
+                            <ul>
+                                {% for item in resultado.receta_guia.pasos %}
+                                <li>{{ item }}</li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                        <div class="guide-box">
+                            <h4>APPCC</h4>
+                            <ul>
+                                {% for item in resultado.receta_guia.appcc.controles %}
+                                <li>{{ item }}</li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                        <div class="guide-box">
+                            <h4>Alternativas</h4>
+                            <ul>
+                                {% for item in resultado.receta_guia.alternativas %}
+                                <li>{{ item }}</li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                {% if resultado.referencias %}
+                <div class="solution">
+                    <h4>Referencias aplicadas</h4>
+                    <ul>
+                        {% for ref in resultado.referencias %}
+                        <li>
+                            <strong>{{ ref.fuente }}</strong>
+                            <span class="tag">{{ ref.tipo }}</span>
+                            <div class="muted">{{ ref.recomendacion }}</div>
+                            {% if ref.resumen %}
+                            <div class="muted">{{ ref.resumen }}</div>
+                            {% endif %}
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+                {% endif %}
+
+                {% for solucion in resultado.soluciones %}
+                <article class="solution">
+                    <h4>{{ solucion.nombre }}</h4>
+                    <div class="muted">
+                        Fuente interna: {{ solucion.fuente }}{% if solucion.paginas %} - pag. {{ solucion.paginas }}{% endif %}
+                    </div>
+                    <div>
+                        <span class="tag">coste {{ solucion.coste }}</span>
+                        <span class="tag">dificultad {{ solucion.dificultad }}</span>
+                        <span class="tag">alergenos: {{ solucion.alergenos }}</span>
+                        <span class="tag">ranking {{ solucion.ranking.total }}</span>
+                    </div>
+                    <p class="muted">{{ solucion.formato_servicio }}</p>
+                    <div class="score-grid">
+                        <div class="score-box"><span>encaje</span><strong>{{ solucion.ranking.encaje }}</strong></div>
+                        <div class="score-box"><span>coste</span><strong>{{ solucion.ranking.coste }}</strong></div>
+                        <div class="score-box"><span>present.</span><strong>{{ solucion.ranking.presentacion }}</strong></div>
+                        <div class="score-box"><span>prod.</span><strong>{{ solucion.ranking.produccion }}</strong></div>
+                        <div class="score-box"><span>APPCC</span><strong>{{ solucion.ranking.appcc }}</strong></div>
+                        <div class="score-box"><span>stock</span><strong>{{ solucion.ranking.stock }}</strong></div>
+                    </div>
+
+                    <strong>Recomendacion</strong>
+                    <ul>
+                        {% for item in solucion.recomendaciones %}
+                        <li>{{ item }}</li>
+                        {% endfor %}
+                    </ul>
+
+                    <strong>Ajustes propuestos</strong>
+                    <ul>
+                        {% for item in solucion.cambios %}
+                        <li>{{ item }}</li>
+                        {% endfor %}
+                    </ul>
+
+                    <strong>Riesgos / control</strong>
+                    <ul>
+                        {% for item in solucion.riesgos %}
+                        <li>{{ item }}</li>
+                        {% endfor %}
+                    </ul>
+
+                    {% if solucion.ingredientes %}
+                    <div class="muted">Base detectada: {{ solucion.ingredientes|join(', ') }}</div>
+                    {% endif %}
+                    {% if solucion.id %}
+                    <form method="post" style="margin-top:10px;">
+                        <input type="hidden" name="accion" value="importar_asesor">
+                        <input type="hidden" name="propuesta_id" value="{{ solucion.id }}">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-copy"></i> Copiar como receta borrador
+                        </button>
+                    </form>
+                    {% endif %}
+                </article>
+                {% endfor %}
+
+                <h3>Preguntas antes de cerrar</h3>
+                <ul>
+                    {% for pregunta in resultado.preguntas %}
+                    <li>{{ pregunta }}</li>
+                    {% endfor %}
+                </ul>
+
+                <h3>Siguiente paso</h3>
+                <ul>
+                    {% for accion in resultado.acciones %}
+                    <li>{{ accion }}</li>
+                    {% endfor %}
+                </ul>
+                {% set modulo = 'recetas_asesor_culinario' %}
+                {% set origen = 'recetas/asesor_culinario' %}
+                {% set referencia_id = resultado.intencion %}
+                {% set contenido = 'Diagnostico: ' ~ resultado.diagnostico ~ '\nReceta guia: ' ~ resultado.receta_guia.nombre ~ '\nAcciones: ' ~ (resultado.acciones|join('; ')) %}
+                {% include "asistente/_reporte_contenido_ia.html" %}
+                {% else %}
+                <p class="muted">Haz una pregunta concreta. El asesor buscara soluciones en tu biblioteca privada y las convertira en recomendaciones practicas.</p>
+                {% endif %}
+            </section>
+        </div>
+    </div>
+</div>
+{% endblock %}

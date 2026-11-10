@@ -1,0 +1,178 @@
+{% extends 'base.html' %}
+{% block title %}Simulador por centro{% endblock %}
+{% block breadcrumb %}Simulador / Centros{% endblock %}
+{% block content %}
+<style>
+  .sim-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px;}
+  .sim-card{border:1px solid #334155;border-radius:8px;padding:14px;background:rgba(15,23,42,.28);}
+  .sim-card h3{margin:0 0 8px;color:#fff;}
+  .sim-muted{color:#94a3b8;font-size:12px;}
+  .sim-kpis{display:grid;grid-template-columns:repeat(3,minmax(120px,1fr));gap:8px;margin:12px 0;}
+  .sim-kpi{border:1px solid #334155;border-radius:8px;padding:10px;background:rgba(15,23,42,.35);}
+  .sim-kpi small{display:block;color:#94a3b8;}
+  .sim-kpi strong{font-size:18px;}
+  .sim-form{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px;align-items:end;margin-top:12px;}
+  .sim-table{width:100%;border-collapse:collapse;}
+  .sim-table th,.sim-table td{padding:8px;border-bottom:1px solid #334155;text-align:left;vertical-align:top;}
+  .sim-table th{color:#ff7a00;text-transform:uppercase;font-size:12px;}
+  @media(max-width:900px){.sim-kpis{grid-template-columns:1fr;}}
+</style>
+
+<div class="card">
+  <div class="card-header">
+    <div>
+      <h2><i class="fas fa-sliders-h"></i> Simulador por empresa y centro</h2>
+      <div class="sim-muted">Motor general: cada centro usa sus habitaciones, reservas, presupuesto, plantilla y escenarios propios.</div>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+      {% if session.user_empresa_id in [1, '1'] or session.empresa_id in [1, '1'] %}
+      <a class="btn btn-secondary" href="{{ url_for('demo.sala_control') }}"><i class="fas fa-tower-observation"></i> Hotel 1 prueba fuego</a>
+      {% endif %}
+      <a class="btn btn-info" href="{{ url_for('contabilidad.presupuesto') }}"><i class="fas fa-calculator"></i> Presupuesto</a>
+    </div>
+  </div>
+  <div style="border:1px solid #38bdf8;background:rgba(56,189,248,.08);border-radius:8px;padding:12px;">
+    <strong>Lectura PMS:</strong>
+    {% if session.user_empresa_id in [1, '1'] or session.empresa_id in [1, '1'] %}
+    Hotel 1 sirve para romper la ERP. Los centros reales sirven para decidir gestion real:
+    {% else %}
+    Cada centro real debe decidir con sus propios datos:
+    {% endif %}
+    subir ocupacion, cambiar precio, medir personal, costes fijos, temporadas y riesgo.
+  </div>
+</div>
+
+<div class="sim-grid">
+  {% for config in estado.configs %}
+  <div class="sim-card">
+    <div style="display:flex;justify-content:space-between;gap:8px;align-items:start;">
+      <div>
+        <h3>{{ config.centro_nombre or config.nombre }}</h3>
+        <div class="sim-muted">{{ config.empresa_nombre }} · {{ config.tipo_negocio }} · {{ config.modo_aislamiento }}</div>
+      </div>
+      <span class="badge {% if config.nivel_riesgo == 'alto' %}badge-danger{% elif config.nivel_riesgo == 'medio' %}badge-warning{% else %}badge-info{% endif %}">
+        {{ config.nivel_riesgo }}
+      </span>
+    </div>
+
+    <p>{{ config.descripcion }}</p>
+    {% if config.parametros and config.parametros.imserso_pax_dia %}
+    <div style="border:1px solid #f59e0b;border-radius:8px;padding:10px;margin:10px 0;background:rgba(245,158,11,.08);">
+      <strong>IMSERSO / {{ config.parametros.imserso_operador or 'operador' }}:</strong>
+      {{ config.parametros.imserso_pax_dia|euros }} pax/dia,
+      {{ config.parametros.imserso_regimen or 'regimen pendiente' }},
+      bebida: {{ config.parametros.imserso_bebidas_mesa or '-' }}.
+      Suplemento individual: {{ config.parametros.imserso_suplemento_individual_dia|euros }} / dia.
+    </div>
+    {% endif %}
+    {% if config.parametros and (config.parametros.normal_ad_baja_pax_noche or config.parametros.normal_ad_baja_hab_noche) %}
+    <div style="border:1px solid #38bdf8;border-radius:8px;padding:10px;margin:10px 0;background:rgba(56,189,248,.08);">
+      <strong>Cliente normal:</strong>
+      baja/entre semana {{ (config.parametros.normal_ad_baja_pax_noche or config.parametros.normal_ad_baja_hab_noche)|euros }} pax/noche AD;
+      fin de semana {{ (config.parametros.normal_ad_fin_semana_pax_noche or config.parametros.normal_ad_fin_semana_hab_noche)|euros }} pax/noche AD;
+      media pension {{ (config.parametros.normal_mp_fin_semana_pax_noche or config.parametros.normal_mp_fin_semana_hab_noche)|euros }} pax/noche;
+      alta {{ (config.parametros.normal_alta_pax_noche or config.parametros.normal_alta_hab_noche)|euros }} pax/noche.
+    </div>
+    {% endif %}
+    <div class="sim-kpis">
+      <div class="sim-kpi"><small>Escenarios</small><strong>{{ config.escenarios }}</strong></div>
+      <div class="sim-kpi"><small>Corridas</small><strong>{{ config.corridas }}</strong></div>
+      <div class="sim-kpi"><small>Resultados IA</small><strong>{{ config.resultados }}</strong></div>
+    </div>
+    <div class="sim-kpis">
+      <div class="sim-kpi"><small>Ingresos base 2027</small><strong>{{ config.base.ingresos|euros }}</strong></div>
+      <div class="sim-kpi"><small>Gastos base 2027</small><strong>{{ config.base.gastos|euros }}</strong></div>
+      <div class="sim-kpi">
+        <small>Resultado base</small>
+        <strong style="{% if config.base.resultado < 0 %}color:#ff6b6b;{% else %}color:#51cf66;{% endif %}">{{ config.base.resultado|euros }}</strong>
+      </div>
+    </div>
+    {% if config.mensual %}
+    <h4 style="color:#ff7a00;">Foto mensual conjunta</h4>
+    <div style="overflow-x:auto;margin-bottom:12px;">
+      <table class="sim-table">
+        <thead>
+          <tr>
+            <th>Mes</th>
+            <th>IMSERSO</th>
+            <th>Normal</th>
+            <th>Ingresos</th>
+            <th>Gastos</th>
+            <th>Resultado</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for mes in config.mensual %}
+          <tr>
+            <td>{{ mes.nombre }}</td>
+            <td>{{ mes.ingresos_imserso|euros }}</td>
+            <td>{{ mes.ingresos_normal|euros }}</td>
+            <td>{{ mes.ingresos|euros }}</td>
+            <td>{{ mes.gastos|euros }}</td>
+            <td style="{% if mes.resultado < 0 %}color:#ff6b6b;{% else %}color:#51cf66;{% endif %}">{{ mes.resultado|euros }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% endif %}
+
+    <h4 style="color:#ff7a00;">Escenarios del centro</h4>
+    {% for escenario in config.escenarios_rows %}
+    <div style="border:1px solid #334155;border-radius:8px;padding:10px;margin-bottom:8px;">
+      <strong>{{ escenario.nombre }}</strong>
+      <div class="sim-muted">{{ escenario.tipo }} · {{ escenario.descripcion }}</div>
+    </div>
+    {% else %}
+    <div class="sim-muted">Sin escenarios definidos.</div>
+    {% endfor %}
+
+    <h4 style="color:#ff7a00;">Probar cambio rapido</h4>
+    <form class="sim-form" method="post" action="{{ url_for('demo.simulador_centros_whatif') }}">
+      <input type="hidden" name="empresa_id" value="{{ config.empresa_id }}">
+      <input type="hidden" name="centro_id" value="{{ config.centro_id }}">
+      <input type="hidden" name="anio" value="2027">
+      <div>
+        <label class="form-label">Nombre</label>
+        <input class="form-control" name="nombre" value="Subida ocupacion/precio">
+      </div>
+      <div>
+        <label class="form-label">Ocupacion %</label>
+        <input class="form-control" type="number" step="0.1" name="ocupacion_delta_pct" value="5">
+      </div>
+      <div>
+        <label class="form-label">Precio %</label>
+        <input class="form-control" type="number" step="0.1" name="precio_delta_pct" value="3">
+      </div>
+      <div>
+        <label class="form-label">Fijos %</label>
+        <input class="form-control" type="number" step="0.1" name="coste_fijo_delta_pct" value="0">
+      </div>
+      <div>
+        <label class="form-label">Personal %</label>
+        <input class="form-control" type="number" step="0.1" name="laboral_delta_pct" value="0">
+      </div>
+      <button class="btn btn-success"><i class="fas fa-play"></i> Simular</button>
+    </form>
+
+    {% if config.ultimos_whatif %}
+    <h4 style="color:#ff7a00;">Ultimas pruebas</h4>
+    <table class="sim-table">
+      <thead><tr><th>Escenario</th><th>Resultado</th><th>Lectura</th></tr></thead>
+      <tbody>
+        {% for w in config.ultimos_whatif %}
+        <tr>
+          <td>{{ w.nombre }}<br><span class="sim-muted">Ocup. {{ w.ocupacion_delta_pct }}% · Precio {{ w.precio_delta_pct }}%</span></td>
+          <td style="{% if w.resultado_simulado < 0 %}color:#ff6b6b;{% else %}color:#51cf66;{% endif %}">{{ w.resultado_simulado|euros }}</td>
+          <td>{{ w.lectura }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% endif %}
+  </div>
+  {% else %}
+  <div class="card">No hay centros configurados en el simulador general.</div>
+  {% endfor %}
+</div>
+{% endblock %}

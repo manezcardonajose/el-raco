@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="card">
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+        <div>
+            <h2 style="color: #ff6b00;">Importación masiva</h2>
+            <p style="color: #999;">Importar todas las recetas de una carpeta y subcarpetas</p>
+        </div>
+        <a href="/importar" class="btn btn-red">Volver</a>
+    </div>
+    
+    <div style="background: #3a3f44; padding: 20px; border-radius: 4px; margin: 20px 0;">
+        <form method="POST">
+            <div style="margin-bottom: 15px;">
+                <label>Ruta de la carpeta:</label>
+                <input type="text" name="ruta_carpeta" 
+                       placeholder="C:\Users\pepe\Desktop\recetas_excel" 
+                       value="C:\Users\pepe\Desktop\recetas_excel"
+                       style="width: 100%; padding: 8px;" required>
+                <small style="color: #999;">Ejemplo: C:\Users\pepe\Desktop\recetas_excel</small>
+            </div>
+            
+            <div style="background: #2b2f33; padding: 15px; border-radius: 4px; margin: 20px 0;">
+                <h4 style="margin-top: 0;">Aviso importante</h4>
+                <p>Este proceso puede tardar varios minutos dependiendo de la cantidad de archivos.</p>
+                <p>Se importarán:</p>
+                <ul>
+                    <li>Todos los archivos .xlsx, .xls y .xlsm</li>
+                    <li>De todas las subcarpetas</li>
+                    <li>Se crearán recetas, productos e ingredientes</li>
+                    <li>Se detectarán alérgenos (X = contiene, T = trazas)</li>
+                </ul>
+            </div>
+            
+            <button type="submit" class="btn btn-success" style="padding: 12px 30px; font-size: 16px;">
+                Iniciar importación masiva
+            </button>
+            <a href="/importar" class="btn btn-red">Cancelar</a>
+        </form>
+    </div>
+</div>
+{% endblock %}

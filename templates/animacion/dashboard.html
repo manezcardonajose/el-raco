@@ -1,0 +1,215 @@
+{% extends "base.html" %}
+
+{% block title %}Animacion{% endblock %}
+{% block breadcrumb %}Animacion{% endblock %}
+
+{% block content %}
+<style>
+    .ani-head {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 16px;
+        align-items: end;
+        margin-bottom: 18px;
+    }
+    .ani-head h1 {
+        margin: 0 0 6px;
+        color: #ff6b00;
+        font-size: 28px;
+    }
+    .ani-head p {
+        margin: 0;
+        color: var(--text-muted, #5f6b7a);
+        max-width: 900px;
+        line-height: 1.45;
+    }
+    .ani-filter {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        align-items: end;
+        justify-content: flex-end;
+    }
+    .ani-filter label {
+        display: block;
+        font-size: 12px;
+        color: var(--text-muted, #5f6b7a);
+        margin-bottom: 4px;
+    }
+    .ani-filter input {
+        min-height: 38px;
+        border: 1px solid var(--border-color, #d5dde7);
+        border-radius: 7px;
+        padding: 8px 10px;
+        background: var(--input-bg, #fff);
+        color: var(--text-color, #16202a);
+    }
+    .ani-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+        gap: 12px;
+        margin-bottom: 16px;
+    }
+    .ani-card, .ani-panel {
+        border: 1px solid var(--border-color, #d5dde7);
+        background: var(--card-bg, #fff);
+        border-radius: 8px;
+        box-shadow: 0 1px 2px rgba(0,0,0,.04);
+    }
+    .ani-card {
+        padding: 14px;
+    }
+    .ani-card span {
+        display: block;
+        color: var(--text-muted, #5f6b7a);
+        font-size: 12px;
+        margin-bottom: 7px;
+    }
+    .ani-card strong {
+        font-size: 24px;
+        color: var(--text-color, #16202a);
+    }
+    .ani-panel {
+        overflow: hidden;
+    }
+    .ani-panel h2 {
+        margin: 0;
+        padding: 14px 16px;
+        color: #ff6b00;
+        font-size: 18px;
+        border-bottom: 1px solid var(--border-color, #d5dde7);
+        background: rgba(255,107,0,.07);
+    }
+    .ani-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    .ani-table th, .ani-table td {
+        padding: 10px 12px;
+        border-bottom: 1px solid var(--border-color, #d5dde7);
+        text-align: left;
+        vertical-align: top;
+    }
+    .ani-table th {
+        color: #ff6b00;
+        font-size: 12px;
+        text-transform: uppercase;
+    }
+    .ani-badge {
+        display: inline-flex;
+        padding: 3px 8px;
+        border-radius: 999px;
+        color: #fff;
+        background: #2563eb;
+        font-size: 12px;
+        font-weight: 700;
+    }
+    .ani-badge.show { background: #7c3aed; }
+    .ani-badge.infantil { background: #16a34a; }
+    .ani-badge.deportiva { background: #0891b2; }
+    .ani-badge.familiar { background: #ea580c; }
+    .ani-mini {
+        display: block;
+        margin-top: 4px;
+        color: var(--text-muted, #5f6b7a);
+        font-size: 12px;
+    }
+    @media (max-width: 900px) {
+        .ani-head { grid-template-columns: 1fr; }
+        .ani-filter { justify-content: stretch; }
+    }
+</style>
+
+<div class="ani-head">
+    <div>
+        <h1><i class="fas fa-star"></i> Animacion</h1>
+        <p>Agenda, asistencia, satisfaccion y coste de actividades. En hotel vacacional esto pesa mucho en experiencia, bares, repeticion de clientes y valor percibido.</p>
+    </div>
+    <form class="ani-filter" method="get" action="{{ url_for('animacion.dashboard') }}">
+        <div>
+            <label>Desde</label>
+            <input type="date" name="desde" value="{{ desde }}">
+        </div>
+        <div>
+            <label>Hasta</label>
+            <input type="date" name="hasta" value="{{ hasta }}">
+        </div>
+        <button class="btn btn-primary" type="submit"><i class="fas fa-search"></i> Filtrar</button>
+        {% if puede_gestionar %}
+        <a class="btn btn-success" href="{{ url_for('animacion.nueva_actividad') }}"><i class="fas fa-plus"></i> Nueva actividad</a>
+        {% endif %}
+    </form>
+</div>
+
+<div class="ani-grid">
+    <div class="ani-card"><span>Actividades</span><strong>{{ resumen.actividades }}</strong></div>
+    <div class="ani-card"><span>Infantiles/familiares</span><strong>{{ resumen.infantiles }}</strong></div>
+    <div class="ani-card"><span>Pax-noches</span><strong>{{ resumen.pax_noches }}</strong></div>
+    <div class="ani-card"><span>Menores-noches</span><strong>{{ resumen.menores_noches }}</strong></div>
+    <div class="ani-card"><span>Asistentes</span><strong>{{ resumen.asistentes }}</strong></div>
+    <div class="ani-card"><span>Coste real</span><strong>{{ resumen.coste_real|euros }}</strong></div>
+    <div class="ani-card"><span>Coste/asistente</span><strong>{{ resumen.coste_por_asistente|euros }}</strong></div>
+    <div class="ani-card"><span>Satisfaccion</span><strong>{{ resumen.satisfaccion_media|numero_es(1) }}</strong></div>
+    <div class="ani-card"><span>Propia / externa / mixta</span><strong>{{ resumen.propias }} / {{ resumen.subcontratadas }} / {{ resumen.mixtas }}</strong></div>
+    <div class="ani-card"><span>Coste interno</span><strong>{{ resumen.coste_personal_interno|euros }}</strong></div>
+    <div class="ani-card"><span>Coste proveedor</span><strong>{{ resumen.coste_proveedor|euros }}</strong></div>
+    <div class="ani-card"><span>Materiales</span><strong>{{ resumen.coste_materiales|euros }}</strong></div>
+    <div class="ani-card"><span>Ingreso directo</span><strong>{{ resumen.ingreso_directo|euros }}</strong></div>
+    <div class="ani-card"><span>Impacto estimado</span><strong>{{ resumen.impacto_estimado|euros }}</strong></div>
+</div>
+
+<section class="ani-panel">
+    <h2>Actividades programadas</h2>
+    <div style="overflow-x:auto;">
+        <table class="ani-table">
+            <thead>
+                <tr>
+                    <th>Fecha</th>
+                    <th>Actividad</th>
+                    <th>Modelo</th>
+                    <th>Publico</th>
+                    <th>Ubicacion</th>
+                    <th>Asistencia</th>
+                    <th>Coste</th>
+                    <th>Estado</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for a in actividades %}
+                <tr>
+                    <td>{{ a.fecha|fecha_es }}<br><small>{{ a.hora_inicio }} - {{ a.hora_fin }}</small></td>
+                    <td>
+                        <strong>{{ a.titulo }}</strong><br>
+                        <span class="ani-badge {{ a.tipo }}">{{ a.tipo }}</span>
+                    </td>
+                    <td>
+                        {{ a.modelo_prestacion or 'propia' }}
+                        {% if a.proveedor_nombre %}
+                        <small class="ani-mini">{{ a.proveedor_nombre }}</small>
+                        {% endif %}
+                        {% if a.contrato_referencia %}
+                        <small class="ani-mini">{{ a.contrato_referencia }}</small>
+                        {% endif %}
+                    </td>
+                    <td>{{ a.publico }}<br><small>{{ a.idioma }}</small></td>
+                    <td>{{ a.ubicacion or '-' }}<br><small>{{ a.responsable or '' }}</small></td>
+                    <td>{{ a.asistentes|int }} pax<br><small>Satisfaccion {{ (a.satisfaccion_media or 0)|numero_es(1) }}</small></td>
+                    <td>
+                        {{ (a.coste_real or ((a.coste_personal_interno or 0) + (a.coste_proveedor or 0) + (a.coste_materiales or 0)) or a.coste_estimado or 0)|euros }}
+                        <small class="ani-mini">Int. {{ (a.coste_personal_interno or 0)|euros }} / Prov. {{ (a.coste_proveedor or 0)|euros }}</small>
+                        <small class="ani-mini">Ingreso {{ (a.ingreso_directo or 0)|euros }} / Impacto {{ ((a.ingreso_directo or 0) + (a.venta_indirecta_estimada or 0) - (a.coste_real or ((a.coste_personal_interno or 0) + (a.coste_proveedor or 0) + (a.coste_materiales or 0)) or a.coste_estimado or 0))|euros }}</small>
+                    </td>
+                    <td>{{ a.estado }}</td>
+                    <td><a class="btn btn-secondary" href="{{ url_for('animacion.detalle_actividad', actividad_id=a.id) }}">Ver</a></td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="9">No hay actividades programadas en este periodo.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</section>
+{% endblock %}

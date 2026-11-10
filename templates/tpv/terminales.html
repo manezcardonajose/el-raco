@@ -1,0 +1,94 @@
+{% extends 'base.html' %}
+{% block title %}Terminales TPV{% endblock %}
+{% block breadcrumb %}TPV / Terminales{% endblock %}
+{% block content %}
+<style>
+  .tpv-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;align-items:end;}
+  .tpv-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
+  .tpv-note{color:#94a3b8;font-size:12px;line-height:1.35;}
+</style>
+
+<div class="card">
+  <div class="card-header">
+    <h2><i class="fas fa-desktop"></i> Terminales y perifericos</h2>
+    <div class="tpv-actions">
+      <a class="btn btn-secondary" href="{{ url_for('tpv.dashboard') }}"><i class="fas fa-cash-register"></i> TPV</a>
+      <a class="btn btn-success" href="{{ url_for('tpv.comandero_directo') }}"><i class="fas fa-mobile-alt"></i> Abrir comandero</a>
+      <a class="btn btn-primary" href="{{ url_for('tpv.arranque') }}"><i class="fas fa-power-off"></i> Arranque</a>
+      <a class="btn btn-secondary" href="{{ url_for('tpv.cuentas') }}"><i class="fas fa-receipt"></i> Cuentas</a>
+      <a class="btn btn-secondary" href="{{ url_for('tpv.pantalla') }}"><i class="fas fa-tv"></i> Pantalla</a>
+    </div>
+  </div>
+  <p class="tpv-note">El navegador no puede leer la MAC real por seguridad. Usa un codigo fijo del dispositivo, la MAC escrita a mano o un identificador pegado al terminal. Al arrancar, el terminal carga el punto de venta asignado.</p>
+  <form method="post" class="tpv-grid">
+    <input type="hidden" name="accion" value="crear">
+    <div class="form-group"><label class="form-label">Punto de venta</label><select class="form-control" name="punto_venta_id">
+      <option value="">Sin asignar</option>
+      {% for p in puntos %}<option value="{{ p.id }}">{{ p.nombre }}</option>{% endfor %}
+    </select></div>
+    <div class="form-group"><label class="form-label">Nombre</label><input class="form-control" name="nombre" placeholder="TPV Buffet 1" required></div>
+    <div class="form-group"><label class="form-label">Codigo/MAC</label><input class="form-control" name="codigo" placeholder="BUFFET-TPV-01"></div>
+    <div class="form-group"><label class="form-label">Tipo</label><select class="form-control" name="tipo">
+      {% for key,label in tipos_terminal.items() %}<option value="{{ key }}">{{ label }}</option>{% endfor %}
+    </select></div>
+    <div class="form-group"><label class="form-label">Ubicacion</label><input class="form-control" name="ubicacion" placeholder="Buffet entrada"></div>
+    <div class="form-group"><label class="form-label">Zonas comandero</label><input class="form-control" name="comandero_zonas" placeholder="Sala, Terraza"></div>
+    <div class="form-group"><label class="form-label">Familias comandero</label><input class="form-control" name="comandero_categorias" placeholder="Bebidas, Tapas o IDs"></div>
+    <label><input type="checkbox" name="comandero_ver_precios" value="1" checked> Ver precios</label>
+    <label><input type="checkbox" name="comandero_puede_cobrar" value="1"> Puede cobrar</label>
+    <button class="btn btn-success" type="submit"><i class="fas fa-save"></i> Crear</button>
+  </form>
+</div>
+
+<div class="card">
+  <div class="card-header"><h2><i class="fas fa-list"></i> Registrados</h2></div>
+  <div class="table-container">
+    <table>
+      <thead><tr><th>Terminal</th><th>Tipo</th><th>Punto venta</th><th>Codigo/MAC</th><th>IP</th><th>Ultimo inicio</th><th>Accion</th></tr></thead>
+      <tbody>
+        {% for t in terminales %}
+        <tr>
+          <td><strong>{{ t.nombre }}</strong><div class="tpv-note">{{ t.ubicacion or '' }}</div></td>
+          <td>{{ tipos_terminal.get(t.tipo, t.tipo) }}</td>
+          <td>{{ t.punto_nombre or '-' }}</td>
+          <td>{{ t.codigo }}{% if t.mac %}<div class="tpv-note">{{ t.mac }}</div>{% endif %}</td>
+          <td>{{ t.ip or '-' }}</td>
+          <td>{{ t.ultimo_inicio or '-' }}</td>
+          <td>
+            {% if t.punto_venta_id %}
+            {% if t.tipo == 'comandero' %}
+            <a class="btn btn-sm btn-primary" href="{{ url_for('tpv.comandero', terminal_id=t.id) }}">Abrir comandero</a>
+            {% else %}
+            <a class="btn btn-sm btn-primary" href="{{ url_for('tpv.terminal', terminal_id=t.id) }}">Abrir</a>
+            {% endif %}
+            {% endif %}
+            <form method="post" style="display:inline;">
+              <input type="hidden" name="accion" value="toggle">
+              <input type="hidden" name="terminal_id" value="{{ t.id }}">
+              <button class="btn btn-sm btn-secondary" type="submit">{% if t.activo %}Desactivar{% else %}Activar{% endif %}</button>
+            </form>
+            {% if t.tipo == 'comandero' %}
+            <details style="margin-top:8px;">
+              <summary class="tpv-note">Config comandero</summary>
+              <form method="post" style="display:grid;gap:6px;margin-top:6px;">
+                <input type="hidden" name="accion" value="config">
+                <input type="hidden" name="terminal_id" value="{{ t.id }}">
+                <input class="form-control" name="comandero_zonas" value="{{ t.comandero_zonas or '' }}" placeholder="Zonas visibles">
+                <input class="form-control" name="comandero_categorias" value="{{ t.comandero_categorias or '' }}" placeholder="Familias visibles">
+                <label><input type="checkbox" name="comandero_ver_precios" value="1" {% if t.comandero_ver_precios is none or t.comandero_ver_precios %}checked{% endif %}> Ver precios</label>
+                <label><input type="checkbox" name="comandero_puede_cobrar" value="1" {% if t.comandero_puede_cobrar %}checked{% endif %}> Puede cobrar</label>
+                <button class="btn btn-sm btn-success" type="submit">Guardar config</button>
+              </form>
+              <div class="tpv-note">URL: {{ request.host_url.rstrip('/') }}{{ url_for('tpv.comandero', terminal_id=t.id) }}</div>
+            </details>
+            {% endif %}
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="7">Sin terminales.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

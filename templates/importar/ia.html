@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="card">
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+        <div>
+            <h2 style="color: #ff6b00;">Importación con IA</h2>
+            <p style="color: #999;">Usa inteligencia artificial para importar recetas automáticamente</p>
+        </div>
+        <a href="/importar" class="btn btn-red">Volver</a>
+    </div>
+    
+    <div style="background: #3a3f44; padding: 20px; border-radius: 4px; margin: 20px 0;">
+        <h3>Subir archivo</h3>
+        <form method="POST" enctype="multipart/form-data">
+            <div style="margin-bottom: 15px;">
+                <label>Selecciona archivo Excel (.xlsx, .xls):</label>
+                <input type="file" name="archivo" accept=".xlsx,.xls" required style="width: 100%; padding: 8px;">
+            </div>
+            <button type="submit" class="btn btn-success">Importar con IA</button>
+        </form>
+    </div>
+    
+    <div style="background: #2b2f33; padding: 20px; border-radius: 4px;">
+        <h4 style="margin-top: 0;">¿Cómo funciona?</h4>
+        <ul style="color: #ccc;">
+            <li>Sube un archivo Excel con tus recetas</li>
+            <li>La IA analizará la estructura</li>
+            <li>Te sugerirá cómo mapear las columnas</li>
+            <li>Las recetas se importarán automáticamente</li>
+        </ul>
+    </div>
+</div>
+{% endblock %}

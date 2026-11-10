@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Parte pisos {{ fecha }}</title>
+  <style>
+    body{font-family:Arial,sans-serif;color:#111827;margin:18px;}
+    h1{margin:0 0 8px;font-size:24px;}
+    .meta{font-size:12px;color:#475569;margin-bottom:14px;}
+    .summary{display:grid;grid-template-columns:repeat(6,1fr);gap:6px;margin-bottom:12px;}
+    .box{border:1px solid #111827;padding:6px;font-size:12px;}
+    .box strong{display:block;font-size:18px;}
+    table{width:100%;border-collapse:collapse;font-size:11px;}
+    th,td{border:1px solid #111827;padding:5px;vertical-align:top;}
+    th{background:#e5e7eb;}
+    .muted{color:#475569;font-size:10px;}
+    @media print{button{display:none;} body{margin:8mm;}}
+  </style>
+</head>
+<body>
+  <button onclick="window.print()">Imprimir</button>
+  <h1>Parte diario de pisos</h1>
+  <div class="meta">
+    Fecha {{ fecha }}
+    {% if filtros.bloque %} &middot; Bloque {{ filtros.bloque }}{% endif %}
+    {% if filtros.planta %} &middot; Planta {{ filtros.planta }}{% endif %}
+    {% if filtros.estado %} &middot; Estado {{ filtros.estado }}{% endif %}
+    {% if filtros.trabajador %} &middot; Trabajadora {{ filtros.trabajador }}{% endif %}
+  </div>
+  <div class="summary">
+    <div class="box">Pendientes<strong>{{ resumen.partes.get('pendiente', 0) }}</strong></div>
+    <div class="box">En curso<strong>{{ resumen.partes.get('en_curso', 0) }}</strong></div>
+    <div class="box">Hechas<strong>{{ resumen.partes.get('hecha', 0) }}</strong></div>
+    <div class="box">Incidencias<strong>{{ resumen.partes.get('incidencia', 0) }}</strong></div>
+    <div class="box">Sabanas<strong>{{ resumen.lenceria.sabanas }}</strong></div>
+    <div class="box">Toallas<strong>{{ resumen.lenceria.toallas }}</strong></div>
+  </div>
+  <table>
+    <thead>
+      <tr>
+        <th>Destino</th><th>Trabajo</th><th>Reserva</th><th>Lenceria/productos</th><th>Asignado</th><th>Firma</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for p in trabajos %}
+      <tr>
+        <td>
+          <strong>{% if p.target_tipo == 'zona' %}{{ p.zona_nombre or 'Zona comun' }}{% else %}{{ p.habitacion_numero or p.habitacion_nombre or '-' }}{% endif %}</strong>
+          <div class="muted">{% if p.bloque %}Bloque {{ p.bloque }} {% endif %}{% if p.planta %}Planta {{ p.planta }}{% endif %}</div>
+          {% if p.tipo_cama or p.supletorias_max %}
+          <div class="muted">
+            {% if p.tipo_cama %}Cama: {{ tipos_cama.get(p.tipo_cama, p.tipo_cama) }}{% endif %}
+            {% if p.supletorias_max %} / Supl. max {{ p.supletorias_max }}{% endif %}
+          </div>
+          {% endif %}
+        </td>
+        <td>{{ p.tarea_nombre }}<div class="muted">{{ p.checklist or '' }}</div></td>
+        <td>
+          {% if p.reserva_id %}{{ p.reserva_codigo or p.reserva_id }}<br>{{ p.titular_nombre or '' }}{% else %}-{% endif %}
+          {% if p.supletoria_solicitada or p.cuna_solicitada or p.preferencia_cama or p.observaciones_habitacion %}
+          <div class="muted">
+            {% if p.supletoria_solicitada %}Supletoria. {% endif %}
+            {% if p.cuna_solicitada %}Cuna. {% endif %}
+            {% if p.preferencia_cama %}{{ tipos_cama.get(p.preferencia_cama, p.preferencia_cama) }}. {% endif %}
+            {{ p.observaciones_habitacion or '' }}
+          </div>
+          {% endif %}
+        </td>
+        <td>
+          {% if p.productos_previstos %}Productos: {{ p.productos_previstos }}<br>{% endif %}
+          Previsto: S{{ p.sabanas_previstas or 0 }} T{{ p.toallas_previstas or 0 }} A{{ p.alfombrines_previstos or 0 }}
+        </td>
+        <td>{{ p.asignado_a or '' }}</td>
+        <td style="height:36px;"></td>
+      </tr>
+      {% else %}
+      <tr><td colspan="6">Sin trabajos.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</body>
+</html>

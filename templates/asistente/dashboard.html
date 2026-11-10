@@ -1,0 +1,514 @@
+{% extends "base.html" %}
+
+{% block title %}Asistente El Raco{% endblock %}
+{% block breadcrumb %}Asistente El Raco{% endblock %}
+
+{% block content %}
+<style>
+    .ai-hero {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 18px;
+        align-items: end;
+        margin-bottom: 18px;
+    }
+    .ai-title h1 {
+        margin: 0 0 6px;
+        color: #ff6b00;
+        font-size: 28px;
+    }
+    .ai-title p {
+        margin: 0;
+        max-width: 900px;
+        color: var(--text-muted, #5f6b7a);
+        line-height: 1.45;
+    }
+    .ai-filter {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+        align-items: end;
+    }
+    .ai-filter label {
+        display: block;
+        font-size: 12px;
+        color: var(--text-muted, #5f6b7a);
+        margin-bottom: 4px;
+    }
+    .ai-filter input {
+        min-height: 38px;
+        border: 1px solid var(--border-color, #d5dde7);
+        border-radius: 7px;
+        padding: 7px 10px;
+        background: var(--input-bg, #fff);
+        color: var(--text-color, #16202a);
+    }
+    .ai-kpis {
+        display: grid;
+        grid-template-columns: repeat(5, minmax(120px, 1fr));
+        gap: 12px;
+        margin-bottom: 16px;
+    }
+    .ai-map {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 12px;
+        margin-bottom: 16px;
+    }
+    .ai-map-card {
+        display: block;
+        text-decoration: none;
+        color: var(--text-color, #16202a);
+        border: 1px solid var(--border-color, #d5dde7);
+        background: var(--card-bg, #fff);
+        border-radius: 8px;
+        padding: 14px;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, .04);
+    }
+    .ai-map-card:hover {
+        border-color: #ff6b00;
+    }
+    .ai-map-card i {
+        color: #ff6b00;
+        margin-right: 6px;
+    }
+    .ai-map-card strong {
+        display: block;
+        margin-bottom: 6px;
+    }
+    .ai-map-card span {
+        color: var(--text-muted, #5f6b7a);
+        line-height: 1.35;
+        font-size: 13px;
+    }
+    .ai-orientacion {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 10px;
+        margin-bottom: 16px;
+    }
+    .ai-orienta {
+        border: 1px solid var(--border-color, #d5dde7);
+        border-left: 4px solid #ff6b00;
+        background: var(--card-bg, #fff);
+        border-radius: 8px;
+        padding: 12px;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, .04);
+    }
+    .ai-orienta strong {
+        display: block;
+        color: var(--text-color, #16202a);
+        margin-bottom: 5px;
+    }
+    .ai-orienta span {
+        color: var(--text-muted, #5f6b7a);
+        line-height: 1.35;
+        font-size: 13px;
+    }
+    .ai-tools {
+        border: 1px solid var(--border-color, #d5dde7);
+        background: var(--card-bg, #fff);
+        border-radius: 8px;
+        padding: 14px;
+        margin-bottom: 16px;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, .04);
+    }
+    .ai-tools h2 {
+        margin: 0 0 10px;
+        color: #ff6b00;
+        font-size: 18px;
+    }
+    .ai-tools summary {
+        cursor: pointer;
+        color: #ff6b00;
+        font-size: 18px;
+        font-weight: 700;
+        list-style: none;
+    }
+    .ai-tools summary::-webkit-details-marker {
+        display: none;
+    }
+    .ai-tools summary i {
+        margin-right: 6px;
+    }
+    .ai-tools .ai-tools-intro {
+        color: var(--text-muted, #5f6b7a);
+        margin: 8px 0 2px;
+        line-height: 1.35;
+    }
+    .ai-tool-group {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        align-items: center;
+        padding-top: 8px;
+    }
+    .ai-tool-group + .ai-tool-group {
+        border-top: 1px solid var(--border-color, #d5dde7);
+        margin-top: 8px;
+    }
+    .ai-tool-group span {
+        color: var(--text-muted, #5f6b7a);
+        font-size: 12px;
+        font-weight: 700;
+        text-transform: uppercase;
+        min-width: 110px;
+    }
+    .ai-kpi, .ai-panel, .ai-rec {
+        border: 1px solid var(--border-color, #d5dde7);
+        background: var(--card-bg, #fff);
+        border-radius: 8px;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, .04);
+    }
+    .ai-kpi {
+        padding: 13px;
+    }
+    .ai-kpi span {
+        display: block;
+        color: var(--text-muted, #5f6b7a);
+        font-size: 12px;
+        margin-bottom: 7px;
+    }
+    .ai-kpi strong {
+        font-size: 25px;
+        color: var(--text-color, #16202a);
+    }
+    .ai-panel {
+        margin-bottom: 16px;
+        overflow: hidden;
+    }
+    .ai-panel-header {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        align-items: center;
+        padding: 14px 16px;
+        border-bottom: 1px solid var(--border-color, #d5dde7);
+        background: rgba(255, 107, 0, .07);
+    }
+    .ai-panel-header h2 {
+        margin: 0;
+        font-size: 18px;
+        color: #ff6b00;
+    }
+    .ai-panel-body {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+        gap: 12px;
+        padding: 14px;
+    }
+    .ai-rec {
+        padding: 14px;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+    .ai-rec h3 {
+        margin: 0;
+        font-size: 16px;
+        color: var(--text-color, #16202a);
+    }
+    .ai-rec p {
+        margin: 0;
+        line-height: 1.42;
+        color: var(--text-color, #16202a);
+    }
+    .ai-meta {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        align-items: center;
+    }
+    .ai-badge {
+        display: inline-flex;
+        align-items: center;
+        min-height: 24px;
+        padding: 3px 8px;
+        border-radius: 999px;
+        font-size: 12px;
+        font-weight: 700;
+        color: #fff;
+    }
+    .ai-badge.critica { background: #dc2626; }
+    .ai-badge.alta { background: #ea580c; }
+    .ai-badge.media { background: #2563eb; }
+    .ai-badge.baja { background: #64748b; }
+    .ai-badge.info { background: #0891b2; }
+    .ai-data {
+        border-left: 3px solid rgba(255, 107, 0, .65);
+        padding: 8px 10px;
+        background: rgba(148, 163, 184, .1);
+        font-size: 13px;
+        color: var(--text-muted, #5f6b7a);
+        overflow-wrap: anywhere;
+    }
+    .ai-data ul {
+        margin: 6px 0 0;
+        padding-left: 18px;
+    }
+    .ai-actions {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        margin-top: auto;
+    }
+    .ai-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    .ai-table th, .ai-table td {
+        text-align: left;
+        padding: 10px 8px;
+        border-bottom: 1px solid var(--border-color, #d5dde7);
+        vertical-align: top;
+    }
+    .ai-table th {
+        color: #ff6b00;
+        font-size: 12px;
+        text-transform: uppercase;
+    }
+    .ai-state-form {
+        display: flex;
+        gap: 6px;
+        flex-wrap: wrap;
+    }
+    .ai-state-form select,
+    .ai-state-form input {
+        min-height: 32px;
+        border-radius: 6px;
+        border: 1px solid var(--border-color, #d5dde7);
+        padding: 5px 7px;
+        background: var(--input-bg, #fff);
+        color: var(--text-color, #16202a);
+    }
+    @media (max-width: 900px) {
+        .ai-hero {
+            grid-template-columns: 1fr;
+        }
+        .ai-filter {
+            justify-content: stretch;
+        }
+        .ai-kpis {
+            grid-template-columns: repeat(2, minmax(120px, 1fr));
+        }
+    }
+</style>
+
+<div class="ai-hero">
+    <div class="ai-title">
+        <h1><i class="fas fa-brain"></i> Asistente El Raco</h1>
+        <p>Lee la operativa y propone acciones con datos. No decide por la empresa: avisa, explica y deja rastro para que direccion, jefes y responsables actuen con criterio.</p>
+    </div>
+    <form class="ai-filter" method="get" action="{{ url_for('asistente.dashboard') }}">
+        <div>
+            <label>Desde</label>
+            <input type="date" name="fecha_desde" value="{{ fecha_desde }}">
+        </div>
+        <div>
+            <label>Hasta</label>
+            <input type="date" name="fecha_hasta" value="{{ fecha_hasta }}">
+        </div>
+        <button class="btn btn-primary" type="submit"><i class="fas fa-search"></i> Analizar</button>
+    </form>
+</div>
+
+<section class="ai-orientacion">
+    <div class="ai-orienta">
+        <strong><i class="fas fa-headset"></i> Copiloto operativo</strong>
+        <span>Lo abres para saber que pasa hoy y que mirar primero.</span>
+    </div>
+    <div class="ai-orienta">
+        <strong><i class="fas fa-brain"></i> Cerebro operativo</strong>
+        <span>Lo usas para preguntar, crear tareas, preparar borradores y analizar causas.</span>
+    </div>
+    <div class="ai-orienta">
+        <strong><i class="fas fa-network-wired"></i> Sistema nervioso</strong>
+        <span>Es la capa interna de KPIs, senales, snapshots, tendencias y mapa por modulo.</span>
+    </div>
+</section>
+
+<div class="ai-map">
+    {% if puede_ia_estrategica %}
+    <a class="ai-map-card" href="{{ url_for('asistente.centro_decision', fecha_desde=fecha_desde, fecha_hasta=fecha_hasta) }}">
+        <strong><i class="fas fa-compass"></i> Direccion</strong>
+        <span>Ver salud, margen, equipo, cocina, mantenimiento y propuestas de decision.</span>
+    </a>
+    <a class="ai-map-card" href="{{ url_for('asistente.chat_estrategico') }}">
+        <strong><i class="fas fa-comments"></i> Preguntar</strong>
+        <span>Hablar con la IA cuando no quieres rellenar formularios ni saltar entre pantallas.</span>
+    </a>
+    <a class="ai-map-card" href="{{ url_for('asistente.radar_estrategico') }}">
+        <strong><i class="fas fa-satellite-dish"></i> Mercado</strong>
+        <span>Revisar tendencias, oportunidades, competencia y senales externas.</span>
+    </a>
+    {% endif %}
+    {% if puede_ia_estrategica %}
+    <a class="ai-map-card" href="{{ url_for('asistente.cerebro_operativo') }}">
+        <strong><i class="fas fa-brain"></i> Cerebro operativo</strong>
+        <span>Consola profunda: preguntar, crear tareas, guardar fotos operativas, procesar senales y preparar borradores con confirmacion.</span>
+    </a>
+    {% endif %}
+    <a class="ai-map-card" href="{{ url_for('asistente.asesor_diario', fecha_desde=fecha_desde, fecha_hasta=fecha_hasta) }}">
+        <strong><i class="fas fa-headset"></i> Copiloto operativo</strong>
+        <span>Entrada diaria sencilla: salud del centro, KPIs en riesgo, mapa nervioso y avisos por area.</span>
+    </a>
+    <a class="ai-map-card" href="{{ url_for('asistente.cocina_ia', fecha_desde=fecha_desde, fecha_hasta=fecha_hasta) }}">
+        <strong><i class="fas fa-utensils"></i> Cocina</strong>
+        <span>Recetas, menus, costes, alergenos, produccion y mejora gastronomica.</span>
+    </a>
+    <a class="ai-map-card" href="{{ url_for('buffet_ia.panel') }}">
+        <strong><i class="fas fa-store"></i> Buffet</strong>
+        <span>Montaje, lineas, flujo, APPCC, reposicion y presentacion visual.</span>
+    </a>
+    <a class="ai-map-card" href="{{ url_for('asistente.documentos_ia') }}">
+        <strong><i class="fas fa-file-import"></i> Datos de entrada</strong>
+        <span>Documentos, enlaces y aprendizaje que aun deben revisarse antes de usarse como verdad.</span>
+    </a>
+    {% if puede_ia_estrategica %}
+    <a class="ai-map-card" href="{{ url_for('asistente.reportes_contenido_ia') }}">
+        <strong><i class="fas fa-flag"></i> Reportes IA</strong>
+        <span>Revisar contenido IA reportado por usuarios: inapropiado, falso, peligroso o poco fiable.</span>
+    </a>
+    {% endif %}
+</div>
+
+<details class="ai-tools">
+    <summary><i class="fas fa-layer-group"></i> Herramientas avanzadas ordenadas</summary>
+    <p class="ai-tools-intro">Accesos menos frecuentes. El trabajo normal debe empezar por los bloques grandes de arriba.</p>
+    <div class="ai-tool-group">
+        <span>Direccion</span>
+        {% if puede_ia_estrategica %}
+        <a class="btn btn-secondary" href="{{ url_for('asistente.brief_ejecutivo') }}"><i class="fas fa-clipboard-list"></i> Brief</a>
+        <a class="btn btn-secondary" href="{{ url_for('asistente.vision_temporada') }}"><i class="fas fa-calendar-alt"></i> Temporada</a>
+        <a class="btn btn-secondary" href="{{ url_for('asistente.oportunidades') }}"><i class="fas fa-lightbulb"></i> Oportunidades</a>
+        <a class="btn btn-secondary" href="{{ url_for('asistente.simulador_decision') }}"><i class="fas fa-flask"></i> Simulador demo/laboratorio</a>
+        {% else %}
+        <span>Sin permisos de IA estrategica.</span>
+        {% endif %}
+    </div>
+    <div class="ai-tool-group">
+        <span>Mercado</span>
+        {% if puede_ia_estrategica %}
+        <a class="btn btn-secondary" href="{{ url_for('asistente.tendencias_estrategicas') }}"><i class="fas fa-wave-square"></i> Tendencias</a>
+        <a class="btn btn-secondary" href="{{ url_for('asistente.mapa_competitivo') }}"><i class="fas fa-chess-knight"></i> Competitividad</a>
+        {% else %}
+        <span>Sin permisos de IA estrategica.</span>
+        {% endif %}
+    </div>
+    <div class="ai-tool-group">
+        <span>Cocina</span>
+        <a class="btn btn-secondary" href="{{ url_for('asistente.cocina_investigar') }}"><i class="fas fa-search"></i> Investigacion cocina</a>
+    </div>
+</details>
+
+<div class="ai-kpis">
+    <div class="ai-kpi"><span>Criticas</span><strong>{{ resumen.get('critica', 0) }}</strong></div>
+    <div class="ai-kpi"><span>Altas</span><strong>{{ resumen.get('alta', 0) }}</strong></div>
+    <div class="ai-kpi"><span>Medias</span><strong>{{ resumen.get('media', 0) }}</strong></div>
+    <div class="ai-kpi"><span>Informativas</span><strong>{{ resumen.get('info', 0) + resumen.get('baja', 0) }}</strong></div>
+    <div class="ai-kpi"><span>Total</span><strong>{{ recomendaciones|length }}</strong></div>
+</div>
+
+<form method="post" action="{{ url_for('asistente.guardar_recomendaciones') }}" style="margin-bottom:16px;">
+    <input type="hidden" name="fecha_desde" value="{{ fecha_desde }}">
+    <input type="hidden" name="fecha_hasta" value="{{ fecha_hasta }}">
+    <button class="btn btn-success" type="submit"><i class="fas fa-save"></i> Guardar analisis para seguimiento</button>
+</form>
+
+{% for modulo, items in modulos.items() %}
+<section class="ai-panel">
+    <div class="ai-panel-header">
+        <h2>{{ modulo }}</h2>
+        <span>{{ items|length }} avisos</span>
+    </div>
+    <div class="ai-panel-body">
+        {% for rec in items %}
+        <article class="ai-rec">
+            <div class="ai-meta">
+                <span class="ai-badge {{ rec.prioridad }}">{{ rec.prioridad|upper }}</span>
+                <span>{{ rec.categoria }}</span>
+            </div>
+            <h3>{{ rec.titulo }}</h3>
+            <p>{{ rec.detalle }}</p>
+            <div class="ai-data">
+                <strong>Datos usados</strong>
+                {% if rec.datos_usados %}
+                    <ul>
+                    {% for clave, valor in rec.datos_usados.items() %}
+                        <li><strong>{{ clave }}:</strong>
+                            {% if valor is string or valor is number %}
+                                {{ valor }}
+                            {% else %}
+                                {{ valor|join('; ') }}
+                            {% endif %}
+                        </li>
+                    {% endfor %}
+                    </ul>
+                {% else %}
+                    <div>Sin datos ampliados.</div>
+                {% endif %}
+            </div>
+            <p><strong>Accion propuesta:</strong> {{ rec.accion_propuesta }}</p>
+            {% if rec.enlace %}
+            <div class="ai-actions">
+                <a class="btn btn-secondary" href="{{ rec.enlace }}"><i class="fas fa-arrow-right"></i> Ir al modulo</a>
+            </div>
+            {% endif %}
+        </article>
+        {% endfor %}
+    </div>
+</section>
+{% endfor %}
+
+<section class="ai-panel">
+    <div class="ai-panel-header">
+        <h2>Seguimiento guardado</h2>
+        <span>Ultimas recomendaciones</span>
+    </div>
+    <div style="overflow-x:auto;">
+        <table class="ai-table">
+            <thead>
+                <tr>
+                    <th>Fecha</th>
+                    <th>Modulo</th>
+                    <th>Prioridad</th>
+                    <th>Recomendacion</th>
+                    <th>Estado</th>
+                    <th>Decision</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in historico %}
+                <tr>
+                    <td>{{ item.fecha_creacion|fecha_es }}</td>
+                    <td>{{ item.modulo }}</td>
+                    <td><span class="ai-badge {{ item.prioridad }}">{{ item.prioridad|upper }}</span></td>
+                    <td>
+                        <strong>{{ item.titulo }}</strong><br>
+                        <span>{{ item.accion_propuesta }}</span>
+                    </td>
+                    <td>{{ item.estado }}</td>
+                    <td>
+                        <form class="ai-state-form" method="post" action="{{ url_for('asistente.actualizar_estado', recomendacion_id=item.id) }}">
+                            <select name="estado">
+                                <option value="revisada">Revisada</option>
+                                <option value="aceptada">Aceptada</option>
+                                <option value="descartada">Descartada</option>
+                                <option value="pendiente">Pendiente</option>
+                            </select>
+                            <input type="text" name="resultado" placeholder="Nota" value="{{ item.resultado or '' }}">
+                            <button class="btn btn-primary" type="submit"><i class="fas fa-check"></i></button>
+                        </form>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="6">Todavia no hay recomendaciones guardadas.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</section>
+{% endblock %}

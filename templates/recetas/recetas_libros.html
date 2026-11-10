@@ -1,0 +1,217 @@
+{% extends "base.html" %}
+
+{% block content %}
+<style>
+    .libros-recetas-page { max-width: 1500px; margin: 0 auto; }
+    .filters {
+        display: grid;
+        grid-template-columns: minmax(240px, 1.3fr) minmax(260px, 1.2fr) repeat(4, minmax(130px, .7fr)) 120px;
+        gap: 12px;
+        align-items: end;
+        margin-bottom: 14px;
+    }
+    .filters input,
+    .filters select {
+        width: 100%;
+        min-height: 42px;
+        box-sizing: border-box;
+        padding: 8px 10px;
+        font-size: 15px;
+    }
+    .book-recipe {
+        border: 1px solid #34495e;
+        background: #111827;
+        border-radius: 8px;
+        padding: 12px;
+        margin-bottom: 12px;
+    }
+    .book-recipe h3 {
+        color: #fff;
+        margin: 0 0 6px;
+    }
+    .muted { color: #9ca3af; font-size: 12px; }
+    .tag {
+        display: inline-block;
+        border: 1px solid #34495e;
+        border-radius: 999px;
+        padding: 3px 8px;
+        margin: 2px;
+        font-size: 12px;
+        color: #d1d5db;
+    }
+    .recipe-grid {
+        display: grid;
+        grid-template-columns: minmax(260px, 380px) 1fr;
+        gap: 12px;
+        margin-top: 10px;
+    }
+    .recipe-grid ul { margin: 0; padding-left: 18px; }
+    .chef-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 10px;
+    }
+    .chef-notes {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 10px;
+        margin-top: 10px;
+    }
+    .chef-box {
+        border: 1px solid #34495e;
+        border-radius: 8px;
+        padding: 10px;
+        background: #0b1220;
+    }
+    .chef-box strong { display: block; margin-bottom: 6px; }
+    @media (max-width: 900px) {
+        .filters,
+        .recipe-grid,
+        .chef-notes { grid-template-columns: 1fr; }
+    }
+</style>
+
+<div class="libros-recetas-page">
+    <div class="card">
+        <div class="card-header">
+            <h2><i class="fas fa-book-open"></i> Recetas indexadas de libros</h2>
+            <div>
+                <a href="{{ url_for('recetas.analizador_libros') }}" class="btn btn-warning">
+                    <i class="fas fa-book-reader"></i> Analizador
+                </a>
+                <a href="{{ url_for('recetas.biblioteca_recetas') }}" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left"></i> Biblioteca
+                </a>
+            </div>
+        </div>
+
+        <form class="filters" method="get">
+            <div>
+                <label>Buscar</label>
+                <input name="consulta" value="{{ consulta }}" placeholder="merluza, monacal, postre, salsa...">
+            </div>
+            <div>
+                <label>Libro</label>
+                <select name="fuente">
+                    <option value="">Todos los libros</option>
+                    {% for item in fuentes %}
+                    <option value="{{ item }}" {% if fuente == item %}selected{% endif %}>{{ item }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label>Pase</label>
+                <select name="pase">
+                    <option value="">Todos</option>
+                    {% for item in ['entrantes', 'primeros', 'segundos', 'postres'] %}
+                    <option value="{{ item }}" {% if pase == item %}selected{% endif %}>{{ item }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label>Coste</label>
+                <select name="coste">
+                    <option value="">Todos</option>
+                    {% for item in ['bajo', 'medio', 'alto'] %}
+                    <option value="{{ item }}" {% if coste == item %}selected{% endif %}>{{ item }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label>Dificultad</label>
+                <select name="dificultad">
+                    <option value="">Todas</option>
+                    {% for item in ['baja', 'media', 'alta'] %}
+                    <option value="{{ item }}" {% if dificultad == item %}selected{% endif %}>{{ item }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label>Riesgo</label>
+                <input name="riesgo" value="{{ riesgo }}" placeholder="pescado, huevo, fritura...">
+            </div>
+            <button class="btn btn-primary" type="submit">
+                <i class="fas fa-search"></i> Filtrar
+            </button>
+        </form>
+
+        <p class="muted">{{ propuestas|length }} recetas encontradas en libros grandes.</p>
+
+        {% if propuestas %}
+            {% for propuesta in propuestas %}
+            <article class="book-recipe">
+                <h3>{{ propuesta.nombre }}</h3>
+                <div class="muted">
+                    {{ propuesta.fuente }}
+                    {% if propuesta.paginas %} - pag. {{ propuesta.paginas }}{% endif %}
+                </div>
+                <div>
+                    <span class="tag">confianza {{ propuesta.confianza }}%</span>
+                    <span class="tag">{{ propuesta.pase }}</span>
+                    <span class="tag">coste {{ propuesta.coste_estimado }}</span>
+                    <span class="tag">dificultad {{ propuesta.dificultad }}</span>
+                    {% if propuesta.categoria %}<span class="tag">{{ propuesta.categoria }}</span>{% endif %}
+                    {% if propuesta.alergenos %}<span class="tag">alergenos: {{ propuesta.alergenos }}</span>{% endif %}
+                </div>
+                <div class="chef-notes">
+                    <div class="chef-box">
+                        <strong>Tecnica</strong>
+                        {% for item in propuesta.tecnicas %}
+                        <span class="tag">{{ item }}</span>
+                        {% endfor %}
+                    </div>
+                    <div class="chef-box">
+                        <strong>APPCC / riesgo</strong>
+                        {% for item in propuesta.riesgos %}
+                        <span class="tag">{{ item }}</span>
+                        {% endfor %}
+                    </div>
+                    <div class="chef-box">
+                        <strong>Acciones chef</strong>
+                        <ul>
+                            {% for item in propuesta.acciones_chef %}
+                            <li>{{ item }}</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                </div>
+                <div class="recipe-grid">
+                    <div>
+                        <strong>Ingredientes</strong>
+                        <ul>
+                            {% for ingrediente in propuesta.ingredientes[:30] %}
+                            <li>{{ ingrediente }}</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                    <div>
+                        <strong>Elaboracion</strong>
+                        <p>{{ propuesta.elaboracion or 'Sin elaboracion detectada en este tramo.' }}</p>
+                    </div>
+                </div>
+                <div class="chef-actions">
+                    <form method="post">
+                        <input type="hidden" name="accion" value="asesorar">
+                        <input type="hidden" name="propuesta_id" value="{{ propuesta.id }}">
+                        <button class="btn btn-info" type="submit">
+                            <i class="fas fa-lightbulb"></i> Asesorar
+                        </button>
+                    </form>
+                    <form method="post">
+                        <input type="hidden" name="accion" value="copiar">
+                        <input type="hidden" name="propuesta_id" value="{{ propuesta.id }}">
+                        <input type="hidden" name="fuente_actual" value="{{ fuente }}">
+                        <button class="btn btn-success" type="submit">
+                            <i class="fas fa-copy"></i> Copiar borrador
+                        </button>
+                    </form>
+                </div>
+            </article>
+            {% endfor %}
+        {% else %}
+            <div class="empty-box">Todavia no hay recetas indexadas desde libros grandes. Ve al analizador, elige un libro y lee tramos de paginas.</div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

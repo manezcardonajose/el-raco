@@ -1,0 +1,122 @@
+{% extends 'base.html' %}
+{% block title %}Reglas pisos{% endblock %}
+{% block breadcrumb %}Pisos / Reglas y zonas{% endblock %}
+{% block content %}
+<style>
+  .px-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px;align-items:end;}
+  .px-actions{display:flex;gap:6px;flex-wrap:wrap;align-items:center;}
+  .px-note{color:#94a3b8;font-size:12px;line-height:1.35;}
+  .px-pill{display:inline-block;border:1px solid #475569;border-radius:4px;padding:2px 6px;font-size:12px;background:#0f172a;}
+</style>
+
+<div class="card">
+  <div class="card-header">
+    <h2><i class="fas fa-cog"></i> Reglas de pisos</h2>
+    <div class="px-actions">
+      <a class="btn btn-secondary" href="{{ url_for('pisos.dashboard') }}"><i class="fas fa-list"></i> Parte diario</a>
+      <a class="btn btn-secondary" href="{{ url_for('pisos.panel') }}"><i class="fas fa-chart-line"></i> Panel</a>
+      <a class="btn btn-secondary" href="{{ url_for('pisos.productos') }}"><i class="fas fa-boxes"></i> Stock</a>
+      <a class="btn btn-secondary" href="{{ url_for('pisos.lenceria') }}"><i class="fas fa-tshirt"></i> Lenceria</a>
+      <a class="btn btn-secondary" href="{{ url_for('pisos.lavanderia') }}"><i class="fas fa-soap"></i> Lavanderia</a>
+    </div>
+  </div>
+
+  <form method="post" class="px-grid" style="margin-bottom:18px;">
+    <input type="hidden" name="accion" value="config">
+    <label class="form-group">
+      <span class="form-label">Repaso diario en estancia</span>
+      <input type="checkbox" name="repaso_diario" value="1" {% if config.repaso_diario %}checked{% endif %}>
+    </label>
+    <div class="form-group">
+      <label class="form-label">Cambio toallas cada X dias</label>
+      <input class="form-control" type="number" min="1" name="cambio_toallas_cada_dias" value="{{ config.cambio_toallas_cada_dias or 1 }}">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Cambio sabanas cada X dias</label>
+      <input class="form-control" type="number" min="1" name="cambio_sabanas_cada_dias" value="{{ config.cambio_sabanas_cada_dias or 3 }}">
+    </div>
+    <label class="form-group">
+      <span class="form-label">Desinfeccion diaria de bano</span>
+      <input type="checkbox" name="desinfeccion_bano_diaria" value="1" {% if config.desinfeccion_bano_diaria %}checked{% endif %}>
+    </label>
+    <label class="form-group">
+      <span class="form-label">Amenities diarios</span>
+      <input type="checkbox" name="amenities_diarios" value="1" {% if config.amenities_diarios %}checked{% endif %}>
+    </label>
+    <div class="form-group">
+      <label class="form-label">Lavanderia</label>
+      <select class="form-control" name="modo_lavanderia">
+        {% for key,label in modos_lavanderia.items() %}
+        <option value="{{ key }}" {% if config.modo_lavanderia == key %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Nombre lavanderia propia</label>
+      <input class="form-control" name="lavanderia_propia_nombre" value="{{ config.lavanderia_propia_nombre or 'Lavanderia propia' }}">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Lavanderia externa habitual</label>
+      <input class="form-control" name="lavanderia_externa_principal" value="{{ config.lavanderia_externa_principal or 'Lavanderia externa habitual' }}">
+    </div>
+    <button class="btn btn-primary" type="submit"><i class="fas fa-save"></i> Guardar reglas</button>
+  </form>
+</div>
+
+<div class="card">
+  <div class="card-header">
+    <h2><i class="fas fa-map-marker-alt"></i> Zonas comunes documentadas</h2>
+    <form method="post">
+      <input type="hidden" name="accion" value="plantillas_zonas">
+      <button class="btn btn-secondary" type="submit"><i class="fas fa-magic"></i> Crear zonas base</button>
+    </form>
+  </div>
+  <form method="post" class="px-grid" style="margin-bottom:18px;">
+    <input type="hidden" name="accion" value="zona">
+    <div class="form-group"><label class="form-label">Nombre</label><input class="form-control" name="nombre" placeholder="Ej. Banos piscina"></div>
+    <div class="form-group"><label class="form-label">Tipo</label><select class="form-control" name="tipo">
+      {% for key, label in tipos_zona.items() %}<option value="{{ key }}">{{ label }}</option>{% endfor %}
+    </select></div>
+    <div class="form-group"><label class="form-label">Bloque</label><input class="form-control" name="bloque"></div>
+    <div class="form-group"><label class="form-label">Planta</label><input class="form-control" name="planta"></div>
+    <div class="form-group"><label class="form-label">Frecuencia</label><select class="form-control" name="frecuencia">
+      <option value="diaria">Diaria</option><option value="semanal">Semanal</option>
+      <option value="lunes">Lunes</option><option value="martes">Martes</option><option value="miercoles">Miercoles</option>
+      <option value="jueves">Jueves</option><option value="viernes">Viernes</option><option value="sabado">Sabado</option><option value="domingo">Domingo</option>
+    </select></div>
+    <div class="form-group"><label class="form-label">Prioridad</label><select class="form-control" name="prioridad">
+      <option value="media">Media</option><option value="alta">Alta</option><option value="baja">Baja</option>
+    </select></div>
+    <div class="form-group"><label class="form-label">Productos previstos</label><input class="form-control" name="productos_previstos"></div>
+    <div class="form-group"><label class="form-label">Instrucciones</label><input class="form-control" name="instrucciones"></div>
+    <label class="form-group"><span class="form-label">APPCC</span><input type="checkbox" name="appcc_critico" value="1" checked></label>
+    <button class="btn btn-success" type="submit"><i class="fas fa-plus"></i> Anadir zona</button>
+  </form>
+
+  <div class="table-container">
+    <table>
+      <thead><tr><th>Zona</th><th>Ubicacion</th><th>Frecuencia</th><th>Productos</th><th>Estado</th><th>Accion</th></tr></thead>
+      <tbody>
+        {% for z in zonas %}
+        <tr>
+          <td><strong>{{ z.nombre }}</strong><div class="px-note">{{ tipos_zona.get(z.tipo, z.tipo) }}</div></td>
+          <td>{% if z.bloque %}Bloque {{ z.bloque }}{% endif %}{% if z.planta %}<br>Planta {{ z.planta }}{% endif %}</td>
+          <td>{{ z.frecuencia }}</td>
+          <td>{{ z.productos_previstos or '-' }}{% if z.instrucciones %}<div class="px-note">{{ z.instrucciones }}</div>{% endif %}</td>
+          <td><span class="px-pill">{% if z.activo %}Activa{% else %}Inactiva{% endif %}</span></td>
+          <td>
+            <form method="post">
+              <input type="hidden" name="accion" value="toggle_zona">
+              <input type="hidden" name="zona_id" value="{{ z.id }}">
+              <button class="btn btn-sm btn-secondary" type="submit">{% if z.activo %}Desactivar{% else %}Activar{% endif %}</button>
+            </form>
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="6">No hay zonas creadas.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

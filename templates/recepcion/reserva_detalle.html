@@ -1,0 +1,662 @@
+{% extends 'base.html' %}
+{% block title %}Reserva {{ reserva.codigo or reserva.id }}{% endblock %}
+{% block breadcrumb %}Recepcion / Reserva{% endblock %}
+{% block content %}
+<style>
+  .rx-summary{display:grid;grid-template-columns:repeat(4,minmax(150px,1fr));gap:12px;margin-bottom:16px;}
+  .rx-box{border:1px solid #334155;background:#111827;border-radius:8px;padding:14px;}
+  .rx-box span{display:block;color:#94a3b8;font-size:12px;}
+  .rx-box strong{font-size:22px;}
+  .rx-tabbar{position:sticky;top:0;z-index:20;display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:16px;padding:10px;border:1px solid #334155;background:#0f172a;border-radius:8px;}
+  .rx-tabbar .btn{white-space:nowrap;}
+  .rx-tabbar .rx-tab-btn.rx-active{background:#16a34a;border-color:#16a34a;color:#fff;}
+  .rx-tab-panel{display:none;}
+  .rx-tab-panel.rx-active{display:block;}
+  .rx-main-actions{margin-left:auto;display:flex;gap:8px;flex-wrap:wrap;}
+  @media print{.rx-tabbar{display:none!important;}.rx-tab-panel{display:block!important;}}
+  @media(max-width:900px){.rx-summary{grid-template-columns:1fr 1fr;}}
+  @media(max-width:700px){.rx-main-actions{margin-left:0;width:100%;}.rx-tabbar .btn{flex:1 1 auto;}}
+</style>
+
+<div class="rx-tabbar no-print" id="reservaTabs">
+  <button class="btn btn-primary rx-tab-btn rx-active" type="button" data-target="resumen"><i class="fas fa-home"></i> Resumen</button>
+  <button class="btn btn-secondary rx-tab-btn" type="button" data-target="documentacion"><i class="fas fa-file-signature"></i> Documentacion</button>
+  <button class="btn btn-secondary rx-tab-btn" type="button" data-target="checkin"><i class="fas fa-credit-card"></i> Check-in</button>
+  <button class="btn btn-secondary rx-tab-btn" type="button" data-target="facturacion"><i class="fas fa-file-invoice-dollar"></i> Facturas</button>
+  <button class="btn btn-secondary rx-tab-btn" type="button" data-target="pagos"><i class="fas fa-cash-register"></i> Pagos</button>
+  <button class="btn btn-secondary rx-tab-btn" type="button" data-target="viajeros"><i class="fas fa-users"></i> Viajeros</button>
+  <button class="btn btn-secondary rx-tab-btn" type="button" data-target="cargos"><i class="fas fa-receipt"></i> Cargos</button>
+  <button class="btn btn-secondary rx-tab-btn" type="button" data-target="restaurante"><i class="fas fa-chair"></i> Restaurante</button>
+  <button class="btn btn-secondary rx-tab-btn" type="button" data-target="avisos"><i class="fas fa-bell"></i> Avisos</button>
+  <button class="btn btn-secondary rx-tab-btn" type="button" data-target="regimen"><i class="fas fa-clipboard-list"></i> Regimen</button>
+  <div class="rx-main-actions">
+    <a class="btn btn-secondary" href="{{ url_for('recepcion.reservas') }}"><i class="fas fa-list"></i> Reservas</a>
+    <a class="btn btn-secondary" href="{{ url_for('recepcion.dashboard') }}"><i class="fas fa-concierge-bell"></i> Panel</a>
+  </div>
+</div>
+
+<div class="card rx-tab-panel rx-active" id="tab-resumen">
+  <div class="card-header">
+    <h2><i class="fas fa-calendar-check"></i> Reserva {{ reserva.codigo or ('#' ~ reserva.id) }}</h2>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+      {% if reserva.estado not in ['alojado','checkout','cancelada','no_show'] %}
+      <form method="post" action="{{ url_for('recepcion.checkin_reserva', id=reserva.id) }}"><button class="btn btn-success" type="submit">Check-in</button></form>
+      {% endif %}
+      <a class="btn btn-info" href="{{ url_for('recepcion.documentacion_cliente_checkin', id=reserva.id) }}">Documentacion cliente</a>
+      {% if reserva.estado != 'checkout' and reserva.estado not in ['cancelada','no_show'] %}
+      <form method="post" action="{{ url_for('recepcion.checkout_reserva', id=reserva.id) }}"><button class="btn btn-warning" type="submit">Check-out</button></form>
+      {% endif %}
+      {% if reserva.estado not in ['alojado','checkout','cancelada','no_show'] %}
+      <form method="post" action="{{ url_for('recepcion.no_show_reserva', id=reserva.id) }}"><button class="btn btn-danger" type="submit">No-show</button></form>
+      {% endif %}
+      <a class="btn btn-primary" href="{{ url_for('recepcion.reserva_form', id=reserva.id) }}">Editar</a>
+      <a class="btn btn-success" href="{{ url_for('recepcion.viajero_form', reserva_id=reserva.id) }}"><i class="fas fa-user-plus"></i> Anadir viajero</a>
+      <a class="btn btn-secondary" href="{{ url_for('recepcion.reservas') }}">Volver</a>
+    </div>
+  </div>
+
+  {% set pref_map = {'matrimonio':'Matrimonio','dos_juntas':'2 camas juntas','dos_separadas':'2 camas separadas','individual':'Individual','sofa_cama':'Sofa cama','mixto':'Mixto'} %}
+  <div class="rx-summary">
+    <div class="rx-box"><span>Fechas</span><strong>{{ reserva.fecha_entrada }}</strong><br><small>hasta {{ reserva.fecha_salida }}</small></div>
+    <div class="rx-box"><span>Habitacion</span><strong>{{ reserva.habitacion_numero or reserva.habitacion_nombre or '-' }}</strong></div>
+    <div class="rx-box"><span>Regimen</span><strong>{{ regimenes.get(reserva.regimen, reserva.regimen) }}</strong></div>
+    <div class="rx-box"><span>Personas</span><strong>{{ (reserva.adultos or 0) + (reserva.menores or 0) }}</strong><br><small>{{ reserva.adultos or 0 }} adultos / {{ reserva.menores or 0 }} menores</small></div>
+    <div class="rx-box"><span>Estado</span><strong>{{ estados.get(reserva.estado, reserva.estado) }}</strong><br><small>{% if reserva.checkin_at %}IN {{ reserva.checkin_at }}{% endif %}{% if reserva.checkout_at %} / OUT {{ reserva.checkout_at }}{% endif %}</small></div>
+    <div class="rx-box"><span>Canal</span><strong>{{ reserva.canal_nombre or reserva.origen or '-' }}</strong><br><small>{{ reserva.localizador_externo or '' }}</small></div>
+    <div class="rx-box">
+      <span>Preparacion habitacion</span>
+      <strong>{% if reserva.supletoria_solicitada %}Supletoria{% elif reserva.cuna_solicitada %}Cuna{% else %}Normal{% endif %}</strong>
+      <br><small>
+        {{ pref_map.get(reserva.preferencia_cama, 'Sin preferencia') }}
+        {% if reserva.habitacion_tipo_cama %} / Hab.: {{ pref_map.get(reserva.habitacion_tipo_cama, reserva.habitacion_tipo_cama) }}{% endif %}
+      </small>
+    </div>
+  </div>
+
+  <form method="post" action="{{ url_for('recepcion.cambiar_estado_reserva', id=reserva.id) }}" style="display:flex;gap:10px;flex-wrap:wrap;align-items:end;margin-bottom:16px;">
+    <div class="form-group" style="margin:0;min-width:220px;"><label class="form-label">Estado</label><select class="form-control" name="estado">
+      {% for key,label in estados.items() %}<option value="{{ key }}" {% if reserva.estado == key %}selected{% endif %}>{{ label }}</option>{% endfor %}
+    </select></div>
+    <button class="btn btn-success" type="submit">Actualizar estado</button>
+  </form>
+
+  {% if reserva.alergias_resumen or reserva.observaciones_operativas %}
+  <div class="alert alert-warning">
+    {% if reserva.alergias_resumen %}<strong>Avisos reserva:</strong> {{ reserva.alergias_resumen }}<br>{% endif %}
+    {% if reserva.observaciones_operativas %}<strong>Operativa:</strong> {{ reserva.observaciones_operativas }}{% endif %}
+  </div>
+  {% endif %}
+
+  {% if (reserva.precio_total or 0) <= 0 and precio_sugerido_reserva and (precio_sugerido_reserva.total or 0) > 0 %}
+  <div class="alert alert-info" style="display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap;">
+    <div>
+      <strong>Precio pendiente.</strong>
+      Sugerido por tarifas: {{ '%.2f'|format(precio_sugerido_reserva.total or 0) }} &euro;.
+      {% if precio_sugerido_reserva.faltan_tarifas %}<br><small>Hay noches sin tarifa exacta; revisa antes de aplicar.</small>{% endif %}
+    </div>
+    <form method="post" action="{{ url_for('recepcion.aplicar_precio_sugerido_reserva', id=reserva.id) }}">
+      <button class="btn btn-success" type="submit">Aplicar precio sugerido</button>
+    </form>
+  </div>
+  {% endif %}
+
+  {% if reserva.supletoria_solicitada or reserva.cuna_solicitada or reserva.preferencia_cama or reserva.observaciones_habitacion %}
+  <div class="alert alert-info">
+    <strong>Pisos / preparacion:</strong>
+    {% if reserva.supletoria_solicitada %}cama supletoria solicitada. {% endif %}
+    {% if reserva.cuna_solicitada %}cuna solicitada. {% endif %}
+    {% if reserva.preferencia_cama %}preferencia {{ pref_map.get(reserva.preferencia_cama, reserva.preferencia_cama) }}. {% endif %}
+    {% if reserva.observaciones_habitacion %}<br>{{ reserva.observaciones_habitacion }}{% endif %}
+  </div>
+  {% endif %}
+
+  {% if reserva.estado not in ['checkout','cancelada','no_show'] %}
+  {% if not reserva.habitacion_id %}
+  <div class="alert alert-warning">Esta reserva todavia no tiene habitacion asignada.</div>
+  {% endif %}
+  <div class="table-container" style="margin-bottom:16px;">
+    <table>
+      <thead><tr><th>Habitacion disponible</th><th>Bloque</th><th>Tipo</th><th>Cama / extras</th><th>Capacidad</th><th>Precio sugerido</th><th>Accion</th></tr></thead>
+      <tbody>
+        {% for h in habitaciones_disponibles %}
+        <tr>
+          <td><strong>{{ h.numero }}</strong>{% if h.nombre %}<br><small>{{ h.nombre }}</small>{% endif %}{% if h.actual %}<br><small>Actual</small>{% endif %}</td>
+          <td>{% if h.bloque %}{{ h.bloque }}{% endif %}{% if h.planta %}<br><small>{% if h.planta|string == '0' %}Planta baja{% else %}Planta {{ h.planta }}{% endif %}</small>{% endif %}</td>
+          <td>{{ h.tipo_nombre or h.tipo or '-' }}</td>
+          <td>
+            {{ pref_map.get(h.tipo_cama, h.tipo_cama or '-') }}
+            {% if h.supletorias_max %}<br><small>Supletoria max {{ h.supletorias_max }}</small>{% endif %}
+            {% if h.cuna_posible %}<br><small>Admite cuna</small>{% endif %}
+          </td>
+          <td>{{ h.capacidad or 0 }} pax</td>
+          <td>
+            {% if h.precio_sugerido %}
+            {{ '%.2f'|format(h.precio_sugerido.total or 0) }} &euro;
+            {% if h.precio_sugerido.faltan_tarifas %}<br><small>Faltan tarifas</small>{% endif %}
+            {% else %}
+            -
+            {% endif %}
+          </td>
+          <td>
+            {% if h.actual %}
+            <span class="badge badge-success">Asignada</span>
+            {% else %}
+            <form method="post" action="{{ url_for('recepcion.asignar_habitacion_reserva', id=reserva.id) }}">
+              <input type="hidden" name="habitacion_id" value="{{ h.id }}">
+              <button class="btn btn-sm btn-success" type="submit">Asignar</button>
+            </form>
+            {% endif %}
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="7">No hay habitaciones disponibles para esas fechas y capacidad.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% endif %}
+
+  <div class="table-container">
+    <table>
+      <thead><tr><th>Titular</th><th>Telefono</th><th>Email</th><th>Estancia</th><th>Extras</th><th>Cobrado</th><th>Saldo</th><th>Origen</th></tr></thead>
+      <tbody>
+        <tr>
+          <td>{{ reserva.titular_nombre or '-' }}</td>
+          <td>{{ reserva.titular_telefono or '-' }}</td>
+          <td>{{ reserva.titular_email or '-' }}</td>
+          <td>{{ '%.2f'|format(reserva.precio_total or 0) }} &euro;</td>
+          <td>{{ '%.2f'|format(reserva.extras_total or 0) }} &euro;</td>
+          <td>{{ '%.2f'|format(reserva.deposito or 0) }} &euro;</td>
+          <td>{{ '%.2f'|format(reserva.saldo or 0) }} &euro;</td>
+          <td>{{ reserva.origen or '-' }}</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="card rx-tab-panel" id="tab-documentacion" style="margin-top:16px;">
+  <div class="card-header">
+    <h2><i class="fas fa-file-signature"></i> Check-in y proteccion de datos</h2>
+  </div>
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px;align-items:end;margin-bottom:16px;">
+  <form method="get" action="{{ url_for('recepcion.recogida_datos_checkin', id=reserva.id) }}" style="display:flex;gap:10px;flex-wrap:wrap;align-items:end;">
+    <div class="form-group" style="margin:0;min-width:220px;">
+      <label class="form-label">Idioma hoja recogida</label>
+      <select class="form-control" name="idioma">
+        {% for codigo,nombre in idiomas_documento.items() %}
+        <option value="{{ codigo }}">{{ nombre }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="form-group" style="margin:0;max-width:120px;">
+      <label class="form-label">Fichas</label>
+      <input class="form-control" type="number" min="1" name="copias" value="{{ (reserva.adultos or 0) + (reserva.menores or 0) or 1 }}">
+    </div>
+    <button class="btn btn-info" type="submit">Imprimir hoja para rellenar</button>
+  </form>
+  <form method="post" action="{{ url_for('recepcion.generar_documento_checkin', id=reserva.id) }}" style="display:flex;gap:10px;flex-wrap:wrap;align-items:end;">
+    <div class="form-group" style="margin:0;min-width:220px;">
+      <label class="form-label">Idioma parte firmado</label>
+      <select class="form-control" name="idioma">
+        {% for codigo,nombre in idiomas_documento.items() %}
+        <option value="{{ codigo }}">{{ nombre }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <button class="btn btn-success" type="submit">Generar parte check-in</button>
+  </form>
+  </div>
+  <small style="color:#94a3b8;display:block;margin-bottom:12px;">La hoja sirve para recoger datos a mano. No se guardan copias ni escaneos de DNI/pasaporte, solo los datos necesarios del registro.</small>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;">
+    <a class="btn btn-info" href="{{ url_for('recepcion.documentacion_cliente_checkin', id=reserva.id) }}">Ver documentacion para cliente</a>
+    {% if reserva.documentacion_entregada_at %}
+    <span class="badge badge-success" style="align-self:center;">Entregada {{ reserva.documentacion_entregada_at }} ({{ idiomas_documento.get(reserva.documentacion_entregada_idioma, reserva.documentacion_entregada_idioma or 'es') }})</span>
+    {% endif %}
+  </div>
+  <div class="table-container">
+    <table>
+      <thead><tr><th>Idioma</th><th>Version</th><th>Estado</th><th>Firmante</th><th>Firmado</th><th>Acciones</th></tr></thead>
+      <tbody>
+        {% for d in documentos_checkin %}
+        <tr>
+          <td>{{ idiomas_documento.get(d.idioma, d.idioma) }}</td>
+          <td>{{ d.version or '-' }}</td>
+          <td>{{ d.estado }}</td>
+          <td>{{ d.firmante_nombre or '-' }}</td>
+          <td>{{ d.firmado_at or '-' }}</td>
+          <td><a class="btn btn-sm btn-primary" href="{{ url_for('recepcion.documento_checkin', id=reserva.id, idioma=d.idioma) }}">Abrir</a></td>
+        </tr>
+        {% else %}
+        <tr><td colspan="6">Aun no hay partes de check-in generados.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="card rx-tab-panel" id="tab-checkin" style="margin-top:16px;">
+  <div class="card-header">
+    <h2><i class="fas fa-credit-card"></i> Check-in, cobro y credito</h2>
+  </div>
+  <div class="rx-summary" style="grid-template-columns:repeat(4,minmax(150px,1fr));">
+    <div class="rx-box"><span>Politica credito</span><strong>{{ credito_reserva.politica|replace('_',' ') }}</strong></div>
+    <div class="rx-box"><span>Limite</span><strong>{% if credito_reserva.limite is none %}Abierto{% else %}{{ '%.2f'|format(credito_reserva.limite or 0) }} &euro;{% endif %}</strong></div>
+    <div class="rx-box"><span>Consumido</span><strong>{{ '%.2f'|format(credito_reserva.consumido or 0) }} &euro;</strong></div>
+    <div class="rx-box"><span>Disponible</span><strong>{% if credito_reserva.disponible is none %}Abierto{% else %}{{ '%.2f'|format(credito_reserva.disponible or 0) }} &euro;{% endif %}</strong></div>
+    <div class="rx-box"><span>Estado fianza</span><strong>{{ credito_reserva.fianza_estado|replace('_',' ') }}</strong><br><small>{{ credito_reserva.referencia or '' }}</small></div>
+    <div class="rx-box"><span>Liquidado fianza</span><strong>{{ '%.2f'|format(credito_reserva.fianza_liquidada_importe or 0) }} &euro;</strong><br><small>{% if credito_reserva.fianza_cobrada_at %}{{ credito_reserva.fianza_cobrada_at }}{% elif credito_reserva.fianza_liberada_at %}Liberada {{ credito_reserva.fianza_liberada_at }}{% endif %}</small></div>
+  </div>
+  <form method="post" action="{{ url_for('recepcion.checkin_reserva', id=reserva.id) }}" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;align-items:end;margin-bottom:16px;">
+    <div class="form-group"><label class="form-label">Cobrar ahora</label><input class="form-control" type="number" step="0.01" min="0" name="importe_pago" value="{{ '%.2f'|format(reserva.saldo or 0) }}"></div>
+    <div class="form-group"><label class="form-label">Forma pago</label><input class="form-control" name="forma_pago" value="Tarjeta"></div>
+    <div class="form-group"><label class="form-label">Referencia pago</label><input class="form-control" name="referencia_pago"></div>
+    <div class="form-group"><label class="form-label">Fecha</label><input class="form-control" type="date" name="fecha_pago" value="{{ hoy }}"></div>
+    <div class="form-group"><label class="form-label">Credito extras</label><select class="form-control" name="politica_credito">
+      <option value="sin_credito" {% if credito_reserva.politica == 'sin_credito' %}selected{% endif %}>Sin credito: cobra directo</option>
+      <option value="fianza_virtual" {% if credito_reserva.politica == 'fianza_virtual' %}selected{% endif %}>Fianza virtual / retencion tarjeta</option>
+      <option value="abierto" {% if credito_reserva.politica == 'abierto' %}selected{% endif %}>Credito abierto</option>
+    </select></div>
+    <div class="form-group"><label class="form-label">Fianza virtual</label><input class="form-control" type="number" step="0.01" min="0" name="fianza_virtual" value="{{ '%.2f'|format(credito_reserva.fianza_virtual or 0) }}"></div>
+    <div class="form-group"><label class="form-label">Limite credito</label><input class="form-control" type="number" step="0.01" min="0" name="limite_credito" value="{{ '%.2f'|format(credito_reserva.limite or 0 if credito_reserva.limite is not none else 0) }}"></div>
+    <div class="form-group"><label class="form-label">Ref. fianza</label><input class="form-control" name="fianza_referencia" value="{{ credito_reserva.referencia or '' }}"></div>
+    <div class="form-group"><label class="form-label">Idioma factura</label><select class="form-control" name="idioma">
+      {% for codigo,nombre in idiomas_documento.items() %}
+      <option value="{{ codigo }}">{{ nombre }}</option>
+      {% endfor %}
+    </select></div>
+    <div class="form-group"><label class="form-label">Impuesto estancia</label><select class="form-control" name="impuesto_estancia_id">
+      {% for imp in impuestos %}
+      <option value="{{ imp.id }}" {% if imp.codigo == 'IGIC_7' %}selected{% endif %}>{{ imp.nombre }} - {{ '%.2f'|format(imp.porcentaje or 0) }}%</option>
+      {% endfor %}
+    </select><input type="hidden" name="iva_estancia" value="10"></div>
+    <div class="form-group"><label class="form-label">Cliente fiscal</label><input class="form-control" name="cliente_nombre" value="{{ cliente_fiscal.nombre or reserva.titular_nombre or '' }}"></div>
+    <div class="form-group"><label class="form-label">NIF/CIF</label><input class="form-control" name="cliente_nif" value="{{ cliente_fiscal.nif or '' }}"></div>
+    <div class="form-group" style="grid-column:1/-1;"><label class="form-label">Direccion fiscal</label><input class="form-control" name="cliente_direccion" value="{{ cliente_fiscal.direccion or '' }}"></div>
+    <label style="display:flex;gap:6px;align-items:center;"><input type="checkbox" name="emitir_factura" checked> Emitir factura al cobrar</label>
+    <button class="btn btn-success" type="submit">Validar check-in y cobrar</button>
+  </form>
+  <form method="post" action="{{ url_for('recepcion.actualizar_credito_reserva', id=reserva.id) }}" style="display:flex;gap:8px;flex-wrap:wrap;align-items:end;">
+    <div class="form-group" style="margin:0;min-width:220px;"><label class="form-label">Solo cambiar credito</label><select class="form-control" name="politica_credito">
+      <option value="sin_credito" {% if credito_reserva.politica == 'sin_credito' %}selected{% endif %}>Sin credito</option>
+      <option value="fianza_virtual" {% if credito_reserva.politica == 'fianza_virtual' %}selected{% endif %}>Fianza virtual</option>
+      <option value="abierto" {% if credito_reserva.politica == 'abierto' %}selected{% endif %}>Abierto</option>
+    </select></div>
+    <div class="form-group" style="margin:0;max-width:150px;"><label class="form-label">Fianza</label><input class="form-control" type="number" step="0.01" min="0" name="fianza_virtual" value="{{ '%.2f'|format(credito_reserva.fianza_virtual or 0) }}"></div>
+    <div class="form-group" style="margin:0;max-width:150px;"><label class="form-label">Limite</label><input class="form-control" type="number" step="0.01" min="0" name="limite_credito" value="{{ '%.2f'|format(credito_reserva.limite or 0 if credito_reserva.limite is not none else 0) }}"></div>
+    <div class="form-group" style="margin:0;min-width:180px;"><label class="form-label">Referencia</label><input class="form-control" name="fianza_referencia" value="{{ credito_reserva.referencia or '' }}"></div>
+    <button class="btn btn-info" type="submit">Actualizar credito</button>
+  </form>
+  {% if credito_reserva.politica == 'fianza_virtual' and credito_reserva.fianza_estado not in ['liberada','cobrada','cobrada_parcial'] %}
+  <form method="post" action="{{ url_for('recepcion.liquidar_fianza_reserva', id=reserva.id) }}" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;align-items:end;margin-top:14px;">
+    <div class="form-group"><label class="form-label">Fecha liquidacion</label><input class="form-control" type="date" name="fecha" value="{{ hoy }}"></div>
+    <div class="form-group"><label class="form-label">Forma pago</label><input class="form-control" name="forma_pago" value="Tarjeta fianza virtual"></div>
+    <div class="form-group"><label class="form-label">Referencia</label><input class="form-control" name="referencia" value="{{ credito_reserva.referencia or '' }}"></div>
+    <div class="form-group"><label class="form-label">Impuesto extras</label><select class="form-control" name="impuesto_extras_id">
+      {% for imp in impuestos %}
+      <option value="{{ imp.id }}" {% if imp.codigo == 'IGIC_7' %}selected{% endif %}>{{ imp.nombre }} - {{ '%.2f'|format(imp.porcentaje or 0) }}%</option>
+      {% endfor %}
+    </select><input type="hidden" name="iva_extras" value="10"></div>
+    <div class="form-group"><label class="form-label">Cliente fiscal</label><input class="form-control" name="cliente_nombre" value="{{ cliente_fiscal.nombre or reserva.titular_nombre or '' }}"></div>
+    <div class="form-group"><label class="form-label">NIF/CIF</label><input class="form-control" name="cliente_nif" value="{{ cliente_fiscal.nif or '' }}"></div>
+    <div class="form-group" style="grid-column:1/-1;"><label class="form-label">Direccion fiscal</label><input class="form-control" name="cliente_direccion" value="{{ cliente_fiscal.direccion or '' }}"></div>
+    <button class="btn btn-warning" type="submit">{% if reserva.saldo and reserva.saldo > 0 %}Liquidar fianza y facturar extras{% else %}Liberar fianza{% endif %}</button>
+  </form>
+  {% endif %}
+</div>
+
+<div class="card rx-tab-panel" id="tab-facturacion" style="margin-top:16px;">
+  <div class="card-header">
+    <h2><i class="fas fa-file-invoice-dollar"></i> Facturacion y cierre</h2>
+    <form method="post" action="{{ url_for('recepcion.cerrar_cuenta_reserva', id=reserva.id) }}">
+      <button class="btn btn-warning" type="submit">Cerrar cuenta</button>
+    </form>
+  </div>
+  <form method="post" action="{{ url_for('recepcion.generar_factura_reserva', id=reserva.id) }}" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;align-items:end;margin-bottom:16px;">
+    <div class="form-group"><label class="form-label">Tipo</label><select class="form-control" name="tipo">
+      <option value="factura">Factura</option>
+      <option value="proforma">Proforma</option>
+    </select></div>
+    <div class="form-group"><label class="form-label">Serie</label><input class="form-control" name="serie" value="REC"></div>
+    <div class="form-group"><label class="form-label">Fecha</label><input class="form-control" type="date" name="fecha" value="{{ hoy }}"></div>
+    <div class="form-group"><label class="form-label">Cliente fiscal</label><input class="form-control" name="cliente_nombre" value="{{ cliente_fiscal.nombre or reserva.titular_nombre or '' }}"></div>
+    <div class="form-group"><label class="form-label">NIF/CIF</label><input class="form-control" name="cliente_nif" value="{{ cliente_fiscal.nif or '' }}"></div>
+    <div class="form-group"><label class="form-label">Email</label><input class="form-control" type="email" name="cliente_email" value="{{ cliente_fiscal.email or reserva.titular_email or '' }}"></div>
+    <div class="form-group"><label class="form-label">Idioma factura</label><select class="form-control" name="idioma">
+      {% for codigo,nombre in idiomas_documento.items() %}
+      <option value="{{ codigo }}">{{ nombre }}</option>
+      {% endfor %}
+    </select></div>
+    <div class="form-group"><label class="form-label">Impuesto estancia</label><select class="form-control" name="impuesto_estancia_id">
+      {% for imp in impuestos %}
+      <option value="{{ imp.id }}" {% if imp.codigo == 'IGIC_7' %}selected{% endif %}>{{ imp.nombre }} - {{ '%.2f'|format(imp.porcentaje or 0) }}%</option>
+      {% endfor %}
+    </select><input type="hidden" name="iva_estancia" value="10"></div>
+    <div class="form-group"><label class="form-label">Impuesto extras</label><select class="form-control" name="impuesto_extras_id">
+      {% for imp in impuestos %}
+      <option value="{{ imp.id }}" {% if imp.codigo == 'IGIC_7' %}selected{% endif %}>{{ imp.nombre }} - {{ '%.2f'|format(imp.porcentaje or 0) }}%</option>
+      {% endfor %}
+    </select><input type="hidden" name="iva_extras" value="10"></div>
+    <div class="form-group" style="grid-column:1/-1;"><label class="form-label">Direccion fiscal</label><input class="form-control" name="cliente_direccion" value="{{ cliente_fiscal.direccion or '' }}"></div>
+    <button class="btn btn-success" type="submit">Generar documento</button>
+  </form>
+  <div class="table-container">
+    <table>
+      <thead><tr><th>Numero</th><th>Tipo</th><th>Fecha</th><th>Total</th><th>Pagado</th><th>Saldo</th><th>Estado</th><th>Acciones</th></tr></thead>
+      <tbody>
+        {% for f in facturas %}
+        <tr>
+          <td><strong>{{ f.numero_completo }}</strong></td>
+          <td>{{ f.tipo }}</td>
+          <td>{{ f.fecha }}</td>
+          <td>{{ '%.2f'|format(f.total or 0) }} &euro;</td>
+          <td>{{ '%.2f'|format(f.pagado or 0) }} &euro;</td>
+          <td>{{ '%.2f'|format(f.saldo or 0) }} &euro;</td>
+          <td>{{ f.estado }}</td>
+          <td><a class="btn btn-sm btn-primary" href="{{ url_for('recepcion.factura_detalle', id=f.id) }}">Ver</a></td>
+        </tr>
+        {% else %}
+        <tr><td colspan="8">Sin documentos generados.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="card rx-tab-panel" id="tab-pagos" style="margin-top:16px;">
+  <div class="card-header"><h2><i class="fas fa-cash-register"></i> Pagos de la reserva</h2></div>
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(360px,1fr));gap:16px;margin-bottom:16px;">
+    <form method="post" action="{{ url_for('recepcion.anadir_pago_reserva', id=reserva.id) }}" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;align-items:end;border:1px solid #cbd5e1;border-radius:8px;padding:12px;">
+      <h3 style="grid-column:1/-1;margin:0;color:#ff6b00;">Pago manual</h3>
+      <div class="form-group"><label class="form-label">Fecha</label><input class="form-control" type="date" name="fecha" value="{{ hoy or '' }}"></div>
+      <input type="hidden" name="clave_cobro" value="{{ clave_cobro }}">
+      <div class="form-group"><label class="form-label">Concepto</label><input class="form-control" name="concepto" value="Pago reserva"></div>
+      <div class="form-group"><label class="form-label">Importe</label><input class="form-control" type="number" step="0.01" min="0.01" name="importe" required></div>
+      <div class="form-group"><label class="form-label">Forma pago</label><input class="form-control" name="forma_pago" placeholder="Tarjeta, efectivo, transferencia"></div>
+      <div class="form-group"><label class="form-label">Referencia</label><input class="form-control" name="referencia"></div>
+      <button class="btn btn-success" type="submit">Registrar pago</button>
+    </form>
+
+    <form method="post" action="{{ url_for('recepcion.crear_link_pago_reserva', id=reserva.id) }}" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;align-items:end;border:1px solid #cbd5e1;border-radius:8px;padding:12px;">
+      <h3 style="grid-column:1/-1;margin:0;color:#ff6b00;">Link / pasarela</h3>
+      <div class="form-group">
+        <label class="form-label">Pasarela</label>
+        <select class="form-control" name="config_id" required>
+          {% for cfg in pasarelas_pago %}
+          <option value="{{ cfg.id }}">{{ cfg.nombre }} - {{ cfg.proveedor }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="form-group"><label class="form-label">Concepto</label><input class="form-control" name="concepto_link" value="Pago reserva {{ reserva.codigo or reserva.id }}"></div>
+      <div class="form-group"><label class="form-label">Importe</label><input class="form-control" type="number" step="0.01" min="0.01" name="importe_link" value="{{ '%.2f'|format(reserva.saldo or 0) }}" required></div>
+      <div class="form-group">
+        <label class="form-label">Metodo</label>
+        <select class="form-control" name="metodo_link">
+          <option value="link">Link de pago</option>
+          <option value="tarjeta">Tarjeta</option>
+          <option value="bizum">Bizum</option>
+          <option value="apple_pay">Apple Pay</option>
+          <option value="google_pay">Google Pay</option>
+          <option value="nfc">NFC</option>
+        </select>
+      </div>
+      <input type="hidden" name="origen_tipo" value="reserva">
+      <button class="btn btn-primary" type="submit" {% if not pasarelas_pago %}disabled{% endif %}>Crear link</button>
+      {% if not pasarelas_pago %}
+      <small style="grid-column:1/-1;color:#b91c1c;">No hay pasarelas activas configuradas.</small>
+      {% endif %}
+    </form>
+  </div>
+
+  {% if operaciones_pasarela %}
+  <h3 style="color:#ff6b00;">Operaciones de pasarela</h3>
+  <div class="table-container" style="margin-bottom:16px;">
+    <table>
+      <thead><tr><th>Referencia</th><th>Pasarela</th><th>Metodo</th><th>Importe</th><th>Estado</th><th>Link</th><th>Acciones</th></tr></thead>
+      <tbody>
+        {% for op in operaciones_pasarela %}
+        <tr>
+          <td>{{ op.referencia_interna }}</td>
+          <td>{{ op.config_nombre or op.proveedor }}</td>
+          <td>{{ op.metodo or '-' }}</td>
+          <td>{{ '%.2f'|format(op.importe or 0) }} &euro;</td>
+          <td>{{ op.estado }}</td>
+          <td>
+            {% if op.checkout_url %}
+              <a href="{{ op.checkout_url }}" target="_blank">{{ op.checkout_url }}</a>
+              <button class="btn btn-sm btn-secondary" type="button" onclick="navigator.clipboard && navigator.clipboard.writeText('{{ request.url_root.rstrip('/') }}{{ op.checkout_url }}')">Copiar</button>
+            {% else %}-{% endif %}
+          </td>
+          <td>
+            <a class="btn btn-sm btn-secondary" href="{{ url_for('pagos.operacion_detalle', operation_id=op.id) }}">Ver / enviar</a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% endif %}
+
+  <div class="table-container">
+    <table>
+      <thead><tr><th>Fecha</th><th>Concepto</th><th>Forma</th><th>Referencia</th><th>Importe</th><th>Estado</th><th>Acciones</th></tr></thead>
+      <tbody>
+        {% for p in pagos %}
+        <tr>
+          <td>{{ p.fecha }}</td>
+          <td>{{ p.concepto or '-' }}</td>
+          <td>{{ p.forma_pago or '-' }}</td>
+          <td>{{ p.referencia or '-' }}</td>
+          <td>{{ '%.2f'|format(p.importe or 0) }} &euro;</td>
+          <td>{{ p.estado }}</td>
+          <td>
+            {% if p.estado != 'anulado' %}
+            <form method="post" action="{{ url_for('recepcion.anular_pago_reserva', reserva_id=reserva.id, pago_id=p.id) }}"><button class="btn btn-sm btn-danger" type="submit">Anular</button></form>
+            {% else %}-{% endif %}
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="7">Sin pagos registrados.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="card rx-tab-panel" id="tab-regimen" style="margin-top:16px;">
+  <div class="card-header">
+    <h2><i class="fas fa-clipboard-list"></i> Lo incluido segun regimen</h2>
+    <a class="btn btn-secondary" href="{{ url_for('recepcion.regimenes') }}">Configurar regimenes</a>
+  </div>
+  <div class="table-container">
+    <table>
+      <thead><tr><th>Servicio</th><th>Tipo</th><th>Concepto</th><th>Limite</th><th>Condiciones</th></tr></thead>
+      <tbody>
+        {% for i in inclusiones_regimen %}
+        <tr>
+          <td>{{ i.servicio|replace('_',' ') }}</td>
+          <td>{{ i.tipo }}</td>
+          <td>{{ i.concepto }}</td>
+          <td>{{ i.limite or '-' }}</td>
+          <td>{{ i.condiciones or '-' }}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="5">Este regimen no tiene inclusiones activas.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="card rx-tab-panel" id="tab-restaurante" style="margin-top:16px;">
+  <div class="card-header">
+    <h2><i class="fas fa-chair"></i> Reservas de restaurante</h2>
+    <a class="btn btn-success" href="{{ url_for('recepcion.restaurante_reserva_form', reserva_id=reserva.id) }}">Nueva reserva restaurante</a>
+  </div>
+  <div class="table-container">
+    <table>
+      <thead><tr><th>Fecha</th><th>Hora</th><th>Punto venta</th><th>Pax</th><th>Mesa</th><th>Avisos</th><th>Estado</th><th>Acciones</th></tr></thead>
+      <tbody>
+        {% for rr in restaurante_reservas %}
+        <tr>
+          <td>{{ rr.fecha }}</td>
+          <td>{{ rr.hora or '-' }}</td>
+          <td>{{ rr.punto_venta_nombre or '-' }}</td>
+          <td>{{ rr.personas or 0 }}</td>
+          <td>{{ rr.mesa or '-' }}</td>
+          <td>{{ rr.alergias_resumen or '-' }}</td>
+          <td>{{ rr.estado }}</td>
+          <td><a class="btn btn-sm btn-primary" href="{{ url_for('recepcion.restaurante_reserva_form', id=rr.id) }}">Editar</a></td>
+        </tr>
+        {% else %}
+        <tr><td colspan="8">Sin reservas de restaurante asociadas.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="card rx-tab-panel" id="tab-cargos" style="margin-top:16px;">
+  <div class="card-header"><h2><i class="fas fa-receipt"></i> Cargos y consumos</h2></div>
+  {% if credito_reserva.politica == 'sin_credito' %}
+  <div class="alert alert-warning">Habitacion sin credito: los consumos deben cobrarse directamente o autorizar una fianza virtual antes de cargarlos a habitacion.</div>
+  {% elif credito_reserva.disponible is not none %}
+  <div class="alert alert-info">Credito disponible para cargos a habitacion: {{ '%.2f'|format(credito_reserva.disponible or 0) }} &euro;.</div>
+  {% endif %}
+  <form method="post" action="{{ url_for('recepcion.anadir_cargo_reserva', id=reserva.id) }}" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(155px,1fr));gap:12px;align-items:end;margin-bottom:16px;">
+    <div class="form-group"><label class="form-label">Fecha</label><input class="form-control" type="date" name="fecha" value="{{ hoy or '' }}"></div>
+    <div class="form-group"><label class="form-label">Punto venta</label><select class="form-control" name="punto_venta_id">
+      <option value="">Sin punto</option>
+      {% for pv in puntos_venta %}<option value="{{ pv.id }}">{{ pv.nombre }}</option>{% endfor %}
+    </select></div>
+    <div class="form-group"><label class="form-label">Servicio</label><select class="form-control" name="servicio">
+      <option value="">Sin servicio</option>
+      {% for s in ['desayuno','comida','cena','bebidas_snacks'] %}<option value="{{ s }}">{{ s|replace('_',' ') }}</option>{% endfor %}
+    </select></div>
+    <div class="form-group"><label class="form-label">Concepto</label><input class="form-control" name="concepto" required></div>
+    <div class="form-group"><label class="form-label">Cantidad</label><input class="form-control" type="number" step="0.01" min="0" name="cantidad" value="1"></div>
+    <div class="form-group"><label class="form-label">Precio</label><input class="form-control" type="number" step="0.01" min="0" name="precio_unitario" value="0"></div>
+    <label style="display:flex;gap:6px;align-items:center;"><input type="checkbox" name="incluido"> Incluido</label>
+    <label style="display:flex;gap:6px;align-items:center;"><input type="checkbox" name="cargo_habitacion" checked> Cargo habitacion</label>
+    <button class="btn btn-success" type="submit">Anadir cargo</button>
+  </form>
+  <div class="table-container">
+    <table>
+      <thead><tr><th>Fecha</th><th>Punto</th><th>Servicio</th><th>Concepto</th><th>Cant.</th><th>Total</th><th>Incluido</th><th>Estado</th><th>Acciones</th></tr></thead>
+      <tbody>
+        {% for c in cargos %}
+        <tr>
+          <td>{{ c.fecha }}</td>
+          <td>{{ c.punto_venta_nombre or '-' }}</td>
+          <td>{{ c.servicio or '-' }}</td>
+          <td>{{ c.concepto }}</td>
+          <td>{{ '%.2f'|format(c.cantidad or 0) }}</td>
+          <td>{{ '%.2f'|format(c.total or 0) }} &euro;</td>
+          <td>{% if c.incluido %}Si{% else %}No{% endif %}</td>
+          <td>{{ c.estado }}</td>
+          <td>
+            {% if c.estado != 'anulado' %}
+            <form method="post" action="{{ url_for('recepcion.anular_cargo_reserva', reserva_id=reserva.id, cargo_id=c.id) }}"><button class="btn btn-sm btn-danger" type="submit">Anular</button></form>
+            {% else %}-{% endif %}
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="9">Sin cargos registrados.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="card rx-tab-panel" id="tab-viajeros" style="margin-top:16px;">
+  <div class="card-header">
+    <h2><i class="fas fa-users"></i> Registro de viajeros</h2>
+    <a class="btn btn-success" href="{{ url_for('recepcion.viajero_form', reserva_id=reserva.id) }}">Anadir viajero</a>
+  </div>
+  <div class="table-container">
+    <table>
+      <thead><tr><th>Viajero</th><th>Documento</th><th>Nacionalidad</th><th>Registro</th><th>Avisos</th><th>Departamentos</th><th>Acciones</th></tr></thead>
+      <tbody>
+        {% for v in viajeros %}
+        <tr>
+          <td><strong>{{ v.nombre }} {{ v.apellidos or '' }}</strong>{% if v.es_titular %}<br><small>Titular</small>{% endif %}</td>
+          <td>{{ v.tipo_documento or '-' }} {{ v.numero_documento or '' }}</td>
+          <td>{{ v.nacionalidad or '-' }}</td>
+          <td>{{ v.registro_viajeros_estado or 'pendiente' }}{% if v.registro_viajeros_fecha %}<br><small>{{ v.registro_viajeros_fecha }}</small>{% endif %}</td>
+          <td>{{ v.alergias_intolerancias or v.observaciones_salud or '-' }}</td>
+          <td>{{ v.avisos_departamentos or '-' }}</td>
+          <td><a class="btn btn-sm btn-primary" href="{{ url_for('recepcion.viajero_form', id=v.id) }}">Editar</a></td>
+        </tr>
+        {% else %}
+        <tr><td colspan="7">Aun no hay viajeros registrados.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="card rx-tab-panel" id="tab-avisos" style="margin-top:16px;">
+  <div class="card-header"><h2><i class="fas fa-bell"></i> Avisos a departamentos</h2></div>
+  <div class="table-container">
+    <table>
+      <thead><tr><th>Prioridad</th><th>Departamento</th><th>Viajero</th><th>Descripcion</th><th>Estado</th><th>Acciones</th></tr></thead>
+      <tbody>
+        {% for a in avisos %}
+        <tr>
+          <td>{{ a.prioridad }}</td>
+          <td>{{ a.departamentos }}</td>
+          <td>{{ a.nombre or '' }} {{ a.apellidos or '' }}</td>
+          <td>{{ a.descripcion }}</td>
+          <td>{{ a.estado }}</td>
+          <td>
+            <form method="post" action="{{ url_for('recepcion.cambiar_estado_aviso', id=a.id) }}" style="display:flex;gap:6px;flex-wrap:wrap;">
+              <select class="form-control" name="estado" style="min-width:130px;">
+                {% for e in ['pendiente','en_revision','resuelto','descartado'] %}
+                <option value="{{ e }}" {% if a.estado == e %}selected{% endif %}>{{ e|replace('_',' ') }}</option>
+                {% endfor %}
+              </select>
+              <button class="btn btn-sm btn-success" type="submit">Guardar</button>
+            </form>
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="6">Sin avisos registrados.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+<script>
+  (function(){
+    const buttons = Array.from(document.querySelectorAll('.rx-tab-btn'));
+    const panels = Array.from(document.querySelectorAll('.rx-tab-panel'));
+    const validTargets = new Set(buttons.map(function(btn){ return btn.dataset.target; }));
+
+    function showTab(target, updateHash){
+      if (!validTargets.has(target)) target = 'resumen';
+      buttons.forEach(function(btn){
+        const active = btn.dataset.target === target;
+        btn.classList.toggle('rx-active', active);
+        btn.classList.toggle('btn-primary', active);
+        btn.classList.toggle('btn-secondary', !active);
+      });
+      panels.forEach(function(panel){
+        panel.classList.toggle('rx-active', panel.id === 'tab-' + target);
+      });
+      if (updateHash) {
+        history.replaceState(null, '', '#' + target);
+      }
+      window.scrollTo({top: 0, behavior: 'smooth'});
+    }
+
+    buttons.forEach(function(btn){
+      btn.addEventListener('click', function(){
+        showTab(btn.dataset.target, true);
+      });
+    });
+
+    const initial = (window.location.hash || '#resumen').replace('#', '');
+    showTab(initial, false);
+  })();
+</script>
+{% endblock %}

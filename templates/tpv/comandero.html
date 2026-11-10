@@ -1,0 +1,643 @@
+{% extends 'base.html' %}
+{% block title %}Comandero{% endblock %}
+{% block breadcrumb %}TPV / Comandero{% endblock %}
+{% block content %}
+<style>
+  .cmd-app{min-height:100dvh;background:#0b1220;color:#e5e7eb;padding-bottom:82px;}
+  .cmd-top{position:sticky;top:0;z-index:50;background:#101827;border-bottom:1px solid #263244;padding:10px;}
+  .cmd-title{display:flex;justify-content:space-between;gap:8px;align-items:center;}
+  .cmd-title strong{display:block;font-size:17px;line-height:1.1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .cmd-title small{display:block;color:#94a3b8;margin-top:2px;}
+  .cmd-title .btn{min-height:36px;padding:6px 9px;font-size:12px;white-space:nowrap;}
+  .cmd-alert{display:none;width:100%;border:0;background:#166534;color:#fff;font-size:15px;font-weight:900;padding:11px;margin-top:8px;border-radius:9px;}
+  .cmd-alert.active{display:block;animation:cmdPulse 1s infinite;}
+  @keyframes cmdPulse{0%,100%{background:#166534;}50%{background:#15803d;}}
+  .cmd-selected{margin-top:10px;border:1px solid #334155;border-radius:12px;background:#0b1220;padding:10px;display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center;}
+  .cmd-selected strong{display:block;font-size:19px;}
+  .cmd-selected small{display:block;color:#94a3b8;}
+  .cmd-pax{display:flex;gap:6px;align-items:center;}
+  .cmd-pax button{width:38px;height:38px;border:1px solid #475569;border-radius:9px;background:#111827;color:#fff;font-size:20px;font-weight:900;}
+  .cmd-pax input{width:48px;height:38px;border:1px solid #475569;border-radius:9px;background:#0f172a;color:#fff;text-align:center;font-weight:900;}
+  .cmd-view{display:none;padding:10px;}
+  .cmd-view.active{display:block;}
+  .cmd-nav{display:flex;gap:8px;align-items:center;margin-bottom:10px;}
+  .cmd-back{width:46px;height:44px;border:1px solid #475569;border-radius:10px;background:#111827;color:#fff;font-size:20px;font-weight:900;}
+  .cmd-nav strong{font-size:18px;}
+  .cmd-section-title{display:flex;justify-content:space-between;gap:8px;align-items:center;margin:0 0 8px;}
+  .cmd-section-title h3{margin:0;font-size:15px;}
+  .cmd-destinations{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;}
+  .cmd-seat,.cmd-service,.cmd-product,.cmd-ready-item,.cmd-line{border:1px solid #334155;border-radius:12px;background:#111827;color:#e5e7eb;padding:11px;text-align:left;}
+  .cmd-seat{min-height:92px;}
+  .cmd-seat strong,.cmd-service strong,.cmd-product strong{display:block;font-size:17px;line-height:1.1;}
+  .cmd-seat small,.cmd-service small,.cmd-product small,.cmd-line small,.cmd-ready-item small{display:block;color:#94a3b8;margin-top:4px;}
+  .cmd-seat.busy{border-color:#f59e0b;background:#172033;}
+  .cmd-seat.selected{outline:3px solid #38bdf8;}
+  .cmd-service{min-height:70px;}
+  .cmd-ready{border:1px solid #166534;border-radius:12px;background:#052e16;padding:10px;margin-bottom:10px;}
+  .cmd-ready-list{display:grid;gap:8px;}
+  .cmd-ready-item{border-color:#22c55e;background:#12301f;}
+  .cmd-ready-item strong{display:block;font-size:16px;}
+  .cmd-ready-item form{margin-top:8px;}
+  .cmd-review{display:none;border:1px solid #334155;border-radius:12px;background:#101827;padding:10px;margin-bottom:10px;}
+  .cmd-review.active{display:block;}
+  .cmd-review-head{display:flex;justify-content:space-between;gap:8px;align-items:center;margin-bottom:8px;}
+  .cmd-review-head strong{font-size:16px;}
+  .cmd-review-lines{display:grid;gap:6px;max-height:210px;overflow:auto;}
+  .cmd-review-line{border:1px solid #263244;border-radius:9px;background:#0f172a;padding:8px;font-size:13px;}
+  .cmd-review-line small{display:block;color:#94a3b8;margin-top:3px;}
+  .cmd-cats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-bottom:10px;}
+  .cmd-cat{min-height:74px;border:1px solid #334155;border-radius:12px;background:#111827;color:#e5e7eb;font-weight:900;font-size:14px;text-align:left;padding:12px;}
+  .cmd-cat.active{border-color:#38bdf8;background:#123047;}
+  .cmd-course{position:sticky;top:133px;z-index:30;background:#0b1220;display:flex;gap:6px;overflow-x:auto;padding:2px 0 9px;margin-bottom:8px;}
+  .cmd-course button{flex:0 0 auto;min-height:40px;border:1px solid #334155;border-radius:999px;background:#111827;color:#e5e7eb;padding:7px 11px;font-weight:900;}
+  .cmd-course button.active{background:#14532d;border-color:#22c55e;color:#fff;}
+  .cmd-products{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;}
+  .cmd-product{height:92px;text-align:center;display:flex;flex-direction:column;justify-content:center;gap:5px;padding:7px 5px;}
+  .cmd-product strong{font-size:12px;line-height:1.08;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;}
+  .cmd-product .price{color:#fff;font-weight:900;font-size:12px;}
+  .cmd-bottom{position:fixed;left:0;right:0;bottom:0;z-index:60;background:#0b1220;border-top:1px solid #334155;padding:8px;display:grid;grid-template-columns:1fr 1fr 1.4fr;gap:7px;}
+  .cmd-bottom button{min-height:54px;border-radius:9px;font-weight:900;}
+  .cmd-bottom .active{background:#14532d;border-color:#22c55e;color:#fff;}
+  .cmd-sheet{position:fixed;left:0;right:0;bottom:72px;z-index:70;display:none;max-height:70dvh;overflow:auto;border-top:1px solid #334155;border-radius:14px 14px 0 0;background:#101827;padding:12px;box-shadow:0 -20px 60px rgba(0,0,0,.45);}
+  .cmd-sheet.active{display:block;}
+  .cmd-sheet-head{display:flex;justify-content:space-between;gap:8px;align-items:center;margin-bottom:10px;}
+  .cmd-sheet-head strong{font-size:22px;}
+  .cmd-lines{display:grid;gap:8px;margin-bottom:10px;}
+  .cmd-line{display:grid;grid-template-columns:34px 1fr 36px 36px 36px;gap:6px;align-items:center;}
+  .cmd-line button{height:36px;border:1px solid #475569;border-radius:8px;background:#0f172a;color:#fff;font-weight:900;}
+  .cmd-empty{border:1px dashed #475569;border-radius:12px;color:#94a3b8;text-align:center;padding:14px;}
+  .cmd-send{width:100%;min-height:54px;font-size:17px;font-weight:900;}
+  .cmd-marchar{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;margin-bottom:8px;}
+  .cmd-marchar button{min-height:44px;font-weight:900;}
+  .cmd-mod-overlay{position:fixed;inset:0;z-index:90;display:none;background:rgba(2,6,23,.78);padding:12px;overflow:auto;}
+  .cmd-mod-overlay.active{display:flex;align-items:flex-start;justify-content:center;}
+  .cmd-mod{width:min(520px,100%);max-height:calc(100dvh - 24px);overflow:auto;border:1px solid #334155;border-radius:14px;background:#101827;padding:12px;}
+  .cmd-mod-head{display:flex;justify-content:space-between;gap:8px;align-items:center;margin-bottom:10px;}
+  .cmd-mod-head strong{font-size:20px;}
+  .cmd-mod-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;margin-bottom:10px;}
+  .cmd-mod-grid button{min-height:42px;border:1px solid #475569;border-radius:9px;background:#111827;color:#e5e7eb;font-weight:900;}
+  .cmd-mod-grid button.active{background:#14532d;border-color:#22c55e;color:#fff;}
+  .cmd-mod label{display:block;color:#94a3b8;font-size:12px;margin:8px 0 5px;}
+  .cmd-mod input{width:100%;min-height:42px;border:1px solid #475569;border-radius:9px;background:#0f172a;color:#fff;padding:8px;}
+  .cmd-mod-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px;}
+  .cmd-mod-actions button{min-height:48px;}
+  @media (min-width:760px){
+    .cmd-app{max-width:760px;margin:0 auto;}
+    .cmd-bottom,.cmd-sheet{left:50%;right:auto;transform:translateX(-50%);width:min(760px,100%);}
+    .cmd-destinations{grid-template-columns:repeat(3,minmax(0,1fr));}
+    .cmd-products{grid-template-columns:repeat(4,minmax(0,1fr));}
+  }
+</style>
+
+<div class="cmd-app">
+  <header class="cmd-top">
+    <div class="cmd-title">
+      <div>
+        <strong>{{ terminal.punto_nombre or 'Comandero' }}</strong>
+        <small>{{ terminal.nombre or 'Comandero' }}</small>
+      </div>
+      <button class="btn btn-success" type="button" id="enable-alerts"><i class="fas fa-bell"></i> Avisos</button>
+      <button class="btn btn-secondary" type="button" id="test-alert"><i class="fas fa-volume-up"></i> Probar</button>
+    </div>
+    <button class="cmd-alert" type="button" id="ready-alert">COMANDA LISTA</button>
+    <div class="cmd-selected">
+      <div>
+        <small>Destino actual</small>
+        <strong id="selected-label">Elige mesa</strong>
+      </div>
+      <div class="cmd-pax" aria-label="Comensales">
+        <button type="button" id="pax-minus">-</button>
+        <input id="pax-display" type="number" min="0" value="0">
+        <button type="button" id="pax-plus">+</button>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <section class="cmd-view active" id="view-mesas">
+      <div class="cmd-ready" id="ready-box">
+        <div class="cmd-section-title">
+          <h3><i class="fas fa-bell"></i> Listo para recoger</h3>
+        </div>
+        <div class="cmd-ready-list" id="ready-list">
+          {% for l in listas %}
+          <div class="cmd-ready-item" data-ready-id="{{ l.id }}">
+            <strong>{{ l.cantidad }} x {{ l.nombre }}</strong>
+            <small>{{ l.mesa_nombre or l.habitacion or l.cliente or l.modo_servicio or '-' }} / {{ l.destino_preparacion }}</small>
+            {% if l.comentario %}<small>{{ l.comentario }}</small>{% endif %}
+            <form method="post" action="{{ url_for('tpv.linea_estado', linea_id=l.id) }}">
+              <input type="hidden" name="estado" value="entregada">
+              <input type="hidden" name="terminal_id" value="{{ terminal.id }}">
+              <input type="hidden" name="volver" value="comandero">
+              <button class="btn btn-success btn-sm" type="submit">Entregada</button>
+            </form>
+          </div>
+          {% else %}
+          <div class="cmd-empty">Sin avisos ahora mismo.</div>
+          {% endfor %}
+        </div>
+      </div>
+
+      <div class="cmd-section-title"><h3>Destino</h3></div>
+      <div class="cmd-destinations" style="margin-bottom:10px;">
+        <button class="cmd-service" type="button" data-service="barra"><strong>Barra</strong><small>Pedido rapido</small></button>
+        <button class="cmd-service" type="button" data-service="habitacion"><strong>Habitacion</strong><small>Cargo o servicio</small></button>
+      </div>
+
+      <div class="cmd-section-title"><h3>Mesas</h3></div>
+      <div class="cmd-destinations">
+        {% for m in mesas if m.activo %}
+        <button class="cmd-seat {% if m.cuenta_id %}busy{% endif %}" type="button"
+                data-seat data-mesa-id="{{ m.id }}" data-cuenta-id="{{ m.cuenta_id or '' }}"
+                data-label="{{ m.nombre or m.numero or ('Mesa ' ~ m.id) }}" data-pax="{{ m.capacidad or 0 }}"
+                data-lines='{{ (m.cuenta_lineas or [])|tojson }}'>
+          <strong>{{ m.nombre or m.numero or ('Mesa ' ~ m.id) }}</strong>
+          <small>{{ m.zona or 'Sala' }} / {{ m.capacidad or 0 }} pax</small>
+          {% if m.cuenta_id %}<small>{% if terminal.comandero_ver_precios is none or terminal.comandero_ver_precios %}{{ '%.2f'|format(m.cuenta_total or 0) }} EUR{% else %}Cuenta abierta{% endif %}</small>{% else %}<small>Libre</small>{% endif %}
+        </button>
+        {% else %}
+        <div class="cmd-empty">No hay mesas configuradas.</div>
+        {% endfor %}
+      </div>
+    </section>
+
+    <section class="cmd-view" id="view-carta">
+      <div class="cmd-review" id="table-review">
+        <div class="cmd-review-head">
+          <strong>Consumo de la mesa</strong>
+          <button class="btn btn-secondary btn-sm" type="button" id="hide-review">Ocultar</button>
+        </div>
+        <div class="cmd-review-lines" id="table-review-lines"></div>
+      </div>
+      <div class="cmd-nav">
+        <button class="cmd-back" type="button" data-view="mesas"><i class="fas fa-arrow-left"></i></button>
+        <strong>Familias</strong>
+      </div>
+      <div class="cmd-cats">
+        {% for c in categorias %}
+        <button class="cmd-cat {% if loop.first %}active{% endif %}" type="button" data-cat="{{ c.id }}" data-cat-name="{{ c.nombre }}">
+          {{ c.nombre }}
+          <small>Ver articulos</small>
+        </button>
+        {% endfor %}
+      </div>
+    </section>
+
+    <section class="cmd-view" id="view-productos">
+      <div class="cmd-nav">
+        <button class="cmd-back" type="button" data-view="carta"><i class="fas fa-arrow-left"></i></button>
+        <strong id="family-title">Familia</strong>
+      </div>
+      <div class="cmd-course" aria-label="Orden de pase">
+        <button class="active" type="button" data-course="Entrante">Entrante</button>
+        <button type="button" data-course="Primero">Primero</button>
+        <button type="button" data-course="Segundo">Segundo</button>
+        <button type="button" data-course="Postre">Postre</button>
+        <button type="button" data-course="Bebida">Bebida</button>
+        <button type="button" data-course="Marchar">Marchar</button>
+      </div>
+      <div class="cmd-products">
+        {% for a in articulos %}
+        <button class="cmd-product" type="button" data-product data-category="{{ a.categoria_id }}"
+                data-id="{{ a.id }}" data-name="{{ a.nombre }}" data-price="{{ a.precio or 0 }}"
+                data-category-name="{{ a.categoria_nombre or '' }}">
+          <strong>{{ a.nombre }}</strong>
+          {% if terminal.comandero_ver_precios is none or terminal.comandero_ver_precios %}<span class="price">{{ '%.2f'|format(a.precio or 0) }} EUR</span>{% endif %}
+        </button>
+        {% else %}
+        <div class="cmd-empty">No hay articulos para este comandero.</div>
+        {% endfor %}
+      </div>
+    </section>
+  </main>
+
+  <form id="cmd-form" method="post" action="{{ url_for('tpv.crear_comanda', terminal_id=terminal.id) }}">
+    <input type="hidden" name="origen" value="comandero">
+    <input type="hidden" name="lineas_json" id="lineas_json">
+    <input type="hidden" name="cuenta_id" id="cuenta_id">
+    <input type="hidden" name="mesa_id" id="mesa_id">
+    <input type="hidden" name="mesa_nombre" id="mesa_nombre">
+    <input type="hidden" name="modo_servicio" id="modo_servicio" value="mesa">
+    <input type="hidden" name="marchar_curso" id="marchar_curso">
+    <input type="hidden" name="habitacion" id="habitacion">
+    <input type="hidden" name="pax" id="pax" value="0">
+    <div class="cmd-sheet" id="ticket-sheet">
+      <div class="cmd-sheet-head">
+        <div>
+          <small class="tpv-note">Pedido</small>
+          <strong id="ticket-total">0.00 EUR</strong>
+        </div>
+        <button class="btn btn-secondary" type="button" id="close-ticket">Cerrar</button>
+      </div>
+      <div class="cmd-lines" id="ticket-lines">
+        <div class="cmd-empty">Toca articulos para anadirlos.</div>
+      </div>
+      <div class="cmd-marchar">
+        <button class="btn btn-secondary" type="button" data-marchar="Entrante">Marchar entrantes</button>
+        <button class="btn btn-secondary" type="button" data-marchar="Primero">Marchar primeros</button>
+        <button class="btn btn-secondary" type="button" data-marchar="Segundo">Marchar segundos</button>
+        <button class="btn btn-secondary" type="button" data-marchar="Postre">Marchar postres</button>
+      </div>
+      <button class="btn btn-success cmd-send" type="submit"><i class="fas fa-paper-plane"></i> Enviar comanda</button>
+    </div>
+  </form>
+
+  <form id="marchar-form" method="post" action="{{ url_for('tpv.comandero_marchar', terminal_id=terminal.id) }}">
+    <input type="hidden" name="cuenta_id" id="marchar-cuenta-id">
+    <input type="hidden" name="curso" id="marchar-curso">
+  </form>
+
+  <div class="cmd-mod-overlay" id="modifier-modal">
+    <div class="cmd-mod">
+      <div class="cmd-mod-head">
+        <strong id="modifier-title">Articulo</strong>
+        <button class="btn btn-secondary" type="button" id="modifier-close"><i class="fas fa-times"></i></button>
+      </div>
+      <label>Punto / preparacion</label>
+      <div class="cmd-mod-grid">
+        <button type="button" data-mod-point="Poco hecha">Poco hecha</button>
+        <button type="button" data-mod-point="Punto -">Punto -</button>
+        <button type="button" data-mod-point="Al punto">Al punto</button>
+        <button type="button" data-mod-point="Punto +">Punto +</button>
+        <button type="button" data-mod-point="Hecha">Hecha</button>
+        <button type="button" data-mod-point="Muy hecha">Muy hecha</button>
+        <button type="button" data-mod-point="Al dente">Al dente</button>
+        <button type="button" data-mod-point="Sin sal">Sin sal</button>
+      </div>
+      <label>Salsa</label>
+      <div class="cmd-mod-grid" id="modifier-sauces">
+        {% for salsa in opciones_menu.salsas %}
+        <button type="button" data-mod-sauce="{{ salsa.nombre }}">{{ salsa.nombre }}</button>
+        {% else %}
+        <button type="button" disabled>Sin salsas configuradas</button>
+        {% endfor %}
+      </div>
+      <label>Extras / notas</label>
+      <div class="cmd-mod-grid">
+        <button type="button" data-mod-extra="Sin queso">Sin queso</button>
+        <button type="button" data-mod-extra="Sin cebolla">Sin cebolla</button>
+        <button type="button" data-mod-extra="Extra queso">Extra queso</button>
+        <button type="button" data-mod-extra="Extra salsa">Extra salsa</button>
+        <button type="button" data-mod-extra="Extra bacon">Extra bacon</button>
+        <button type="button" data-mod-extra="Aparte">Aparte</button>
+      </div>
+      <input id="modifier-notes" placeholder="Alergia, salsa aparte, sin gluten...">
+      <div class="cmd-mod-actions">
+        <button class="btn btn-secondary" type="button" id="modifier-skip">Sin cambios</button>
+        <button class="btn btn-success" type="button" id="modifier-save">Guardar</button>
+      </div>
+    </div>
+  </div>
+
+  <nav class="cmd-bottom">
+    <button class="btn btn-secondary active" type="button" data-view="mesas"><i class="fas fa-chair"></i><br>Mesas</button>
+    <button class="btn btn-secondary" type="button" data-view="carta"><i class="fas fa-th-large"></i><br>Familias</button>
+    <button class="btn btn-primary" type="button" id="open-ticket"><i class="fas fa-receipt"></i><br><span id="ticket-count">0 uds</span></button>
+  </nav>
+</div>
+
+<script>
+(() => {
+  const lines = [];
+  const selected = { label: 'Elige mesa', mesaId: '', cuentaId: '', mode: 'mesa', pax: 0 };
+  const totalEl = document.getElementById('ticket-total');
+  const countEl = document.getElementById('ticket-count');
+  const labelEl = document.getElementById('selected-label');
+  const paxInput = document.getElementById('pax');
+  const paxDisplay = document.getElementById('pax-display');
+  const linesEl = document.getElementById('ticket-lines');
+  const inputLines = document.getElementById('lineas_json');
+  const cuentaInput = document.getElementById('cuenta_id');
+  const marcharCuentaInput = document.getElementById('marchar-cuenta-id');
+  const marcharCursoInput = document.getElementById('marchar-curso');
+  const marcharForm = document.getElementById('marchar-form');
+  const mesaInput = document.getElementById('mesa_id');
+  const mesaNombreInput = document.getElementById('mesa_nombre');
+  const modeInput = document.getElementById('modo_servicio');
+  const marcharCursoEnviarInput = document.getElementById('marchar_curso');
+  const habitacionInput = document.getElementById('habitacion');
+  const ticketSheet = document.getElementById('ticket-sheet');
+  const readyAlert = document.getElementById('ready-alert');
+  const enableAlerts = document.getElementById('enable-alerts');
+  const testAlert = document.getElementById('test-alert');
+  const familyTitle = document.getElementById('family-title');
+  const tableReview = document.getElementById('table-review');
+  const tableReviewLines = document.getElementById('table-review-lines');
+  const modifierModal = document.getElementById('modifier-modal');
+  const modifierTitle = document.getElementById('modifier-title');
+  const modifierNotes = document.getElementById('modifier-notes');
+  const firstCat = document.querySelector('[data-cat]');
+  const lineStateUrl = "{{ url_for('tpv.linea_estado', linea_id=0) }}";
+  const seenKey = 'tpv_cmd_ready_seen_{{ terminal.id }}';
+  const initialCuentaId = "{{ seleccion_cuenta_id or '' }}";
+  const showPrices = {{ (terminal.comandero_ver_precios is none or terminal.comandero_ver_precios)|tojson }};
+  let activeCat = firstCat ? firstCat.dataset.cat : '';
+  let activeCourse = 'Entrante';
+  let audioContext = null;
+  let seen = new Set();
+  let modifierIndex = null;
+  try { seen = new Set(JSON.parse(localStorage.getItem(seenKey) || '[]').map(String)); } catch (err) {}
+  document.querySelectorAll('[data-ready-id]').forEach(el => seen.add(String(el.dataset.readyId)));
+
+  function money(value){ return showPrices ? `${Number(value || 0).toFixed(2)} EUR` : ''; }
+  function openView(view){
+    document.querySelectorAll('.cmd-view').forEach(el => el.classList.toggle('active', el.id === `view-${view}`));
+    document.querySelectorAll('[data-view]').forEach(btn => btn.classList.toggle('active', btn.dataset.view === view));
+  }
+  function openCategory(btn){
+    activeCat = btn.dataset.cat || '';
+    if (familyTitle) familyTitle.textContent = btn.dataset.catName || 'Familia';
+    document.querySelectorAll('[data-cat]').forEach(item => item.classList.remove('active'));
+    btn.classList.add('active');
+    filterProducts();
+    openView('productos');
+  }
+  function setPax(value){
+    selected.pax = Math.max(0, Number(value || 0));
+    paxDisplay.value = selected.pax;
+    paxInput.value = selected.pax;
+  }
+  function selectDestination(data){
+    selected.label = data.label || 'Pedido';
+    selected.mesaId = data.mesaId || '';
+    selected.cuentaId = data.cuentaId || '';
+    selected.mode = data.mode || 'mesa';
+    labelEl.textContent = selected.label;
+    mesaInput.value = selected.mesaId;
+    cuentaInput.value = selected.cuentaId;
+    marcharCuentaInput.value = selected.cuentaId;
+    mesaNombreInput.value = selected.label;
+    modeInput.value = selected.mode;
+    habitacionInput.value = data.habitacion || '';
+    setPax(data.pax || 0);
+    document.querySelectorAll('[data-seat]').forEach(btn => btn.classList.toggle('selected', btn.dataset.mesaId === selected.mesaId));
+    renderTableReview(data.lines || []);
+    openView('carta');
+  }
+  function renderTableReview(lineas) {
+    if (!tableReview || !tableReviewLines) return;
+    tableReview.classList.toggle('active', Boolean(lineas.length));
+    if (!lineas.length) {
+      tableReviewLines.innerHTML = '';
+      return;
+    }
+    tableReviewLines.innerHTML = lineas.map(line => {
+      const qty = Number(line.cantidad || 0).toString();
+      const estado = line.estado || '';
+      const note = line.comentario || line.destino || '';
+      return `<div class="cmd-review-line"><strong>${qty} x ${line.nombre}</strong><small>${estado}${note ? ' / ' + note : ''}</small><button class="btn btn-sm btn-secondary" type="button" data-repeat-line='${JSON.stringify(line).replace(/'/g, '&#039;')}'>Repetir</button></div>`;
+    }).join('');
+    tableReviewLines.querySelectorAll('[data-repeat-line]').forEach(btn => btn.addEventListener('click', () => {
+      const line = JSON.parse(btn.dataset.repeatLine || '{}');
+      if (!line.articulo_id) return;
+      lines.push({ articulo_id: Number(line.articulo_id), name: line.nombre, price: Number(line.precio || 0), cantidad: 1, course: 'Marchar', modifier: line.comentario || '', comentario: line.comentario || 'Marchar' });
+      render();
+      ticketSheet.classList.add('active');
+    }));
+  }
+  function render(){
+    let total = 0;
+    let units = 0;
+    linesEl.innerHTML = '';
+    if (!lines.length) linesEl.innerHTML = '<div class="cmd-empty">Toca articulos para anadirlos.</div>';
+    lines.forEach((line, index) => {
+      total += line.price * line.cantidad;
+      units += line.cantidad;
+      const div = document.createElement('div');
+      div.className = 'cmd-line';
+      const note = [line.marchado ? `Marchar ${line.course}` : (line.course || 'Marchar'), line.modifier || ''].filter(Boolean).join(' / ');
+      const amount = money(line.price * line.cantidad);
+      div.innerHTML = `<strong>${line.cantidad}</strong><span>${line.name}<small>${note}${amount ? ' / ' + amount : ''}</small></span><button type="button" data-less="${index}">-</button><button type="button" data-more="${index}">+</button><button type="button" data-note="${index}"><i class="fas fa-pen"></i></button>`;
+      linesEl.appendChild(div);
+    });
+    totalEl.textContent = showPrices ? money(total) : 'Pedido';
+    countEl.textContent = `${units} uds`;
+    inputLines.value = JSON.stringify(lines);
+    linesEl.querySelectorAll('[data-less]').forEach(btn => btn.addEventListener('click', () => {
+      const i = Number(btn.dataset.less);
+      if (!lines[i]) return;
+      if (lines[i].cantidad > 1) lines[i].cantidad -= 1; else lines.splice(i, 1);
+      render();
+    }));
+    linesEl.querySelectorAll('[data-more]').forEach(btn => btn.addEventListener('click', () => {
+      const i = Number(btn.dataset.more);
+      if (lines[i]) lines[i].cantidad += 1;
+      render();
+    }));
+    linesEl.querySelectorAll('[data-note]').forEach(btn => btn.addEventListener('click', () => openModifier(Number(btn.dataset.note))));
+  }
+  function marcharCurso(course) {
+    if (selected.cuentaId) {
+      if (lines.length && !confirm('Hay articulos sin enviar. Envia la comanda antes de marchar este pase.')) return;
+      marcharCuentaInput.value = selected.cuentaId;
+      marcharCursoInput.value = course;
+      marcharForm.submit();
+      return;
+    }
+    if (!selected.cuentaId && !lines.length) {
+      alert('Selecciona una mesa con cuenta abierta o envia primero una comanda.');
+      return;
+    }
+    if (!selected.cuentaId && lines.length && confirm(`Enviar pedido y marchar ${course.toLowerCase()} ahora?`)) {
+      marcharCursoEnviarInput.value = course;
+      lines.forEach(line => {
+        if (line.course === course && !String(line.comentario || '').startsWith('Marchar')) {
+          line.comentario = [`Marchar ${course}`, line.modifier || ''].filter(Boolean).join(' | ');
+        }
+      });
+      render();
+      document.getElementById('cmd-form').submit();
+      return;
+    }
+    let touched = false;
+    lines.forEach(line => {
+      if (line.course === course) {
+        line.marchado = true;
+        line.comentario = [`Marchar ${course}`, line.modifier || ''].filter(Boolean).join(' | ');
+        touched = true;
+      }
+    });
+    if (!touched) {
+      alert(`No hay lineas de ${course.toLowerCase()} en el pedido.`);
+      return;
+    }
+    render();
+  }
+  function filterProducts(){
+    document.querySelectorAll('[data-product]').forEach(btn => {
+      btn.style.display = !activeCat || btn.dataset.category === activeCat ? '' : 'none';
+    });
+  }
+  function normalizeText(value) {
+    return String(value || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  }
+  function needsModifier(button) {
+    const text = normalizeText(`${button.dataset.name || ''} ${button.dataset.categoryName || ''}`);
+    return ['pasta', 'penne', 'spaghetti', 'spaguetti', 'gnocchi', 'noqui', 'macarron', 'ravioli', 'tagliatelle', 'carne', 'solomillo', 'entrecot', 'chuleton', 'hamburguesa', 'ternera', 'cordero', 'risotto', 'rissoto', 'pizza'].some((word) => text.includes(word));
+  }
+  function closeModifier() {
+    modifierModal.classList.remove('active');
+    modifierIndex = null;
+  }
+  function openModifier(index) {
+    modifierIndex = index;
+    const line = lines[index];
+    if (!line) return;
+    modifierTitle.textContent = line.name;
+    modifierNotes.value = '';
+    document.querySelectorAll('[data-mod-point], [data-mod-sauce], [data-mod-extra]').forEach(btn => btn.classList.remove('active'));
+    modifierModal.classList.add('active');
+  }
+  function selectedModifiers() {
+    const parts = [];
+    const point = document.querySelector('[data-mod-point].active');
+    const sauce = document.querySelector('[data-mod-sauce].active');
+    const extras = Array.from(document.querySelectorAll('[data-mod-extra].active')).map(btn => btn.dataset.modExtra);
+    if (point) parts.push(point.dataset.modPoint);
+    if (sauce) parts.push(`Salsa: ${sauce.dataset.modSauce}`);
+    parts.push(...extras);
+    if (modifierNotes.value.trim()) parts.push(modifierNotes.value.trim());
+    return parts.join(' | ');
+  }
+  function updateReadyBadge(count){
+    readyAlert.classList.toggle('active', count > 0);
+    readyAlert.textContent = count ? `${count} COMANDA${count === 1 ? '' : 'S'} LISTA${count === 1 ? '' : 'S'}` : 'COMANDA LISTA';
+  }
+  function beep(){
+    try {
+      const ctx = audioContext || new (window.AudioContext || window.webkitAudioContext)();
+      audioContext = ctx;
+      if (ctx.state === 'suspended') ctx.resume();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain); gain.connect(ctx.destination);
+      osc.frequency.value = 880; gain.gain.value = 0.06;
+      osc.start(); setTimeout(() => { osc.stop(); }, 350);
+    } catch (err) {}
+    if (navigator.vibrate) navigator.vibrate([250, 100, 250]);
+  }
+  function renderReady(lineas, notify){
+    const box = document.getElementById('ready-list');
+    if (!lineas.length) {
+      box.innerHTML = '<div class="cmd-empty">Sin avisos ahora mismo.</div>';
+      updateReadyBadge(0);
+      return;
+    }
+    updateReadyBadge(lineas.length);
+    let hasNew = false;
+    box.innerHTML = lineas.map(l => {
+      if (!seen.has(String(l.id))) { hasNew = true; seen.add(String(l.id)); }
+      const action = lineStateUrl.replace('/0/', `/${l.id}/`);
+      return `<div class="cmd-ready-item" data-ready-id="${l.id}"><strong>${l.cantidad} x ${l.nombre}</strong><small>${l.mesa} / ${l.destino}</small>${l.comentario ? `<small>${l.comentario}</small>` : ''}<form method="post" action="${action}"><input type="hidden" name="estado" value="entregada"><input type="hidden" name="terminal_id" value="{{ terminal.id }}"><input type="hidden" name="volver" value="comandero"><button class="btn btn-success btn-sm" type="submit">Entregada</button></form></div>`;
+    }).join('');
+    try { localStorage.setItem(seenKey, JSON.stringify(Array.from(seen).slice(-100))); } catch (err) {}
+    if (notify && hasNew) {
+      beep();
+      openView('mesas');
+      if ('Notification' in window && Notification.permission === 'granted') new Notification('Comanda lista', { body: 'Hay platos listos para recoger.' });
+    }
+  }
+  async function pollReady(){
+    try {
+      const res = await fetch('{{ url_for("tpv.comandero_avisos", terminal_id=terminal.id) }}', { cache: 'no-store' });
+      if (!res.ok) return;
+      const data = await res.json();
+      renderReady(data.lineas || [], true);
+    } catch (err) {}
+  }
+
+  document.querySelectorAll('[data-view]').forEach(btn => btn.addEventListener('click', () => openView(btn.dataset.view)));
+  document.querySelectorAll('[data-seat]').forEach(btn => btn.addEventListener('click', () => selectDestination({
+    label: btn.dataset.label, mesaId: btn.dataset.mesaId, cuentaId: btn.dataset.cuentaId, mode: 'mesa', pax: btn.dataset.pax,
+    lines: JSON.parse(btn.dataset.lines || '[]')
+  })));
+  document.getElementById('hide-review').addEventListener('click', () => tableReview.classList.remove('active'));
+  document.querySelectorAll('[data-service]').forEach(btn => btn.addEventListener('click', () => {
+    if (btn.dataset.service === 'habitacion') {
+      const habitacion = prompt('Habitacion') || '';
+      selectDestination({ label: habitacion ? `Hab. ${habitacion}` : 'Habitacion', mode: 'habitacion', habitacion, pax: 1 });
+      return;
+    }
+    selectDestination({ label: 'Barra', mode: 'barra', pax: 1 });
+  }));
+  document.querySelectorAll('[data-cat]').forEach(btn => btn.addEventListener('click', () => openCategory(btn)));
+  document.querySelectorAll('[data-course]').forEach(btn => btn.addEventListener('click', () => {
+    activeCourse = btn.dataset.course || 'Marchar';
+    document.querySelectorAll('[data-course]').forEach(item => item.classList.remove('active'));
+    btn.classList.add('active');
+  }));
+  document.querySelectorAll('[data-product]').forEach(btn => btn.addEventListener('click', () => {
+    const id = Number(btn.dataset.id || 0);
+    const existing = lines.find(line => line.articulo_id === id);
+    let index = -1;
+    if (existing && existing.course === activeCourse && !existing.modifier) {
+      existing.cantidad += 1;
+      index = lines.indexOf(existing);
+    } else {
+      lines.push({ articulo_id: id, name: btn.dataset.name, price: Number(btn.dataset.price || 0), cantidad: 1, course: activeCourse, modifier: '', comentario: activeCourse });
+      index = lines.length - 1;
+    }
+    render();
+    if (needsModifier(btn)) openModifier(index);
+  }));
+  document.querySelectorAll('[data-mod-point]').forEach(btn => btn.addEventListener('click', () => {
+    document.querySelectorAll('[data-mod-point]').forEach(item => item.classList.remove('active'));
+    btn.classList.add('active');
+  }));
+  document.querySelectorAll('[data-mod-sauce]').forEach(btn => btn.addEventListener('click', () => {
+    if (btn.disabled) return;
+    document.querySelectorAll('[data-mod-sauce]').forEach(item => item.classList.remove('active'));
+    btn.classList.add('active');
+  }));
+  document.querySelectorAll('[data-mod-extra]').forEach(btn => btn.addEventListener('click', () => btn.classList.toggle('active')));
+  document.getElementById('modifier-close').addEventListener('click', closeModifier);
+  document.getElementById('modifier-skip').addEventListener('click', closeModifier);
+  document.getElementById('modifier-save').addEventListener('click', () => {
+    if (modifierIndex !== null && lines[modifierIndex]) {
+      const mods = selectedModifiers();
+      lines[modifierIndex].modifier = mods;
+      lines[modifierIndex].comentario = [lines[modifierIndex].course, mods].filter(Boolean).join(' | ');
+      render();
+    }
+    closeModifier();
+  });
+  document.getElementById('open-ticket').addEventListener('click', () => ticketSheet.classList.add('active'));
+  document.getElementById('close-ticket').addEventListener('click', () => ticketSheet.classList.remove('active'));
+  document.querySelectorAll('[data-marchar]').forEach(btn => btn.addEventListener('click', () => marcharCurso(btn.dataset.marchar)));
+  document.getElementById('pax-minus').addEventListener('click', () => setPax(selected.pax - 1));
+  document.getElementById('pax-plus').addEventListener('click', () => setPax(selected.pax + 1));
+  paxDisplay.addEventListener('change', () => setPax(paxDisplay.value));
+  readyAlert.addEventListener('click', () => openView('mesas'));
+  enableAlerts.addEventListener('click', async () => {
+    try {
+      audioContext = audioContext || new (window.AudioContext || window.webkitAudioContext)();
+      await audioContext.resume();
+    } catch (err) {}
+    if ('Notification' in window && Notification.permission === 'default') await Notification.requestPermission();
+    beep();
+    enableAlerts.innerHTML = '<i class="fas fa-bell"></i> Activos';
+  });
+  testAlert.addEventListener('click', () => {
+    beep();
+    updateReadyBadge(1);
+    setTimeout(() => updateReadyBadge(document.querySelectorAll('[data-ready-id]').length), 3000);
+  });
+  document.getElementById('cmd-form').addEventListener('submit', ev => {
+    if (!selected.mesaId && selected.mode === 'mesa') { ev.preventDefault(); alert('Selecciona mesa, barra o habitacion.'); openView('mesas'); return; }
+    if (!lines.length) { ev.preventDefault(); alert('No hay articulos en el pedido.'); openView('carta'); }
+  });
+
+  render();
+  filterProducts();
+  if (firstCat && familyTitle) familyTitle.textContent = firstCat.dataset.catName || 'Familia';
+  setPax(0);
+  if (initialCuentaId) {
+    const selectedSeat = document.querySelector(`[data-seat][data-cuenta-id="${initialCuentaId}"]`);
+    if (selectedSeat) selectDestination({ label: selectedSeat.dataset.label, mesaId: selectedSeat.dataset.mesaId, cuentaId: selectedSeat.dataset.cuentaId, mode: 'mesa', pax: selectedSeat.dataset.pax, lines: JSON.parse(selectedSeat.dataset.lines || '[]') });
+  }
+  updateReadyBadge(document.querySelectorAll('[data-ready-id]').length);
+  pollReady();
+  setInterval(pollReady, 3000);
+})();
+</script>
+{% endblock %}

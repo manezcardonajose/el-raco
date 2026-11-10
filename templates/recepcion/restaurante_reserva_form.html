@@ -1,0 +1,48 @@
+{% extends 'base.html' %}
+{% block title %}{% if reserva_restaurante %}Editar reserva restaurante{% else %}Nueva reserva restaurante{% endif %}{% endblock %}
+{% block breadcrumb %}Recepcion / Restaurante / {% if reserva_restaurante %}Editar{% else %}Nueva{% endif %}{% endblock %}
+{% block content %}
+<div class="card">
+  <div class="card-header"><h2><i class="fas fa-chair"></i> {% if reserva_restaurante %}Editar reserva restaurante{% else %}Nueva reserva restaurante{% endif %}</h2></div>
+  <form method="post">
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;">
+      <div class="form-group"><label class="form-label">Reserva hotel</label><select class="form-control" name="reserva_id">
+        <option value="">Cliente externo / sin habitacion</option>
+        {% for r in reservas_hotel %}
+        {% set selected_id = reserva_restaurante.reserva_id if reserva_restaurante else (reserva_hotel.id if reserva_hotel else None) %}
+        <option value="{{ r.id }}" {% if selected_id == r.id %}selected{% endif %}>{{ r.codigo or ('#' ~ r.id) }} - {{ r.titular_nombre or 'Sin titular' }}{% if r.habitacion_numero or r.habitacion_nombre %} ({{ r.habitacion_numero or r.habitacion_nombre }}){% endif %}</option>
+        {% endfor %}
+      </select></div>
+      <div class="form-group"><label class="form-label">Punto venta</label><select class="form-control" name="punto_venta_id" required>
+        <option value="">Seleccionar</option>
+        {% for pv in puntos_venta %}
+        <option value="{{ pv.id }}" {% if reserva_restaurante and reserva_restaurante.punto_venta_id == pv.id %}selected{% endif %}>{{ pv.nombre }}{% if pv.tipo %} - {{ pv.tipo }}{% endif %}</option>
+        {% endfor %}
+      </select></div>
+      <div class="form-group"><label class="form-label">Fecha</label><input class="form-control" type="date" name="fecha" required value="{{ reserva_restaurante.fecha if reserva_restaurante else hoy }}"></div>
+      <div class="form-group"><label class="form-label">Hora</label><input class="form-control" type="time" name="hora" value="{{ reserva_restaurante.hora if reserva_restaurante else '' }}"></div>
+      <div class="form-group"><label class="form-label">Turno</label><select class="form-control" name="turno">
+        {% for t in ['desayuno','comida','cena','bebidas_snacks'] %}
+        <option value="{{ t }}" {% if reserva_restaurante and reserva_restaurante.turno == t %}selected{% endif %}>{{ t|replace('_',' ') }}</option>
+        {% endfor %}
+      </select></div>
+      <div class="form-group"><label class="form-label">Personas</label><input class="form-control" type="number" min="1" name="personas" value="{{ reserva_restaurante.personas if reserva_restaurante else 1 }}"></div>
+      <div class="form-group"><label class="form-label">Contacto</label><input class="form-control" name="nombre_contacto" value="{{ reserva_restaurante.nombre_contacto if reserva_restaurante else (reserva_hotel.titular_nombre if reserva_hotel else '') }}"></div>
+      <div class="form-group"><label class="form-label">Telefono</label><input class="form-control" name="telefono_contacto" value="{{ reserva_restaurante.telefono_contacto if reserva_restaurante else (reserva_hotel.titular_telefono if reserva_hotel else '') }}"></div>
+      <div class="form-group"><label class="form-label">Mesa</label><input class="form-control" name="mesa" value="{{ reserva_restaurante.mesa if reserva_restaurante else '' }}"></div>
+      <div class="form-group"><label class="form-label">Estado</label><select class="form-control" name="estado">
+        {% for e in ['pendiente','confirmada','sentada','finalizada','cancelada'] %}
+        <option value="{{ e }}" {% if reserva_restaurante and reserva_restaurante.estado == e %}selected{% endif %}>{{ e }}</option>
+        {% endfor %}
+      </select></div>
+      <div class="form-group"><label class="form-label">Origen</label><input class="form-control" name="origen" value="{{ reserva_restaurante.origen if reserva_restaurante else 'recepcion' }}"></div>
+    </div>
+
+    <div class="form-group"><label class="form-label">Alergias/intolerancias y avisos</label><textarea class="form-control" name="alergias_resumen" rows="2">{{ reserva_restaurante.alergias_resumen if reserva_restaurante else (reserva_hotel.alergias_resumen if reserva_hotel else '') }}</textarea></div>
+    <div class="form-group"><label class="form-label">Observaciones</label><textarea class="form-control" name="observaciones" rows="3">{{ reserva_restaurante.observaciones if reserva_restaurante else '' }}</textarea></div>
+
+    <button class="btn btn-success" type="submit">Guardar</button>
+    <a class="btn btn-secondary" href="{{ url_for('recepcion.restaurante_reservas') }}">Volver</a>
+  </form>
+</div>
+{% endblock %}

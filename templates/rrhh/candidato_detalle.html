@@ -1,0 +1,89 @@
+{% extends 'base.html' %}
+{% block title %}Candidato{% endblock %}
+{% block breadcrumb %}RRHH / Seleccion / Candidato{% endblock %}
+{% block content %}
+<div class="card">
+  <div class="card-header">
+    <h2><i class="fas fa-user-tie"></i> {{ candidato.nombre }} {{ candidato.apellidos or '' }}</h2>
+    <div style="display:flex; gap:8px; flex-wrap:wrap;">
+      {% if candidato.cv_path %}
+      <a class="btn btn-primary" href="{{ url_for('rrhh.seleccion_descargar_cv', candidato_id=candidato.id) }}"><i class="fas fa-download"></i> CV</a>
+      {% endif %}
+      <a class="btn btn-secondary" href="{{ url_for('rrhh.seleccion') }}">Volver</a>
+    </div>
+  </div>
+  <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap:12px;">
+    <div><small style="color:#94a3b8;">Oferta</small><br><strong>{{ candidato.oferta_titulo or 'Bolsa general' }}</strong></div>
+    <div><small style="color:#94a3b8;">Estado</small><br><span class="badge badge-info">{{ candidato.estado or 'recibido' }}</span></div>
+    <div><small style="color:#94a3b8;">Puntuacion</small><br><strong>{{ '%.1f'|format(candidato.puntuacion_total or 0) }}%</strong></div>
+    <div><small style="color:#94a3b8;">Email</small><br><strong>{{ candidato.email or '-' }}</strong></div>
+    <div><small style="color:#94a3b8;">Telefono</small><br><strong>{{ candidato.telefono or '-' }}</strong></div>
+    <div><small style="color:#94a3b8;">Fuente</small><br><strong>{{ candidato.fuente or '-' }}</strong></div>
+    <div><small style="color:#94a3b8;">Disponibilidad</small><br><strong>{{ candidato.disponibilidad or '-' }}</strong></div>
+    <div><small style="color:#94a3b8;">Salario esperado</small><br><strong>{{ candidato.salario_esperado|euros }}</strong></div>
+    <div><small style="color:#94a3b8;">Privacidad</small><br>{% if candidato.privacidad_aceptada %}<span class="badge badge-success">Aceptada</span>{% else %}<span class="badge badge-warning">Pendiente</span>{% endif %}</div>
+  </div>
+  <div style="margin-top:14px;">
+    <h3>Recomendacion del asistente</h3>
+    <p>{{ candidato.recomendacion_ia or '-' }}</p>
+  </div>
+</div>
+
+<div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap:16px;">
+  <div class="card" style="margin:0;">
+    <div class="card-header"><h2><i class="fas fa-exchange-alt"></i> Cambiar estado</h2></div>
+    <form method="post" action="{{ url_for('rrhh.seleccion_estado_candidato', candidato_id=candidato.id) }}">
+      <div class="form-group">
+        <label class="form-label">Estado</label>
+        <select class="form-control" name="estado">
+          {% for codigo, nombre in estados %}
+          <option value="{{ codigo }}" {% if candidato.estado == codigo %}selected{% endif %}>{{ nombre }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Motivo si se descarta</label>
+        <textarea class="form-control" name="motivo_descarte" rows="4">{{ candidato.motivo_descarte or '' }}</textarea>
+        <small style="color:#94a3b8;">Si se descarta, el email se programa segun la oferta o la configuracion general.</small>
+      </div>
+      <button class="btn btn-success" type="submit">Guardar estado</button>
+    </form>
+    <hr style="border-color:#334155; margin:18px 0;">
+    <h3>Email de descarte</h3>
+    <p>
+      Programado: <strong>{{ candidato.descarte_email_programado or '-' }}</strong><br>
+      Enviado: <strong>{{ candidato.descarte_email_enviado_at or '-' }}</strong>
+      {% if candidato.descarte_email_error %}<br><span class="badge badge-warning">{{ candidato.descarte_email_error }}</span>{% endif %}
+    </p>
+  </div>
+
+  <div class="card" style="margin:0;">
+    <div class="card-header"><h2><i class="fas fa-clipboard-list"></i> Datos del CV</h2></div>
+    <h3>Experiencia</h3>
+    <p style="white-space:pre-wrap;">{{ candidato.experiencia_texto or '-' }}</p>
+    <h3>Formacion</h3>
+    <p style="white-space:pre-wrap;">{{ candidato.formacion_texto or '-' }}</p>
+    <h3>Carta / notas iniciales</h3>
+    <p style="white-space:pre-wrap;">{{ candidato.carta_presentacion or '-' }}</p>
+    <h3>Notas internas</h3>
+    <p style="white-space:pre-wrap;">{{ candidato.notas or '-' }}</p>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header"><h2><i class="fas fa-sliders-h"></i> Escandallo del CV</h2></div>
+  <form method="post" action="{{ url_for('rrhh.seleccion_valorar_candidato', candidato_id=candidato.id) }}">
+    <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap:12px;">
+      {% for criterio, etiqueta, peso in criterios %}
+      {% set actual = valoraciones_map.get(criterio) %}
+      <div style="border:1px solid #334155; border-radius:8px; padding:10px;">
+        <label class="form-label">{{ etiqueta }} <small style="color:#94a3b8;">peso {{ peso }}</small></label>
+        <input class="form-control" type="number" min="0" max="5" name="score_{{ criterio }}" value="{{ actual.puntuacion if actual else 0 }}">
+        <textarea class="form-control" name="comentario_{{ criterio }}" rows="2" style="margin-top:8px;">{{ actual.comentario if actual else '' }}</textarea>
+      </div>
+      {% endfor %}
+    </div>
+    <button class="btn btn-success" type="submit" style="margin-top:12px;">Actualizar valoracion</button>
+  </form>
+</div>
+{% endblock %}

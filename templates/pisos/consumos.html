@@ -1,0 +1,78 @@
+{% extends 'base.html' %}
+{% block title %}Consumos pisos{% endblock %}
+{% block breadcrumb %}Pisos / Consumos{% endblock %}
+{% block content %}
+<style>
+  .px-actions{display:flex;gap:6px;flex-wrap:wrap;align-items:center;}
+  .px-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;align-items:end;}
+  .px-note{color:#94a3b8;font-size:12px;line-height:1.35;}
+  .px-two{display:grid;grid-template-columns:1fr 2fr;gap:12px;}
+  @media (max-width:900px){.px-two{grid-template-columns:1fr;}}
+</style>
+
+<div class="card">
+  <div class="card-header">
+    <h2><i class="fas fa-clipboard-list"></i> Consumos de pisos</h2>
+    <div class="px-actions">
+      <a class="btn btn-secondary" href="{{ url_for('pisos.productos') }}"><i class="fas fa-boxes"></i> Stock</a>
+      <a class="btn btn-secondary" href="{{ url_for('pisos.pedidos') }}"><i class="fas fa-shopping-cart"></i> Pedidos</a>
+      <a class="btn btn-secondary" href="{{ url_for('pisos.dashboard') }}"><i class="fas fa-list"></i> Parte</a>
+      <a class="btn btn-secondary" target="_blank" href="{{ url_for('pisos.consumos', desde=filtros.desde, hasta=filtros.hasta, categoria=filtros.categoria, imprimir=1) }}"><i class="fas fa-print"></i> Imprimir</a>
+    </div>
+  </div>
+  <form method="get" class="px-grid">
+    <div class="form-group"><label class="form-label">Desde</label><input class="form-control" type="date" name="desde" value="{{ filtros.desde }}"></div>
+    <div class="form-group"><label class="form-label">Hasta</label><input class="form-control" type="date" name="hasta" value="{{ filtros.hasta }}"></div>
+    <div class="form-group"><label class="form-label">Categoria</label><select class="form-control" name="categoria">
+      <option value="">Todas</option>
+      {% for key,label in categorias.items() %}<option value="{{ key }}" {% if filtros.categoria == key %}selected{% endif %}>{{ label }}</option>{% endfor %}
+    </select></div>
+    <button class="btn btn-primary" type="submit"><i class="fas fa-search"></i> Ver</button>
+  </form>
+</div>
+
+<div class="px-two">
+  <div class="card">
+    <div class="card-header"><h2><i class="fas fa-calculator"></i> Totales</h2></div>
+    <div class="table-container">
+      <table>
+        <thead><tr><th>Producto</th><th>Cantidad</th></tr></thead>
+        <tbody>
+          {% for r in resumen %}
+          <tr><td>{{ r.producto_nombre }}</td><td>{{ (r.cantidad or 0)|round(2) }} {{ r.unidad }}</td></tr>
+          {% else %}
+          <tr><td colspan="2">Sin consumos.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header"><h2><i class="fas fa-history"></i> Movimientos</h2></div>
+    <div class="table-container">
+      <table>
+        <thead><tr><th>Fecha</th><th>Destino</th><th>Producto</th><th>Cantidad</th><th>Usuario</th></tr></thead>
+        <tbody>
+          {% for m in movimientos %}
+          <tr>
+            <td>{{ m.fecha }}</td>
+            <td>
+              {% if m.habitacion_numero or m.habitacion_nombre %}{{ m.habitacion_numero or m.habitacion_nombre }}
+              {% elif m.zona_nombre %}{{ m.zona_nombre }}
+              {% else %}-{% endif %}
+              {% if m.tarea_nombre %}<div class="px-note">{{ m.tarea_nombre }}</div>{% endif %}
+            </td>
+            <td>{{ m.producto_nombre }}<div class="px-note">{{ categorias.get(m.categoria, m.categoria) }}</div></td>
+            <td>{{ (m.cantidad or 0)|round(2) }} {{ m.unidad }}</td>
+            <td>{{ m.usuario or '-' }}</td>
+          </tr>
+          {% else %}
+          <tr><td colspan="5">No hay consumos con estos filtros.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

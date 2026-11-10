@@ -1,0 +1,170 @@
+{% extends "base.html" %}
+{% block title %}Inventario operativo{% endblock %}
+{% block breadcrumb %}Inventario operativo{% endblock %}
+{% block content %}
+<style>
+  .inv-grid{display:grid;grid-template-columns:minmax(280px,420px) 1fr;gap:14px;align-items:start}
+  .inv-panel{background:#252b33;border:1px solid #34465c;border-radius:8px;padding:16px}
+  .inv-panel h2,.inv-panel h3{margin:0 0 12px;color:#fff;letter-spacing:0}
+  .inv-form{display:grid;gap:10px}
+  .inv-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .inv-field label{display:block;font-weight:700;color:#cbd5e1;margin-bottom:4px}
+  .inv-field input,.inv-field select,.inv-field textarea{width:100%;background:#1d2530;border:1px solid #34465c;color:#fff;border-radius:6px;padding:9px}
+  .inv-checks{display:grid;grid-template-columns:1fr 1fr;gap:6px 10px}
+  .inv-checks label{display:flex;gap:7px;align-items:center;color:#cbd5e1;font-weight:700}
+  .inv-checks input{width:auto}
+  .inv-tags{display:flex;gap:5px;flex-wrap:wrap;margin-top:5px}
+  .inv-tag{border:1px solid #34465c;border-radius:999px;padding:2px 7px;color:#cbd5e1;font-size:12px;background:#111827}
+  .inv-status-low{color:#fecaca;font-weight:800}
+  .inv-status-ok{color:#bbf7d0;font-weight:800}
+  .inv-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:end}
+  .inv-kpis{display:flex;gap:10px;flex-wrap:wrap;margin:12px 0}
+  .inv-kpis span{background:#111827;border:1px solid #34465c;border-radius:6px;padding:8px 10px;color:#cbd5e1}
+  .inv-table td,.inv-table th{vertical-align:top}
+  .inv-muted{color:#94a3b8;font-size:13px}
+  @media(max-width:1100px){.inv-grid{grid-template-columns:1fr}.inv-row{grid-template-columns:1fr}}
+</style>
+
+<div class="inv-grid">
+  <section class="inv-panel">
+    <h2><i class="fas fa-clipboard-list"></i> Inventario operativo</h2>
+    <p class="inv-muted">Menaje, utillaje, vajilla, cristaleria, cuberteria y material operativo por centro y ubicacion.</p>
+
+    {% if puede_gestionar %}
+    <h3>Nuevo articulo</h3>
+    <form class="inv-form" method="post" action="{{ url_for('inventario.inventario') }}">
+      <div class="inv-row">
+        <div class="inv-field"><label>Codigo</label><input name="codigo" placeholder="CUCH-CAFE"></div>
+        <div class="inv-field"><label>Familia</label><select name="familia">{% for k,v in familias %}<option value="{{ k }}">{{ v }}</option>{% endfor %}</select></div>
+      </div>
+      <div class="inv-field"><label>Nombre</label><input name="nombre" required placeholder="Cuchara de cafe"></div>
+      <div class="inv-row">
+        <div class="inv-field"><label>Categoria</label><input name="categoria" placeholder="Cuberteria comedor"></div>
+        <div class="inv-field"><label>Uso operativo</label><select name="uso_operativo">{% for k,v in usos_operativos %}<option value="{{ k }}">{{ v }}</option>{% endfor %}</select></div>
+      </div>
+      <div class="inv-row">
+        <div class="inv-field"><label>Material</label><input name="material" placeholder="Inox, porcelana, melamina..."></div>
+        <div class="inv-field"><label>Formato</label><input name="formato" placeholder="GN 1/1 65mm, 27 cm..."></div>
+      </div>
+      <div class="inv-row">
+        <div class="inv-field"><label>Capacidad</label><input name="capacidad" placeholder="5 L, 4 raciones, 1 bandeja..."></div>
+        <div class="inv-field"><label>Unidad</label><input name="unidad" value="ud"></div>
+      </div>
+      <div class="inv-row">
+        <div class="inv-field"><label>Minimo</label><input type="number" step="0.01" name="stock_minimo" value="0"></div>
+        <div class="inv-field"><label>Valor unitario</label><input type="number" step="0.01" name="valor_unitario" value="0"></div>
+      </div>
+      <div class="inv-checks">
+        <label><input type="checkbox" name="compatible_appcc" checked> APPCC</label>
+        <label><input type="checkbox" name="apto_lavavajillas" checked> Lavavajillas</label>
+        <label><input type="checkbox" name="apto_caliente"> Caliente</label>
+        <label><input type="checkbox" name="apto_frio"> Frio</label>
+        <label><input type="checkbox" name="apto_horno"> Horno</label>
+        <label><input type="checkbox" name="rompible"> Rompible</label>
+        <label><input type="checkbox" name="requiere_reposicion_buffet"> Reposicion buffet</label>
+      </div>
+      <div class="inv-field"><label>Descripcion</label><textarea name="descripcion" rows="2"></textarea></div>
+      <button class="btn btn-success" type="submit"><i class="fas fa-plus"></i> Crear articulo</button>
+    </form>
+
+    <hr style="border-color:#34465c;margin:18px 0;">
+    <h3>Ajustar ubicacion</h3>
+    <form class="inv-form" method="post" action="{{ url_for('inventario.ajustar') }}">
+      <div class="inv-field">
+        <label>Articulo</label>
+        <select name="articulo_id" required>
+          <option value="">Selecciona</option>
+          {% for a in articulos %}<option value="{{ a.id }}">{{ a.codigo or '' }} {{ a.nombre }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="inv-row">
+        <div class="inv-field"><label>Tipo</label><select name="tipo"><option value="conteo">Conteo real</option><option value="entrada">Entrada</option><option value="salida">Salida / baja</option></select></div>
+        <div class="inv-field"><label>Cantidad</label><input type="number" step="0.01" name="cantidad" value="0" required></div>
+      </div>
+      <div class="inv-row">
+        <div class="inv-field"><label>Estado</label><select name="estado">{% for k,v in estados %}<option value="{{ k }}">{{ v }}</option>{% endfor %}</select></div>
+        <div class="inv-field"><label>Ubicacion libre</label><input name="ubicacion" placeholder="Estanteria, office, pase..."></div>
+      </div>
+      <div class="inv-field"><label>Almacen</label><select name="almacen_id"><option value="">Sin almacen</option>{% for a in opciones.almacenes %}<option value="{{ a.id }}">{{ a.nombre }}</option>{% endfor %}</select></div>
+      <div class="inv-row">
+        <div class="inv-field"><label>Departamento</label><select name="departamento_id"><option value="">Sin departamento</option>{% for d in opciones.departamentos %}<option value="{{ d.id }}">{{ d.nombre }}</option>{% endfor %}</select></div>
+        <div class="inv-field"><label>Subdepartamento</label><select name="subdepartamento_id"><option value="">Sin subdepartamento</option>{% for s in opciones.subdepartamentos %}<option value="{{ s.id }}">{{ s.nombre }}</option>{% endfor %}</select></div>
+      </div>
+      <div class="inv-field"><label>Punto de venta</label><select name="punto_venta_id"><option value="">Sin punto de venta</option>{% for pv in opciones.puntos_venta %}<option value="{{ pv.id }}">{{ pv.nombre }}</option>{% endfor %}</select></div>
+      <div class="inv-field"><label>Motivo</label><input name="motivo" placeholder="Conteo inicial, rotura, reposicion..."></div>
+      <button class="btn btn-primary" type="submit"><i class="fas fa-sliders-h"></i> Guardar ajuste</button>
+    </form>
+    {% else %}
+      <p class="inv-muted">Tu usuario puede consultar inventario, pero no ajustar cantidades.</p>
+    {% endif %}
+  </section>
+
+  <section class="inv-panel">
+    <form method="get" class="inv-actions">
+      <div class="inv-field" style="min-width:240px;"><label>Buscar</label><input name="buscar" value="{{ filtros.buscar }}" placeholder="Articulo, codigo o categoria"></div>
+      <div class="inv-field"><label>Familia</label><select name="familia"><option value="">Todas</option>{% for k,v in familias %}<option value="{{ k }}" {% if filtros.familia == k %}selected{% endif %}>{{ v }}</option>{% endfor %}</select></div>
+      <div class="inv-field"><label>Uso</label><select name="uso_operativo"><option value="">Todos</option>{% for k,v in usos_operativos %}<option value="{{ k }}" {% if filtros.uso_operativo == k %}selected{% endif %}>{{ v }}</option>{% endfor %}</select></div>
+      <div class="inv-field"><label>Estado</label><select name="estado"><option value="">Todos</option>{% for k,v in estados %}<option value="{{ k }}" {% if filtros.estado == k %}selected{% endif %}>{{ v }}</option>{% endfor %}</select></div>
+      <label style="display:flex;gap:6px;align-items:center;color:#cbd5e1;font-weight:700;margin-bottom:8px;"><input type="checkbox" name="bajo_minimo" value="1" {% if filtros.bajo_minimo %}checked{% endif %}> Bajo minimo</label>
+      <button class="btn btn-primary" type="submit"><i class="fas fa-search"></i> Filtrar</button>
+      <a class="btn btn-secondary" href="{{ url_for('inventario.inventario') }}">Limpiar</a>
+      <a class="btn btn-info" href="{{ url_for('inventario.revista_csv', buscar=filtros.buscar, familia=filtros.familia, uso_operativo=filtros.uso_operativo, estado=filtros.estado, bajo_minimo=1 if filtros.bajo_minimo else 0) }}"><i class="fas fa-file-csv"></i> Revista CSV</a>
+    </form>
+
+    <div class="inv-kpis">
+      <span>Articulos <strong>{{ rows|length }}</strong></span>
+      <span>Familias <strong>{{ familias|length }}</strong></span>
+      <span>Bajo minimo <strong>{{ bajo_minimo_total }}</strong></span>
+      <span>Valor filtro <strong>{{ "%.2f"|format(valor_total or 0) }} EUR</strong></span>
+    </div>
+
+    <div class="table-container">
+      <table class="inv-table">
+        <thead>
+          <tr>
+            <th>Codigo</th>
+            <th>Articulo</th>
+            <th>Familia</th>
+            <th>Uso</th>
+            <th style="text-align:right;">Cantidad</th>
+            <th style="text-align:right;">Minimo</th>
+            <th>Unidad</th>
+            <th>Ubicaciones</th>
+            <th style="text-align:right;">Valor</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for r in rows %}
+          <tr>
+            <td>{{ r.codigo or '-' }}</td>
+            <td>
+              <strong>{{ r.nombre }}</strong><br>
+              <span class="inv-muted">{{ r.categoria or '' }}</span>
+              <div class="inv-tags">
+                {% if r.material %}<span class="inv-tag">{{ r.material }}</span>{% endif %}
+                {% if r.formato %}<span class="inv-tag">{{ r.formato }}</span>{% endif %}
+                {% if r.capacidad %}<span class="inv-tag">{{ r.capacidad }}</span>{% endif %}
+              </div>
+            </td>
+            <td>{{ r.familia }}</td>
+            <td>{{ r.uso_operativo or 'otros' }}</td>
+            <td style="text-align:right;">
+              {{ "%.2f"|format(r.cantidad_total or 0) }}
+              {% if (r.stock_minimo or 0) > 0 and (r.cantidad_total or 0) < (r.stock_minimo or 0) %}
+                <div class="inv-status-low">bajo minimo</div>
+              {% endif %}
+            </td>
+            <td style="text-align:right;">{{ "%.2f"|format(r.stock_minimo or 0) }}</td>
+            <td>{{ r.unidad or 'ud' }}</td>
+            <td>{{ r.ubicaciones_texto or '-' }}</td>
+            <td style="text-align:right;">{{ "%.2f"|format((r.cantidad_total or 0) * (r.valor_unitario or 0)) }} EUR</td>
+          </tr>
+          {% else %}
+          <tr><td colspan="9" style="text-align:center;padding:22px;">No hay inventario operativo en este centro.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+</div>
+{% endblock %}

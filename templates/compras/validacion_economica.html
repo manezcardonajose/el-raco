@@ -1,0 +1,181 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<style>
+    .eco-wrap { max-width: 1150px; margin: 0 auto; }
+    .eco-header {
+        display:flex; justify-content:space-between; align-items:center;
+        gap:10px; flex-wrap:wrap; margin-bottom:15px;
+    }
+    .eco-card {
+        border:1px solid rgba(255,255,255,.15);
+        border-radius:10px;
+        padding:12px;
+        margin-bottom:12px;
+        background:rgba(255,255,255,.04);
+    }
+    .eco-grid {
+        display:grid;
+        grid-template-columns:1.4fr .55fr .7fr .7fr .7fr .8fr;
+        gap:10px;
+        align-items:end;
+    }
+    .eco-label { font-size:12px; opacity:.75; margin-bottom:3px; }
+    .eco-producto { font-weight:700; color:#fff; }
+    .eco-actual { color:#ffc107; font-weight:700; }
+    .eco-doc { color:#0dcaf0; font-weight:700; }
+    .eco-dif-pos { color:#ff7676; font-weight:700; }
+    .eco-dif-neg { color:#63e6be; font-weight:700; }
+    @media (max-width: 850px) { .eco-grid { grid-template-columns:1fr 1fr; } .eco-grid > div:first-child { grid-column:1 / -1; } }
+    @media (max-width: 520px) { .eco-grid { grid-template-columns:1fr; } }
+</style>
+
+<div class="eco-wrap">
+
+    <div class="eco-header">
+        <div>
+            <h3 style="margin:0;">Validación económica</h3>
+            <small>Solo precios: precio actual ERP / pedido, precio documento y precio final para contabilidad.</small>
+        </div>
+        <a href="{{ url_for('compras.validar_recepciones') }}" class="btn btn-secondary btn-sm">Volver</a>
+    </div>
+
+    {% if recepcion %}
+    <div class="alert alert-info">
+        <strong>Recepción:</strong> {{ recepcion.id }}
+        {% if recepcion.proveedor_nombre %} · <strong>Proveedor:</strong> {{ recepcion.proveedor_nombre }}{% endif %}
+        {% if recepcion.numero_albaran %} · <strong>Albarán:</strong> {{ recepcion.numero_albaran }}{% endif %}
+    </div>
+    {% endif %}
+
+    {% if lineas %}
+    <form method="POST" action="{{ url_for('compras.guardar_validacion_economica_detalle', id=recepcion.id) }}">
+        {% set doc_tipo = recepcion.documento_economico_tipo or recepcion.documento_habitual or 'albaran' %}
+        {% set forma_pago = recepcion.forma_pago_economica or recepcion.proveedor_forma_pago or 'transferencia' %}
+        {% set dias_pago = recepcion.proveedor_dias_pago or 30 %}
+        <div class="eco-card">
+            <h4 style="margin:0 0 10px;color:#ff6b00;">Documento recibido y facturacion</h4>
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;align-items:end;">
+                <div>
+                    <div class="eco-label">Documento recibido</div>
+                    <select name="documento_economico_tipo" class="form-control">
+                        <option value="albaran" {% if doc_tipo == 'albaran' %}selected{% endif %}>Albaran</option>
+                        <option value="factura" {% if doc_tipo == 'factura' %}selected{% endif %}>Factura</option>
+                        <option value="ticket" {% if doc_tipo == 'ticket' %}selected{% endif %}>Ticket / factura simplificada</option>
+                        <option value="factura_mensual" {% if doc_tipo == 'factura_mensual' %}selected{% endif %}>Factura mensual agrupada</option>
+                    </select>
+                </div>
+                <div>
+                    <div class="eco-label">Facturacion habitual</div>
+                    <select name="facturacion_habitual" class="form-control">
+                        <option value="mensual" {% if recepcion.facturacion_habitual == 'mensual' %}selected{% endif %}>Mensual</option>
+                        <option value="inmediata" {% if recepcion.facturacion_habitual == 'inmediata' %}selected{% endif %}>Inmediata</option>
+                        <option value="semanal" {% if recepcion.facturacion_habitual == 'semanal' %}selected{% endif %}>Semanal</option>
+                    </select>
+                </div>
+                <div>
+                    <div class="eco-label">Forma de pago</div>
+                    <select name="forma_pago_economica" class="form-control">
+                        <option value="transferencia" {% if forma_pago == 'transferencia' %}selected{% endif %}>Transferencia</option>
+                        <option value="domiciliacion" {% if forma_pago == 'domiciliacion' %}selected{% endif %}>Domiciliacion</option>
+                        <option value="tarjeta" {% if forma_pago == 'tarjeta' %}selected{% endif %}>Tarjeta</option>
+                        <option value="efectivo" {% if forma_pago == 'efectivo' %}selected{% endif %}>Efectivo</option>
+                    </select>
+                </div>
+                <div>
+                    <div class="eco-label">Dias pago</div>
+                    <input type="number" min="0" step="1" name="dias_pago" class="form-control" value="{{ dias_pago }}">
+                </div>
+                <div>
+                    <div class="eco-label">Vencimiento</div>
+                    <input type="date" name="fecha_vencimiento_economica" class="form-control" value="{{ recepcion.fecha_vencimiento_economica or '' }}">
+                </div>
+                <label style="display:flex;gap:8px;align-items:center;padding-bottom:8px;">
+                    <input type="checkbox" name="guardar_preferencia_proveedor" value="1">
+                    Guardar como preferencia del proveedor
+                </label>
+            </div>
+            <small style="display:block;margin-top:8px;opacity:.75;">
+                Si es albaran o factura mensual, queda pendiente de factura. Si es factura o ticket, pasa a documento pendiente de pago.
+            </small>
+        </div>
+
+        {% for l in lineas %}
+        <div class="eco-card">
+            <div class="eco-grid">
+                <div>
+                    <div class="eco-label">Producto</div>
+                    <div class="eco-producto">{{ l.producto_nombre or 'Sin producto' }}</div>
+                    <small>{{ l.producto_codigo or '' }}</small>
+                    <input type="hidden" name="linea_id[]" value="{{ l.id }}">
+                </div>
+
+                <div>
+                    <div class="eco-label">Cantidad</div>
+                    <div>{{ "%.3f"|format(l.cantidad or 0) }}</div>
+                </div>
+
+                <div>
+                    <div class="eco-label">Precio actual ERP</div>
+                    <div class="eco-actual">
+                        {% if l.precio_actual is not none %}
+                            {{ "%.4f"|format(l.precio_actual) }}
+                        {% else %}
+                            -
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div>
+                    <div class="eco-label">Precio pedido</div>
+                    <div>
+                        {% if l.precio_pedido is not none %}
+                            {{ "%.4f"|format(l.precio_pedido) }}
+                        {% else %}
+                            -
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div>
+                    <div class="eco-label">Precio documento</div>
+                    <div class="eco-doc">
+                        {% if l.precio_documento is not none %}
+                            {{ "%.4f"|format(l.precio_documento) }}
+                        {% else %}
+                            -
+                        {% endif %}
+                    </div>
+                    {% if l.diferencia is not none %}
+                        <small class="{{ 'eco-dif-pos' if l.diferencia > 0 else 'eco-dif-neg' }}">
+                            Dif: {{ "%.4f"|format(l.diferencia) }}
+                        </small>
+                    {% endif %}
+                </div>
+
+                <div>
+                    <div class="eco-label">Precio final</div>
+                    <input type="number"
+                           step="0.0001"
+                           name="precio_final_{{ l.id }}"
+                           value="{{ l.precio_documento if l.precio_documento is not none else (l.precio_actual if l.precio_actual is not none else '') }}"
+                           class="form-control">
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+
+        <div style="display:flex;justify-content:flex-end;gap:10px;flex-wrap:wrap;margin-top:15px;">
+            <a href="{{ url_for('compras.validar_recepciones') }}" class="btn btn-secondary">Cancelar</a>
+            <button type="submit" class="btn btn-success">Guardar precios y validar económica</button>
+        </div>
+    </form>
+    {% else %}
+    <div class="alert alert-warning">
+        Esta recepción no tiene líneas para validar económicamente.
+    </div>
+    {% endif %}
+</div>
+
+{% endblock %}

@@ -1,0 +1,326 @@
+{% extends "base.html" %}
+{% block title %}Dispositivos de impresion - El Raco ERP{% endblock %}
+{% block content %}
+
+<div class="card">
+    <div class="card-header" style="display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap;">
+        <div>
+            <h2><i class="fas fa-print"></i> Dispositivos de impresion</h2>
+            <p style="color:#64748b;margin-top:6px;">Asocia cada tablet, monitor, TPV o PC con su impresora y formato de etiqueta por defecto.</p>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <a href="{{ url_for('empresas.configurar_etiquetas') }}" class="btn btn-primary"><i class="fas fa-tags"></i> Formatos etiquetas</a>
+            <a href="{{ url_for('empresas.cola_impresion') }}" class="btn btn-secondary"><i class="fas fa-list-check"></i> Cola impresion</a>
+        </div>
+    </div>
+
+    <div class="device-current">
+        {% if dispositivo_actual %}
+        <div>
+            <h3>Este equipo</h3>
+            <p>Codigo local: <strong>{{ device_uid[-10:] }}</strong>. Este identificador se guarda en este navegador.</p>
+            <p>Token agente: <code>{{ dispositivo_actual.api_token }}</code></p>
+            <p class="agent-cmd">Agente local:<br><code>python tools/print_agent.py --base-url http://127.0.0.1:5001 --device {{ device_uid }} --token {{ dispositivo_actual.api_token }}</code></p>
+        </div>
+        <form method="post" class="device-form">
+            <input type="hidden" name="accion" value="guardar_actual">
+            <input type="hidden" name="device_uid" value="{{ device_uid }}">
+            <input type="hidden" name="device_id" value="{{ dispositivo_actual.id }}">
+            <input type="hidden" name="activo" value="1">
+
+            <label>Nombre del equipo
+                <input class="form-control" name="nombre" value="{{ dispositivo_actual.nombre }}" placeholder="Tablet cocina fria">
+            </label>
+            <label>Tipo
+                <select class="form-control" name="tipo_dispositivo">
+                    {% for codigo, nombre in [('tablet','Tablet'),('pantalla','Pantalla tactil'),('tpv','TPV'),('kiosco','Kiosco'),('pc','PC despacho'),('movil','Movil')] %}
+                    <option value="{{ codigo }}" {% if dispositivo_actual.tipo_dispositivo == codigo %}selected{% endif %}>{{ nombre }}</option>
+                    {% endfor %}
+                </select>
+            </label>
+            <label>Ubicacion
+                <input class="form-control" name="ubicacion" value="{{ dispositivo_actual.ubicacion or '' }}" placeholder="Cocina central / caliente">
+            </label>
+            <label>Formato etiquetas
+                <select class="form-control" name="etiqueta_config_id">
+                    <option value="">Formato por defecto general</option>
+                    {% for f in formatos %}
+                    <option value="{{ f.id }}" {% if dispositivo_actual.etiqueta_config_id == f.id %}selected{% endif %}>{{ f.nombre }}</option>
+                    {% endfor %}
+                </select>
+            </label>
+            <label>Impresora etiquetas
+                <input class="form-control" name="impresora_etiquetas_nombre" value="{{ dispositivo_actual.impresora_etiquetas_nombre or '' }}" placeholder="Zebra cocina fria">
+            </label>
+            <label>Impresora documentos
+                <input class="form-control" name="impresora_documentos_nombre" value="{{ dispositivo_actual.impresora_documentos_nombre or '' }}" placeholder="Impresora despacho cocina">
+            </label>
+            <label>Departamento
+                <select class="form-control" name="departamento_id">
+                    <option value="">Sin asignar</option>
+                    {% for d in departamentos %}
+                    <option value="{{ d.id }}" {% if dispositivo_actual.departamento_id == d.id %}selected{% endif %}>{{ d.nombre }}</option>
+                    {% endfor %}
+                </select>
+            </label>
+            <label>Subdepartamento
+                <select class="form-control" name="subdepartamento_id">
+                    <option value="">Sin asignar</option>
+                    {% for s in subdepartamentos %}
+                    <option value="{{ s.id }}" {% if dispositivo_actual.subdepartamento_id == s.id %}selected{% endif %}>{{ s.nombre }}</option>
+                    {% endfor %}
+                </select>
+            </label>
+            <label>Punto de venta
+                <select class="form-control" name="punto_venta_id">
+                    <option value="">Sin asignar</option>
+                    {% for pv in puntos_venta %}
+                    <option value="{{ pv.id }}" {% if dispositivo_actual.punto_venta_id == pv.id %}selected{% endif %}>{{ pv.nombre }}</option>
+                    {% endfor %}
+                </select>
+            </label>
+
+            <div class="device-checks">
+                <label><input type="checkbox" name="auto_print_etiquetas" {% if dispositivo_actual.auto_print_etiquetas %}checked{% endif %}> Auto imprimir etiquetas en este equipo</label>
+            </div>
+            <button class="btn btn-success" type="submit"><i class="fas fa-save"></i> Guardar este equipo</button>
+        </form>
+        <form method="post" action="{{ url_for('empresas.probar_dispositivo_impresion', device_id=dispositivo_actual.id) }}" class="test-print-form">
+            <button class="btn btn-warning" type="submit"><i class="fas fa-print"></i> Imprimir prueba de este equipo</button>
+        </form>
+        {% else %}
+        <div>
+            <h3>Este equipo</h3>
+            <p>Codigo local: <strong>{{ device_uid[-10:] }}</strong>. Aun no esta registrado en este centro.</p>
+            <p style="color:#94a3b8;">Crea el dispositivo abajo si este equipo debe imprimir en el centro activo.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <h3><i class="fas fa-plus"></i> Añadir dispositivo</h3>
+        <p style="color:#64748b;margin-top:6px;">Crea equipos previstos aunque todavía no hayan abierto la ERP: tablet de cocina, pantalla de pases, TPV de bar, móvil de mantenimiento, etc.</p>
+    </div>
+    <form method="post" class="device-form">
+        <input type="hidden" name="accion" value="crear_dispositivo">
+        <label>Nombre del equipo
+            <input class="form-control" name="nombre" placeholder="Tablet cocina fria" required>
+        </label>
+        <label>Tipo
+            <select class="form-control" name="tipo_dispositivo">
+                {% for codigo, nombre in [('tablet','Tablet'),('pantalla','Pantalla tactil'),('tpv','TPV'),('kiosco','Kiosco'),('pc','PC despacho'),('movil','Movil'),('impresora','Impresora')] %}
+                <option value="{{ codigo }}">{{ nombre }}</option>
+                {% endfor %}
+            </select>
+        </label>
+        <label>Ubicacion
+            <input class="form-control" name="ubicacion" placeholder="Cocina central / cuarto frio">
+        </label>
+        <label>Formato etiquetas
+            <select class="form-control" name="etiqueta_config_id">
+                <option value="">Formato por defecto general</option>
+                {% for f in formatos %}
+                <option value="{{ f.id }}">{{ f.nombre }}</option>
+                {% endfor %}
+            </select>
+        </label>
+        <label>Impresora etiquetas
+            <input class="form-control" name="impresora_etiquetas_nombre" placeholder="Zebra cocina fria">
+        </label>
+        <label>Impresora documentos
+            <input class="form-control" name="impresora_documentos_nombre" placeholder="Impresora despacho">
+        </label>
+        <label>Departamento
+            <select class="form-control" name="departamento_id">
+                <option value="">Sin asignar</option>
+                {% for d in departamentos %}
+                <option value="{{ d.id }}">{{ d.nombre }}</option>
+                {% endfor %}
+            </select>
+        </label>
+        <label>Subdepartamento
+            <select class="form-control" name="subdepartamento_id">
+                <option value="">Sin asignar</option>
+                {% for s in subdepartamentos %}
+                <option value="{{ s.id }}">{{ s.nombre }}</option>
+                {% endfor %}
+            </select>
+        </label>
+        <label>Punto de venta
+            <select class="form-control" name="punto_venta_id">
+                <option value="">Sin asignar</option>
+                {% for pv in puntos_venta %}
+                <option value="{{ pv.id }}">{{ pv.nombre }}</option>
+                {% endfor %}
+            </select>
+        </label>
+        <div class="device-checks">
+            <label><input type="checkbox" name="auto_print_etiquetas"> Auto imprimir etiquetas</label>
+        </div>
+        <div style="grid-column:1/-1;">
+            <button class="btn btn-success" type="submit"><i class="fas fa-plus"></i> Crear dispositivo</button>
+        </div>
+    </form>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <h3><i class="fas fa-network-wired"></i> Equipos registrados</h3>
+    </div>
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>Equipo</th>
+                    <th>Tipo / ubicacion</th>
+                    <th>Formato</th>
+                    <th>Impresoras</th>
+                    <th>Agente</th>
+                    <th>Estado</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for d in dispositivos %}
+                <tr>
+                    <td>
+                        <strong>{{ d.nombre }}</strong><br>
+                        <small>{{ d.device_uid[-10:] }}</small>
+                    </td>
+                    <td>{{ d.tipo_dispositivo or '-' }}<br><small>{{ d.ubicacion or '-' }}</small></td>
+                    <td>{{ d.etiqueta_formato_nombre or 'General' }}</td>
+                    <td>
+                        Etiquetas: {{ d.impresora_etiquetas_nombre or '-' }}<br>
+                        <small>Docs: {{ d.impresora_documentos_nombre or '-' }}</small>
+                    </td>
+                    <td>
+                        {% if d.online %}
+                        <span class="badge badge-success">Online</span>
+                        {% else %}
+                        <span class="badge badge-secondary">Offline</span>
+                        {% endif %}
+                        <br>
+                        <small>{{ d.ultimo_ping or 'Sin contacto' }}</small>
+                        {% if d.version_agente %}<br><small>Agente {{ d.version_agente }}</small>{% endif %}
+                        {% if d.ip_ultima %}<br><small>{{ d.ip_ultima }}</small>{% endif %}
+                    </td>
+                    <td>
+                        <span class="badge {% if d.activo %}badge-success{% else %}badge-secondary{% endif %}">{{ 'Activo' if d.activo else 'Inactivo' }}</span>
+                        {% if d.auto_print_etiquetas %}<span class="badge badge-info">Auto print</span>{% endif %}
+                        {% set cola = cola_resumen.get(d.device_uid, {}) %}
+                        {% if cola.get('pendiente', 0) or cola.get('procesando', 0) or cola.get('error', 0) %}
+                        <br>
+                        <small>
+                            Cola:
+                            {% if cola.get('pendiente', 0) %}<span class="badge badge-warning">{{ cola.get('pendiente') }} pendientes</span>{% endif %}
+                            {% if cola.get('procesando', 0) %}<span class="badge badge-info">{{ cola.get('procesando') }} en curso</span>{% endif %}
+                            {% if cola.get('error', 0) %}<span class="badge badge-danger">{{ cola.get('error') }} error</span>{% endif %}
+                        </small>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <form method="post" action="{{ url_for('empresas.probar_dispositivo_impresion', device_id=d.id) }}" style="display:inline;">
+                            <button class="btn btn-sm btn-warning" type="submit"><i class="fas fa-print"></i> Prueba</button>
+                        </form>
+                        <details>
+                            <summary class="btn btn-sm btn-secondary">Editar</summary>
+                            <form method="post" class="inline-device-form">
+                                <input type="hidden" name="accion" value="guardar_dispositivo">
+                                <input type="hidden" name="device_id" value="{{ d.id }}">
+                                <input type="hidden" name="device_uid" value="{{ d.device_uid }}">
+                                <input class="form-control" name="nombre" value="{{ d.nombre }}">
+                                <input class="form-control" name="tipo_dispositivo" value="{{ d.tipo_dispositivo or 'tablet' }}">
+                                <input class="form-control" name="ubicacion" value="{{ d.ubicacion or '' }}" placeholder="Ubicacion">
+                                <select class="form-control" name="etiqueta_config_id">
+                                    <option value="">General</option>
+                                    {% for f in formatos %}
+                                    <option value="{{ f.id }}" {% if d.etiqueta_config_id == f.id %}selected{% endif %}>{{ f.nombre }}</option>
+                                    {% endfor %}
+                                </select>
+                                <input class="form-control" name="impresora_etiquetas_nombre" value="{{ d.impresora_etiquetas_nombre or '' }}" placeholder="Impresora etiquetas">
+                                <input class="form-control" name="impresora_documentos_nombre" value="{{ d.impresora_documentos_nombre or '' }}" placeholder="Impresora documentos">
+                                <label><input type="checkbox" name="activo" {% if d.activo %}checked{% endif %}> Activo</label>
+                                <label><input type="checkbox" name="auto_print_etiquetas" {% if d.auto_print_etiquetas %}checked{% endif %}> Auto print</label>
+                                <button class="btn btn-sm btn-primary" type="submit">Guardar</button>
+                            </form>
+                        </details>
+                    </td>
+                </tr>
+                {% else %}
+                <tr><td colspan="7">No hay equipos registrados.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<style>
+.device-current {
+    display:grid;
+    grid-template-columns:minmax(220px, 320px) 1fr;
+    gap:18px;
+    align-items:start;
+}
+.device-current h3 {
+    margin-bottom:8px;
+}
+.device-current p {
+    color:#64748b;
+}
+.agent-cmd code {
+    display:block;
+    white-space:normal;
+    word-break:break-all;
+    background:#f8fafc;
+    padding:8px;
+    border:1px solid #d8e2ed;
+    border-radius:6px;
+}
+.device-form {
+    display:grid;
+    grid-template-columns:repeat(auto-fit, minmax(190px, 1fr));
+    gap:10px;
+}
+.test-print-form {
+    grid-column:2;
+    align-self:start;
+}
+.device-form label,
+.inline-device-form label {
+    color:#334155;
+    font-weight:600;
+    font-size:13px;
+}
+.device-checks {
+    grid-column:1/-1;
+    display:flex;
+    gap:14px;
+    flex-wrap:wrap;
+}
+.inline-device-form {
+    display:grid;
+    grid-template-columns:repeat(auto-fit, minmax(160px, 1fr));
+    gap:8px;
+    margin-top:10px;
+    min-width:560px;
+}
+details summary {
+    cursor:pointer;
+    list-style:none;
+}
+@media (max-width: 900px) {
+    .device-current {
+        grid-template-columns:1fr;
+    }
+    .test-print-form {
+        grid-column:1;
+    }
+    .inline-device-form {
+        min-width:0;
+    }
+}
+</style>
+
+{% endblock %}

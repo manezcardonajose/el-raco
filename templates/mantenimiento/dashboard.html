@@ -1,0 +1,170 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="card">
+    <div class="card-header">
+        <div>
+            <h2><i class="fas fa-wrench"></i> Mantenimiento</h2>
+            <div style="font-size:13px;opacity:.8;">Averias, preventivos, equipos criticos, repuestos y trazabilidad de intervenciones.</div>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <form method="POST" action="{{ url_for('mantenimiento.sincronizar_compras_mantenimiento') }}">
+                <button class="btn btn-info" onclick="return confirm('Actualizar entradas de repuestos recibidos en compras?')">
+                    <i class="fas fa-sync"></i> Actualizar compras
+                </button>
+            </form>
+            <a href="{{ url_for('mantenimiento.aviso_mantenimiento') }}" class="btn btn-warning"><i class="fas fa-bell"></i> Aviso rapido</a>
+            <a href="{{ url_for('mantenimiento.nueva_orden') }}" class="btn btn-success"><i class="fas fa-plus"></i> Nueva OT</a>
+            <a href="{{ url_for('mantenimiento.lista_ordenes') }}" class="btn btn-info">Ordenes</a>
+            <a href="{{ url_for('mantenimiento.lista_equipos') }}" class="btn btn-primary">Equipos</a>
+        </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin-bottom:18px;">
+        <a href="{{ url_for('mantenimiento.lista_equipos') }}" style="text-decoration:none;color:inherit;">
+            <div style="background:#20252a;border:1px solid #344150;border-radius:8px;padding:14px;">
+                <div style="font-size:12px;opacity:.75;">Equipos activos</div>
+                <div style="font-size:26px;font-weight:700;">{{ total_equipos }}</div>
+            </div>
+        </a>
+        <a href="{{ url_for('mantenimiento.lista_ordenes') }}" style="text-decoration:none;color:inherit;">
+            <div style="background:#20252a;border:1px solid #344150;border-radius:8px;padding:14px;">
+                <div style="font-size:12px;opacity:.75;">OT abiertas</div>
+                <div style="font-size:26px;font-weight:700;color:#ffb347;">{{ ot_abiertas }}</div>
+            </div>
+        </a>
+        <a href="{{ url_for('mantenimiento.lista_ordenes', prioridad='urgente') }}" style="text-decoration:none;color:inherit;">
+            <div style="background:#20252a;border:1px solid #344150;border-radius:8px;padding:14px;">
+                <div style="font-size:12px;opacity:.75;">Urgentes</div>
+                <div style="font-size:26px;font-weight:700;color:#ff6b6b;">{{ ot_urgentes }}</div>
+            </div>
+        </a>
+        <a href="{{ url_for('mantenimiento.lista_preventivo') }}" style="text-decoration:none;color:inherit;">
+            <div style="background:#20252a;border:1px solid #344150;border-radius:8px;padding:14px;">
+                <div style="font-size:12px;opacity:.75;">Preventivos vencidos</div>
+                <div style="font-size:26px;font-weight:700;color:#ffb347;">{{ preventivos_vencidos }}</div>
+            </div>
+        </a>
+        <a href="{{ url_for('mantenimiento.lista_repuestos') }}" style="text-decoration:none;color:inherit;">
+            <div style="background:#20252a;border:1px solid #344150;border-radius:8px;padding:14px;">
+                <div style="font-size:12px;opacity:.75;">Repuestos bajo minimo</div>
+                <div style="font-size:26px;font-weight:700;">{{ repuestos_bajos|length }}</div>
+            </div>
+        </a>
+        <div style="background:#20252a;border:1px solid #344150;border-radius:8px;padding:14px;">
+            <div style="font-size:12px;opacity:.75;">Coste mes</div>
+            <div style="font-size:26px;font-weight:700;">{{ "%.2f"|format(coste_mes or 0) }} EUR</div>
+        </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:minmax(0,1.2fr) minmax(320px,.8fr);gap:16px;">
+        <div>
+            <h3 style="color:#ff6b00;">Ordenes recientes</h3>
+            <div class="table-container">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>OT</th>
+                            <th>Equipo</th>
+                            <th>Prioridad</th>
+                            <th>Estado</th>
+                            <th>Fecha</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for o in ultimas_ot %}
+                        <tr>
+                            <td>{{ o.numero_orden }}</td>
+                            <td>{{ o.equipo_nombre }}</td>
+                            <td><span class="badge {% if o.prioridad == 'urgente' %}badge-danger{% elif o.prioridad == 'alta' %}badge-warning{% else %}badge-info{% endif %}">{{ o.prioridad }}</span></td>
+                            <td>{{ o.estado }}</td>
+                            <td>{{ o.fecha_apertura[:10] if o.fecha_apertura else '-' }}</td>
+                            <td><a class="btn btn-sm btn-info" href="{{ url_for('mantenimiento.ver_orden', orden_id=o.id) }}">Ver</a></td>
+                        </tr>
+                        {% else %}
+                        <tr><td colspan="6" style="text-align:center;padding:20px;">No hay ordenes todavia.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <h3 style="color:#ff6b00;margin-top:18px;">Carga por departamento</h3>
+            <div class="table-container">
+                <table class="table">
+                    <thead><tr><th>Departamento</th><th style="text-align:right;">Abiertas</th><th style="text-align:right;">Urgentes</th><th style="text-align:right;">En curso</th></tr></thead>
+                    <tbody>
+                        {% for d in carga_departamentos %}
+                        <tr>
+                            <td>{{ d.departamento }}</td>
+                            <td style="text-align:right;">{{ d.total or 0 }}</td>
+                            <td style="text-align:right;">{{ d.urgentes or 0 }}</td>
+                            <td style="text-align:right;">{{ d.en_proceso or 0 }}</td>
+                        </tr>
+                        {% else %}
+                        <tr><td colspan="4" style="text-align:center;padding:20px;">Sin carga pendiente.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div>
+            <h3 style="color:#ff6b00;">Preventivos proximos</h3>
+            <div class="table-container">
+                <table class="table">
+                    <thead><tr><th>Fecha</th><th>Equipo</th><th>Tarea</th></tr></thead>
+                    <tbody>
+                        {% for p in proximos %}
+                        <tr>
+                            <td>{{ p.proxima_ejecucion }}</td>
+                            <td>{{ p.equipo_nombre }}</td>
+                            <td>{{ p.tarea }}</td>
+                        </tr>
+                        {% else %}
+                        <tr><td colspan="3" style="text-align:center;padding:18px;">Sin preventivos en 7 dias.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <h3 style="color:#ff6b00;margin-top:18px;">Equipos criticos</h3>
+            <div class="table-container">
+                <table class="table">
+                    <thead><tr><th>Equipo</th><th>Ubicacion</th><th style="text-align:right;">OT</th></tr></thead>
+                    <tbody>
+                        {% for e in equipos_criticos %}
+                        <tr>
+                            <td><a href="{{ url_for('mantenimiento.ver_equipo', equipo_id=e.id) }}">{{ e.nombre }}</a></td>
+                            <td>{{ e.ubicacion or '-' }}</td>
+                            <td style="text-align:right;">{{ e.ot_abiertas or 0 }}</td>
+                        </tr>
+                        {% else %}
+                        <tr><td colspan="3" style="text-align:center;padding:18px;">Sin equipos criticos definidos.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <h3 style="color:#ff6b00;margin-top:18px;">Repuestos bajo minimo</h3>
+            <div class="table-container">
+                <table class="table">
+                    <thead><tr><th>Repuesto</th><th style="text-align:right;">Stock</th><th style="text-align:right;">Min.</th></tr></thead>
+                    <tbody>
+                        {% for r in repuestos_bajos %}
+                        <tr>
+                            <td>{{ r.nombre }}</td>
+                            <td style="text-align:right;">{{ "%.2f"|format(r.stock_actual or 0) }}</td>
+                            <td style="text-align:right;">{{ "%.2f"|format(r.stock_minimo or 0) }}</td>
+                        </tr>
+                        {% else %}
+                        <tr><td colspan="3" style="text-align:center;padding:18px;">Stock de repuestos correcto.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

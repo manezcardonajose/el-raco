@@ -1,0 +1,176 @@
+{% extends 'base.html' %}
+{% block title %}Habitaciones pisos{% endblock %}
+{% block breadcrumb %}Pisos / Habitaciones{% endblock %}
+{% block content %}
+<style>
+  .px-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:12px 0 16px;}
+  .px-card{border:1px solid #334155;border-radius:6px;background:#111827;padding:10px;}
+  .px-card span{display:block;color:#94a3b8;font-size:12px;}
+  .px-card strong{display:block;font-size:22px;margin-top:3px;}
+  .px-filters{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;align-items:end;margin-bottom:16px;}
+  .px-actions{display:flex;gap:6px;flex-wrap:wrap;align-items:center;}
+  .px-inline{display:inline-flex;gap:6px;align-items:center;margin:2px 0;}
+  .px-note{color:#94a3b8;font-size:12px;line-height:1.35;}
+  .px-pill{display:inline-block;border:1px solid #475569;border-radius:4px;padding:2px 6px;font-size:12px;background:#0f172a;margin:2px 2px 2px 0;}
+  .px-status-disponible{color:#bbf7d0;border-color:#22c55e;}
+  .px-status-ocupada{color:#fed7aa;border-color:#f59e0b;}
+  .px-status-limpieza,.px-status-repaso{color:#bfdbfe;border-color:#3b82f6;}
+  .px-status-mantenimiento,.px-status-bloqueada{color:#fecaca;border-color:#ef4444;}
+  .px-table td{vertical-align:top;}
+  .px-small-input{max-width:190px;}
+  @media (max-width: 900px){.px-inline{display:flex;width:100%;}.px-inline .btn,.px-inline input{width:100%;}}
+</style>
+
+<div class="card">
+  <div class="card-header">
+    <h2><i class="fas fa-bed"></i> Habitaciones pisos</h2>
+    <div class="px-actions">
+      <a class="btn btn-secondary" href="{{ url_for('pisos.dashboard', fecha=fecha, bloque=filtros.bloque, planta=filtros.planta) }}"><i class="fas fa-list"></i> Partes</a>
+      <a class="btn btn-secondary" target="_blank" href="{{ url_for('pisos.imprimir', fecha=fecha, bloque=filtros.bloque, planta=filtros.planta) }}"><i class="fas fa-print"></i> Imprimir</a>
+      <a class="btn btn-secondary" href="{{ url_for('pisos.configuracion') }}"><i class="fas fa-cog"></i> Reglas</a>
+      <a class="btn btn-secondary" href="{{ url_for('pisos.trazabilidad', desde=fecha, hasta=fecha) }}"><i class="fas fa-history"></i> Trazabilidad</a>
+      <a class="btn btn-secondary" href="{{ url_for('recepcion.habitaciones') }}"><i class="fas fa-cog"></i> Configurar habitaciones</a>
+    </div>
+  </div>
+
+  <form method="get" class="px-filters">
+    <div class="form-group">
+      <label class="form-label">Fecha</label>
+      <input class="form-control" type="date" name="fecha" value="{{ fecha }}">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Bloque</label>
+      <select class="form-control" name="bloque">
+        <option value="">Todos</option>
+        {% for b in bloques %}
+        <option value="{{ b.valor }}" {% if filtros.bloque == b.valor %}selected{% endif %}>{{ b.valor }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Planta</label>
+      <select class="form-control" name="planta">
+        <option value="">Todas</option>
+        {% for p in plantas %}
+        <option value="{{ p.valor }}" {% if filtros.planta == p.valor %}selected{% endif %}>{% if p.valor|string == '0' %}PB{% else %}{{ p.valor }}{% endif %}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <button class="btn btn-primary" type="submit"><i class="fas fa-search"></i> Ver</button>
+  </form>
+
+  <div class="px-grid">
+    <div class="px-card"><span>Entradas</span><strong>{{ resumen.entradas }}</strong></div>
+    <div class="px-card"><span>Salidas</span><strong>{{ resumen.salidas }}</strong></div>
+    <div class="px-card"><span>Pendientes</span><strong>{{ resumen.partes.get('pendiente', 0) }}</strong></div>
+    <div class="px-card"><span>En curso</span><strong>{{ resumen.partes.get('en_curso', 0) }}</strong></div>
+    <div class="px-card"><span>Disponibles</span><strong>{{ resumen.habitaciones.get('disponible', 0) }}</strong></div>
+    <div class="px-card"><span>Limpieza</span><strong>{{ resumen.habitaciones.get('limpieza', 0) + resumen.habitaciones.get('repaso', 0) }}</strong></div>
+  </div>
+
+  <div class="table-container">
+    <table class="px-table">
+      <thead>
+        <tr>
+          <th>Habitacion</th>
+          <th>Ocupacion</th>
+          <th>Entradas / salidas</th>
+          <th>Partes</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in habitaciones %}
+        {% set h = item.habitacion %}
+        <tr>
+          <td>
+            <strong>{{ h.numero or h.nombre or ('#' ~ h.id) }}</strong>
+            <div>
+              <span class="px-pill px-status-{{ h.estado or 'disponible' }}">{{ estados_habitacion.get(h.estado or 'disponible', h.estado or 'disponible') }}</span>
+            </div>
+            <div class="px-note">
+              {% if h.bloque %}Bloque {{ h.bloque }} &middot; {% endif %}
+              {% if h.planta|string == '0' %}PB{% elif h.planta %}Planta {{ h.planta }}{% endif %}
+              {% if h.tipo_nombre %}<br>{{ h.tipo_nombre }}{% elif h.tipo %}<br>{{ h.tipo }}{% endif %}
+              {% if h.capacidad %}<br>{{ h.capacidad }} pax{% endif %}
+            </div>
+            <div class="px-note">
+              {% if h.tipo_cama %}Cama: {{ tipos_cama.get(h.tipo_cama, h.tipo_cama) }}{% endif %}
+              {% if h.supletorias_max %}<br>Supletoria max: {{ h.supletorias_max }}{% endif %}
+              {% if h.cuna_posible %}<br>Admite cuna{% endif %}
+              {% if h.aire_tipo %}<br>Aire: {{ tipos_aire.get(h.aire_tipo, h.aire_tipo) }}{% endif %}
+            </div>
+            {% if h.observaciones %}<div class="px-note">{{ h.observaciones }}</div>{% endif %}
+          </td>
+          <td>
+            {% for r in item.ocupacion %}
+            <div>
+              <a href="{{ url_for('recepcion.reserva_detalle', id=r.id) }}">{{ r.codigo or r.localizador_externo or r.id }}</a>
+              <div>{{ r.titular_nombre or '-' }}</div>
+              <div class="px-note">{{ (r.adultos or 0) + (r.menores or 0) }} pax &middot; {{ r.regimen or '-' }}</div>
+            </div>
+            {% else %}
+            <span class="px-note">Sin ocupacion hoy</span>
+            {% endfor %}
+          </td>
+          <td>
+            {% if item.entradas %}
+            <strong>Entradas</strong>
+            {% for r in item.entradas %}
+            <div><a href="{{ url_for('recepcion.reserva_detalle', id=r.id) }}">{{ r.titular_nombre or r.codigo or r.id }}</a></div>
+            {% endfor %}
+            {% endif %}
+            {% if item.salidas %}
+            <strong>Salidas</strong>
+            {% for r in item.salidas %}
+            <div><a href="{{ url_for('recepcion.reserva_detalle', id=r.id) }}">{{ r.titular_nombre or r.codigo or r.id }}</a></div>
+            {% endfor %}
+            {% endif %}
+            {% if not item.entradas and not item.salidas %}<span class="px-note">Sin movimientos</span>{% endif %}
+          </td>
+          <td>
+            {% for p in item.partes %}
+            <div>
+              <span class="px-pill">{{ p.tarea_nombre or p.tipo }}</span>
+              <span class="px-pill px-status-{{ p.estado }}">{{ p.estado }}</span>
+              {% if p.asignado_a %}<span class="px-note">{{ p.asignado_a }}</span>{% endif %}
+            </div>
+            {% else %}
+            <span class="px-note">Sin parte</span>
+            {% endfor %}
+          </td>
+          <td>
+            <div class="px-actions">
+              <form method="post" action="{{ url_for('pisos.cambiar_estado_habitacion', habitacion_id=h.id) }}" class="px-inline">
+                <input type="hidden" name="fecha" value="{{ fecha }}">
+                <input type="hidden" name="estado" value="disponible">
+                <button class="btn btn-sm btn-success" type="submit"><i class="fas fa-check"></i> Disponible</button>
+              </form>
+              <form method="post" action="{{ url_for('pisos.cambiar_estado_habitacion', habitacion_id=h.id) }}" class="px-inline">
+                <input type="hidden" name="fecha" value="{{ fecha }}">
+                <input type="hidden" name="estado" value="limpieza">
+                <button class="btn btn-sm btn-secondary" type="submit"><i class="fas fa-broom"></i> Limpieza</button>
+              </form>
+              <form method="post" action="{{ url_for('pisos.cambiar_estado_habitacion', habitacion_id=h.id) }}" class="px-inline">
+                <input type="hidden" name="fecha" value="{{ fecha }}">
+                <input type="hidden" name="estado" value="repaso">
+                <button class="btn btn-sm btn-secondary" type="submit"><i class="fas fa-eye"></i> Repaso</button>
+              </form>
+              <form method="post" action="{{ url_for('pisos.cambiar_estado_habitacion', habitacion_id=h.id) }}" class="px-inline">
+                <input type="hidden" name="fecha" value="{{ fecha }}">
+                <input type="hidden" name="estado" value="mantenimiento">
+                <input class="form-control px-small-input" name="observaciones" placeholder="Motivo">
+                <button class="btn btn-sm btn-danger" type="submit"><i class="fas fa-tools"></i> Mantenimiento</button>
+              </form>
+              <a class="btn btn-sm btn-primary" href="/pisos/habitaciones/{{ h.id }}/equipamiento?fecha={{ fecha }}"><i class="fas fa-clipboard-list"></i> Equipamiento</a>
+            </div>
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="5">No hay habitaciones activas con estos filtros.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

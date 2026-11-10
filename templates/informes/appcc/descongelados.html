@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header">
+        <h2><i class="fas fa-snowflake"></i> PROCESOS DE DESCONGELADO</h2>
+        <div>
+            <a href="{{ url_for('appcc.appcc_dashboard') }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Volver
+            </a>
+        </div>
+    </div>
+
+    <!-- Filtros -->
+    <div style="background: #1e252b; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+        <form method="GET" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; align-items: end;">
+            <div>
+                <label class="form-label">Desde:</label>
+                <input type="date" name="desde" value="{{ fecha_desde }}" class="form-control">
+            </div>
+            <div>
+                <label class="form-label">Hasta:</label>
+                <input type="date" name="hasta" value="{{ fecha_hasta }}" class="form-control">
+            </div>
+            <div>
+                <button type="submit" class="btn btn-primary">Filtrar</button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Tabla de procesos -->
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>Producto</th>
+                    <th>Lote</th>
+                    <th>Fecha descongelado</th>
+                    <th>Nº Controles</th>
+                    <th>Temp. Mn</th>
+                    <th>Temp. Mx</th>
+                    <th>Estado final</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for p in procesos %}
+                <tr>
+                    <td><strong>{{ p.producto_nombre }}</strong></td>
+                    <td>{{ p.codigo_lote }}</td>
+                    <td>{{ p.fecha_descongelado[:16] if p.fecha_descongelado else '---' }}</td>
+                    <td style="text-align: center;">{{ p.num_controles or 0 }}</td>
+                    <td>{{ p.temp_min or '---' }}°C</td>
+                    <td>{{ p.temp_max or '---' }}°C</td>
+                    <td>
+                        {% if p.estado_final == ' Apto' %}
+                        <span style="color: #28a745;">{{ p.estado_final }}</span>
+                        {% elif p.estado_final == ' No apto' %}
+                        <span style="color: #dc3545;">{{ p.estado_final }}</span>
+                        {% else %}
+                        <span style="color: #ffc107;">{{ p.estado_final }}</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="7" style="text-align: center;">No hay procesos de descongelado</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
+
+
+
+

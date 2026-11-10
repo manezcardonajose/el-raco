@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="card">
+    <div class="card-header">
+        <div>
+            <h2><i class="fas fa-truck"></i> Proveedores</h2>
+            <div style="display:inline-flex;align-items:center;gap:8px;padding:6px 10px;border:1px solid var(--border,#d5dde8);border-radius:8px;background:var(--card-bg,#fff);color:var(--text-muted,#475569);font-size:.9rem;">
+                <i class="fas fa-building"></i>
+                <span>Centro actual:</span>
+                <strong style="color:var(--text,#0f172a);">{{ centro_activo.nombre if centro_activo else 'Empresa completa' }}</strong>
+            </div>
+        </div>
+        <a href="{{ url_for('proveedores.nuevo_proveedor') }}" class="btn btn-success">
+            <i class="fas fa-plus"></i> Nuevo proveedor
+        </a>
+    </div>
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>Nombre</th>
+                    <th>NIF</th>
+                    <th>Teléfono</th>
+                    <th>Email pedidos</th>
+                    <th>Centro</th>
+                    <th>Delegacion</th>
+                    <th>Productos</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for p in proveedores %}
+                <tr>
+                    <td><strong>{{ p.nombre }}</strong></td>
+                    <td>{{ p.nif or '---' }}</td>
+                    <td>{{ p.telefono or '---' }}</td>
+                    <td>{{ p.email_pedidos or p.email or '---' }}</td>
+                    <td>{{ p.centro_nombre or 'Global' }}</td>
+                    <td>{{ p.delegacion or p.proveedor_matriz or '---' }}</td>
+                    <td>{{ p.productos_asignados or 0 }}</td>
+                    <td style="text-align: center;">
+    <a href="{{ url_for('proveedores.ver_proveedor', proveedor_id=p.id) }}" class="btn-icon" title="Ver">
+        <i class="fas fa-eye"></i>
+    </a>
+    <a href="{{ url_for('proveedores.editar_proveedor', proveedor_id=p.id) }}" class="btn-icon" title="Editar">
+        <i class="fas fa-edit"></i>
+    </a>
+    <form method="POST" action="{{ url_for('proveedores.eliminar_proveedor', proveedor_id=p.id) }}" 
+          style="display: inline;" 
+          onsubmit="return confirm('¿Eliminar este proveedor?');">
+        <button type="submit" class="btn-icon" style="background: #dc3545; color: white;" title="Eliminar">
+            <i class="fas fa-trash"></i>
+        </button>
+    </form>
+</td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="8">No hay proveedores</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

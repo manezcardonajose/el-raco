@@ -1,0 +1,249 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="card">
+    <div class="card-header" style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;">
+        <h2 style="margin:0;"><i class="fas fa-clipboard-check"></i> Necesidades de compra</h2>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <a href="{{ url_for('compras.lista_pedidos') }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Pedidos
+            </a>
+            <a href="{{ url_for('compras.nuevo_pedido_tipo_a') }}" class="btn btn-primary">
+                <i class="fas fa-plus-circle"></i> Pedido manual
+            </a>
+        </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin-bottom:16px;">
+        <div style="padding:12px;border:1px solid #d1d5db;border-radius:8px;background:#fff;">
+            <div style="font-size:12px;color:#6b7280;">Productos bajo minimo</div>
+            <div style="font-size:24px;font-weight:700;">{{ resumen.total }}</div>
+            <div style="font-size:12px;color:#6b7280;">con stock y pedidos pendientes</div>
+        </div>
+        <div style="padding:12px;border:1px solid #d1d5db;border-radius:8px;background:#fff;">
+            <div style="font-size:12px;color:#6b7280;">Criticos</div>
+            <div style="font-size:24px;font-weight:700;">{{ resumen.criticos }}</div>
+            <div style="font-size:12px;color:#6b7280;">sin stock actual</div>
+        </div>
+        <div style="padding:12px;border:1px solid #d1d5db;border-radius:8px;background:#fff;">
+            <div style="font-size:12px;color:#6b7280;">Sin proveedor</div>
+            <div style="font-size:24px;font-weight:700;">{{ resumen.sin_proveedor }}</div>
+            <div style="font-size:12px;color:#6b7280;">requieren ficha de proveedor</div>
+        </div>
+        <div style="padding:12px;border:1px solid #d1d5db;border-radius:8px;background:#fff;">
+            <div style="font-size:12px;color:#6b7280;">Por planificacion</div>
+            <div style="font-size:24px;font-weight:700;">{{ resumen.planificacion }}</div>
+            <div style="font-size:12px;color:#6b7280;">faltantes de menus/produccion</div>
+        </div>
+        <div style="padding:12px;border:1px solid #d1d5db;border-radius:8px;background:#fff;">
+            <div style="font-size:12px;color:#6b7280;">Mise en place</div>
+            <div style="font-size:24px;font-weight:700;">{{ resumen.mise_en_place or 0 }}</div>
+            <div style="font-size:12px;color:#6b7280;">avisos previos de cocina</div>
+        </div>
+        <div style="padding:12px;border:1px solid #d1d5db;border-radius:8px;background:#fff;">
+            <div style="font-size:12px;color:#6b7280;">Importe estimado</div>
+            <div style="font-size:24px;font-weight:700;">{{ '%.2f'|format(resumen.importe_estimado or 0) }} EUR</div>
+            <div style="font-size:12px;color:#6b7280;">segun precio proveedor/producto</div>
+        </div>
+    </div>
+
+    <div class="card" style="margin-bottom:16px;">
+        <form method="get" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;align-items:end;">
+            <div>
+                <label>Proveedor</label>
+                <select name="proveedor" class="form-control">
+                    <option value="">Todos</option>
+                    {% for pr in proveedores %}
+                    <option value="{{ pr.id }}" {% if filtros.proveedor == pr.id|string %}selected{% endif %}>{{ pr.nombre }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label>Familia</label>
+                <select name="familia" class="form-control">
+                    <option value="">Todas</option>
+                    {% for f in familias %}
+                    <option value="{{ f.familia }}" {% if filtros.familia == f.familia %}selected{% endif %}>{{ f.familia }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <label style="display:flex;gap:8px;align-items:center;margin-bottom:8px;">
+                <input type="checkbox" name="sin_proveedor" value="1" {% if filtros.sin_proveedor %}checked{% endif %}>
+                Solo sin proveedor
+            </label>
+            <label style="display:flex;gap:8px;align-items:center;margin-bottom:8px;">
+                <input type="checkbox" name="incluir_planificacion" value="1" {% if filtros.incluir_planificacion %}checked{% endif %}>
+                Incluir menus/produccion
+            </label>
+            <div>
+                <label>Desde produccion</label>
+                <input type="date" name="fecha_desde" value="{{ filtros.fecha_desde }}" class="form-control">
+            </div>
+            <div>
+                <label>Hasta produccion</label>
+                <input type="date" name="fecha_hasta" value="{{ filtros.fecha_hasta }}" class="form-control">
+            </div>
+            <div>
+                <button class="btn btn-primary"><i class="fas fa-filter"></i> Filtrar</button>
+                <a href="{{ url_for('compras.necesidades_compra') }}" class="btn btn-secondary">Limpiar</a>
+            </div>
+        </form>
+    </div>
+
+    {% if necesidades %}
+    <form method="post">
+        <input type="hidden" name="incluir_planificacion" value="{{ 1 if filtros.incluir_planificacion else 0 }}">
+        <input type="hidden" name="fecha_desde" value="{{ filtros.fecha_desde }}">
+        <input type="hidden" name="fecha_hasta" value="{{ filtros.fecha_hasta }}">
+        <div class="card" style="margin-bottom:16px;">
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;align-items:end;">
+                <div>
+                    <label>Departamento por defecto</label>
+                    <select name="departamento_id" class="form-control">
+                        <option value="">Solo si el producto no tiene responsable</option>
+                        {% for d in departamentos %}
+                        <option value="{{ d.id }}">{{ d.nombre }}</option>
+                        {% endfor %}
+                    </select>
+                    {% if not departamentos %}
+                    <small class="text-warning">No hay departamentos disponibles para crear pedido.</small>
+                    {% endif %}
+                </div>
+                <div>
+                    <label>Fecha entrega prevista</label>
+                    <input type="date" name="fecha_entrega" class="form-control">
+                </div>
+                <div>
+                    <label>Observaciones</label>
+                    <input type="text" name="observaciones" class="form-control" placeholder="Opcional">
+                </div>
+                <div>
+                    <button type="submit" class="btn btn-success">
+                        <i class="fas fa-save"></i> Crear por departamento
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:10px;">
+            <button type="button" class="btn btn-sm btn-secondary" onclick="marcarTodo(true)">Marcar con proveedor</button>
+            <button type="button" class="btn btn-sm btn-secondary" onclick="marcarTodo(false)">Desmarcar</button>
+            <span class="text-muted">Los productos sin proveedor quedan visibles, pero no se pueden pedir hasta completar su ficha.</span>
+        </div>
+
+        <div style="overflow-x:auto;">
+            <table class="table" style="width:100%;min-width:1180px;">
+                <thead>
+                    <tr>
+                        <th style="width:45px;"></th>
+                        <th>Producto</th>
+                        <th>Departamento</th>
+                        <th>Familia</th>
+                        <th>Proveedor</th>
+                        <th>Stock</th>
+                        <th>Minimo</th>
+                        <th>Pendiente</th>
+                        <th>Sugerido</th>
+                        <th>Origen</th>
+                        <th>Precio ref.</th>
+                        <th>Estado</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for n in necesidades %}
+                    <tr>
+                        <td>
+                            <input
+                                type="checkbox"
+                                name="seleccionado"
+                                value="{{ n.id }}"
+                                class="check-necesidad"
+                                {% if n.proveedor_id %}checked{% else %}disabled{% endif %}>
+                            <input type="hidden" name="proveedor_{{ n.id }}" value="{{ n.proveedor_id or '' }}">
+                            <input type="hidden" name="precio_{{ n.id }}" value="{{ n.precio_referencia or 0 }}">
+                            <input type="hidden" name="departamento_producto_{{ n.id }}" value="{{ n.departamento_id or '' }}">
+                        </td>
+                        <td>
+                            <strong>{{ n.nombre }}</strong>
+                            <div class="text-muted" style="font-size:12px;">{{ n.codigo or 'sin codigo' }}{% if n.unidad %} - {{ n.unidad }}{% endif %}</div>
+                        </td>
+                        <td>
+                            {% if n.departamento_id %}
+                                {{ n.departamento_nombre }}
+                            {% else %}
+                                <span class="badge bg-warning text-dark">Sin responsable</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ n.familia }}</td>
+                        <td>
+                            {% if n.proveedor_nombre %}
+                                {{ n.proveedor_nombre }}
+                            {% else %}
+                                <span class="badge bg-danger">Sin proveedor</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ '%.3f'|format(n.stock_total or 0) }}</td>
+                        <td>{{ '%.3f'|format(n.stock_minimo or 0) }}</td>
+                        <td>{{ '%.3f'|format(n.cantidad_pendiente or 0) }}</td>
+                        <td>
+                            <input
+                                type="number"
+                                step="0.001"
+                                min="0"
+                                name="cantidad_{{ n.id }}"
+                                value="{{ '%.3f'|format(n.cantidad_sugerida or 0) }}"
+                                class="form-control"
+                                style="max-width:120px;"
+                                {% if not n.proveedor_id %}disabled{% endif %}>
+                        </td>
+                        <td>
+                            {% if 'mise' in n.origen_necesidad %}
+                                <span class="badge bg-danger">Mise en place</span>
+                                {% if n.demanda_planificada %}
+                                <div class="text-muted" style="font-size:12px;">Necesario {{ '%.3f'|format(n.demanda_planificada) }} {{ n.unidad }}</div>
+                                {% endif %}
+                                {% if n.primer_aviso %}
+                                <div class="text-muted" style="font-size:12px;">Aviso {{ n.primer_aviso }} · servicio {{ n.primer_servicio or '-' }}</div>
+                                {% endif %}
+                                {% if n.tipos_mise %}
+                                <div class="text-muted" style="font-size:12px;">{{ n.tipos_mise }}</div>
+                                {% endif %}
+                            {% elif n.origen_necesidad == 'planificacion' %}
+                                <span class="badge bg-info text-dark">Planificacion</span>
+                                {% if n.demanda_planificada %}
+                                <div class="text-muted" style="font-size:12px;">Necesario {{ '%.3f'|format(n.demanda_planificada) }} {{ n.unidad }}</div>
+                                {% endif %}
+                            {% else %}
+                                <span class="badge bg-warning text-dark">Stock minimo</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ '%.2f'|format(n.precio_referencia or 0) }} EUR</td>
+                        <td>
+                            {% if n.critico %}
+                                <span class="badge bg-danger">Agotado</span>
+                            {% else %}
+                                <span class="badge bg-warning text-dark">Bajo minimo</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </form>
+    {% else %}
+        <div class="alert alert-success">
+            No hay necesidades de compra con los filtros actuales.
+        </div>
+    {% endif %}
+</div>
+
+<script>
+function marcarTodo(valor) {
+    document.querySelectorAll('.check-necesidad:not(:disabled)').forEach(function (check) {
+        check.checked = valor;
+    });
+}
+</script>
+
+{% endblock %}

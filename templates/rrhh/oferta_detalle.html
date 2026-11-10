@@ -1,0 +1,54 @@
+{% extends 'base.html' %}
+{% block title %}Oferta de trabajo{% endblock %}
+{% block breadcrumb %}RRHH / Seleccion / Oferta{% endblock %}
+{% block content %}
+<div class="card">
+  <div class="card-header">
+    <h2><i class="fas fa-briefcase"></i> {{ oferta.titulo }}</h2>
+    <div style="display:flex; gap:8px; flex-wrap:wrap;">
+      <a class="btn btn-success" href="{{ url_for('rrhh.seleccion_nuevo_candidato', oferta_id=oferta.id) }}"><i class="fas fa-user-plus"></i> Anadir candidato</a>
+      <a class="btn btn-secondary" href="{{ url_for('rrhh.seleccion') }}">Volver</a>
+    </div>
+  </div>
+  <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap:12px;">
+    <div><small style="color:#94a3b8;">Estado</small><br><span class="badge badge-info">{{ oferta.estado or 'abierta' }}</span></div>
+    <div><small style="color:#94a3b8;">Departamento</small><br><strong>{{ oferta.departamento_nombre or '-' }}</strong></div>
+    <div><small style="color:#94a3b8;">Subdepartamento</small><br><strong>{{ oferta.subdepartamento_nombre or '-' }}</strong></div>
+    <div><small style="color:#94a3b8;">Centro</small><br><strong>{{ oferta.centro_nombre or '-' }}</strong></div>
+    <div><small style="color:#94a3b8;">Puesto</small><br><strong>{{ oferta.puesto_nombre or '-' }}</strong></div>
+    <div><small style="color:#94a3b8;">Categoria</small><br><strong>{{ oferta.categoria_nombre or '-' }}</strong></div>
+    <div><small style="color:#94a3b8;">Contrato</small><br><strong>{{ oferta.tipo_contrato or '-' }}</strong></div>
+    <div><small style="color:#94a3b8;">Jornada</small><br><strong>{{ oferta.jornada or '-' }}</strong></div>
+    <div><small style="color:#94a3b8;">Salario</small><br><strong>{{ oferta.salario_desde|euros }} - {{ oferta.salario_hasta|euros }}</strong></div>
+    <div><small style="color:#94a3b8;">Fechas</small><br><strong>{{ oferta.fecha_inicio or '-' }} / {{ oferta.fecha_cierre or '-' }}</strong></div>
+  </div>
+  <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap:14px; margin-top:16px;">
+    <div><h3>Descripcion</h3><p style="white-space:pre-wrap;">{{ oferta.descripcion or '-' }}</p></div>
+    <div><h3>Requisitos</h3><p style="white-space:pre-wrap;">{{ oferta.requisitos or '-' }}</p></div>
+    <div><h3>Competencias clave</h3><p style="white-space:pre-wrap;">{{ oferta.competencias_clave or '-' }}</p></div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header"><h2><i class="fas fa-users"></i> Candidatos de la oferta</h2></div>
+  <div class="table-container">
+    <table>
+      <thead><tr><th>Candidato</th><th>Contacto</th><th>Estado</th><th>Puntuacion</th><th>Recomendacion</th><th>Acciones</th></tr></thead>
+      <tbody>
+      {% for c in candidatos %}
+        <tr>
+          <td><strong>{{ c.nombre }} {{ c.apellidos or '' }}</strong><br><small>{{ c.fecha_recepcion or c.fecha_creacion }}</small></td>
+          <td>{{ c.email or '-' }}<br><small>{{ c.telefono or '-' }}</small></td>
+          <td><span class="badge badge-info">{{ c.estado or 'recibido' }}</span></td>
+          <td>{{ '%.1f'|format(c.puntuacion_total or 0) }}%</td>
+          <td>{{ c.recomendacion_ia or '-' }}</td>
+          <td><a class="btn btn-sm btn-primary" href="{{ url_for('rrhh.seleccion_candidato_detalle', candidato_id=c.id) }}">Ver</a></td>
+        </tr>
+      {% else %}
+        <tr><td colspan="6">Todavia no hay candidatos para esta oferta.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="card">
+    <div class="card-header" style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;">
+        <div>
+            <h3 style="margin:0;"><i class="fas fa-history"></i> Auditoria de compras</h3>
+            <small>Quien pidio, autorizo, envio, recibio, valido precios o cerro cada operacion.</small>
+        </div>
+        <a href="{{ url_for('compras.lista_pedidos') }}" class="btn btn-secondary btn-sm">Volver</a>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table" style="min-width:1200px;">
+                <thead>
+                    <tr>
+                        <th>Fecha</th>
+                        <th>Usuario</th>
+                        <th>Tipo</th>
+                        <th>Referencia</th>
+                        <th>Proveedor</th>
+                        <th>Departamento</th>
+                        <th>Estado anterior</th>
+                        <th>Estado nuevo</th>
+                        <th>Detalle</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for e in eventos %}
+                    <tr>
+                        <td>{{ e.fecha }}</td>
+                        <td>{{ e.usuario or '-' }}</td>
+                        <td>{{ e.tipo }}</td>
+                        <td>
+                            {% if e.referencia_tipo == 'pedido' %}
+                                {{ e.numero_pedido or ('Pedido ' ~ e.referencia_id) }}
+                            {% elif e.referencia_tipo == 'recepcion' %}
+                                {{ e.numero_albaran or ('Recepcion ' ~ e.referencia_id) }}
+                            {% else %}
+                                {{ e.referencia_tipo or '-' }} {{ e.referencia_id or '' }}
+                            {% endif %}
+                        </td>
+                        <td>{{ e.proveedor_nombre or '-' }}</td>
+                        <td>{{ e.departamento_nombre or '-' }}</td>
+                        <td>{{ e.estado_anterior or '-' }}</td>
+                        <td>{{ e.estado_nuevo or '-' }}</td>
+                        <td>{{ e.detalle or '-' }}</td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="9" style="text-align:center;">Todavia no hay eventos de auditoria.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

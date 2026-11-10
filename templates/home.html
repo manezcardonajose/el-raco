@@ -1,0 +1,625 @@
+{% extends "base.html" %}
+{% block content %}
+<style>
+    .exec-shell {
+        display: grid;
+        gap: 18px;
+    }
+
+    .exec-header {
+        display: flex;
+        align-items: flex-end;
+        justify-content: space-between;
+        gap: 18px;
+        padding-bottom: 12px;
+        border-bottom: 1px solid #2c3e50;
+    }
+
+    .exec-header h1 {
+        color: #ffffff;
+        font-size: 28px;
+        margin: 0 0 6px;
+        letter-spacing: 0;
+    }
+
+    .exec-header p {
+        color: #aeb8c6;
+        margin: 0;
+        line-height: 1.45;
+    }
+
+    .exec-date {
+        padding: 10px 12px;
+        border: 1px solid #2c3e50;
+        border-radius: 8px;
+        background: #111827;
+        color: #d7dee8;
+        white-space: nowrap;
+        font-size: 13px;
+    }
+
+    .metric-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 12px;
+    }
+
+    .metric-card {
+        min-height: 110px;
+        padding: 16px;
+        border: 1px solid #2c3e50;
+        border-radius: 8px;
+        background: #252b33;
+        color: #e8edf5;
+        text-decoration: none;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        transition: border-color .2s, transform .2s, background .2s;
+    }
+
+    a.metric-card:hover {
+        border-color: #ff6b00;
+        background: #2b323c;
+        transform: translateY(-2px);
+    }
+
+    .metric-top {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        color: #aeb8c6;
+        font-size: 12px;
+        text-transform: uppercase;
+    }
+
+    .metric-top i {
+        color: #ff6b00;
+        font-size: 18px;
+    }
+
+    .metric-value {
+        color: #ffffff;
+        font-size: 30px;
+        font-weight: 700;
+        line-height: 1;
+        margin-top: 16px;
+    }
+
+    .metric-meta {
+        color: #aeb8c6;
+        font-size: 12px;
+        margin-top: 8px;
+    }
+
+    .metric-warning .metric-top i,
+    .metric-warning .metric-value { color: #ffc107; }
+
+    .metric-danger .metric-top i,
+    .metric-danger .metric-value { color: #ff6b6b; }
+
+    .metric-ok .metric-top i { color: #22c55e; }
+
+    .section-grid {
+        display: grid;
+        grid-template-columns: minmax(0, 1.4fr) minmax(320px, .8fr);
+        gap: 18px;
+    }
+
+    .exec-panel {
+        border: 1px solid #2c3e50;
+        border-radius: 8px;
+        background: #252b33;
+        padding: 18px;
+    }
+
+    .exec-panel-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 14px;
+    }
+
+    .exec-panel h2 {
+        color: #ffffff;
+        font-size: 18px;
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .exec-panel h2 i {
+        color: #ff6b00;
+    }
+
+    .panel-link {
+        color: #ffb36b;
+        text-decoration: none;
+        font-size: 13px;
+    }
+
+    .quick-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+        gap: 10px;
+    }
+
+    .quick-tile {
+        min-height: 86px;
+        border: 1px solid #34465c;
+        border-radius: 8px;
+        padding: 14px;
+        background: #1d2530;
+        color: #e8edf5;
+        text-decoration: none;
+        display: flex;
+        gap: 12px;
+        align-items: center;
+        transition: border-color .2s, background .2s;
+    }
+
+    .quick-tile:hover {
+        border-color: #ff6b00;
+        background: #233044;
+    }
+
+    .quick-tile i {
+        width: 34px;
+        height: 34px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        background: #111827;
+        border-radius: 8px;
+        color: #ff6b00;
+        font-size: 16px;
+    }
+
+    .quick-tile strong {
+        display: block;
+        color: #ffffff;
+        margin-bottom: 4px;
+    }
+
+    .quick-tile span {
+        color: #aeb8c6;
+        font-size: 12px;
+    }
+
+    .alert-list,
+    .activity-list {
+        display: grid;
+        gap: 10px;
+    }
+
+    .status-row {
+        display: grid;
+        grid-template-columns: 34px 1fr auto;
+        gap: 10px;
+        align-items: center;
+        padding: 10px;
+        border: 1px solid #34465c;
+        border-radius: 8px;
+        background: #1d2530;
+        color: #d7dee8;
+        text-decoration: none;
+    }
+
+    .status-row i {
+        width: 34px;
+        height: 34px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 8px;
+        background: #111827;
+        color: #ff6b00;
+    }
+
+    .status-row strong {
+        display: block;
+        color: #ffffff;
+        margin-bottom: 3px;
+    }
+
+    .status-row small {
+        color: #aeb8c6;
+    }
+
+    .status-count {
+        min-width: 42px;
+        text-align: right;
+        color: #ffffff;
+        font-weight: 700;
+        font-size: 18px;
+    }
+
+    .charts-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+        gap: 18px;
+    }
+
+    .chart-box {
+        min-height: 260px;
+    }
+
+    .chart-box canvas {
+        width: 100% !important;
+        max-height: 220px;
+    }
+
+    .activity-row {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 10px;
+        padding: 10px 0;
+        border-bottom: 1px solid #34465c;
+    }
+
+    .activity-row:last-child {
+        border-bottom: 0;
+    }
+
+    .activity-title {
+        color: #ffffff;
+        font-weight: 600;
+        margin-bottom: 4px;
+    }
+
+    .activity-meta {
+        color: #aeb8c6;
+        font-size: 12px;
+    }
+
+    body.theme-light .exec-header {
+        border-bottom-color: #d8e2ed;
+    }
+
+    body.theme-light .exec-header h1,
+    body.theme-light .exec-panel h2,
+    body.theme-light .metric-value,
+    body.theme-light .quick-tile strong,
+    body.theme-light .status-row strong,
+    body.theme-light .status-count,
+    body.theme-light .activity-title {
+        color: #182230;
+    }
+
+    body.theme-light .exec-header p,
+    body.theme-light .metric-top,
+    body.theme-light .metric-meta,
+    body.theme-light .quick-tile span,
+    body.theme-light .status-row small,
+    body.theme-light .activity-meta {
+        color: #64748b;
+    }
+
+    body.theme-light .exec-date,
+    body.theme-light .metric-card,
+    body.theme-light .exec-panel,
+    body.theme-light .quick-tile,
+    body.theme-light .status-row {
+        background: #ffffff;
+        border-color: #d8e2ed;
+        color: #182230;
+        box-shadow: 0 8px 20px rgba(15, 23, 42, .06);
+    }
+
+    body.theme-light a.metric-card:hover,
+    body.theme-light .quick-tile:hover,
+    body.theme-light .status-row:hover {
+        background: #fff7ed;
+        border-color: #ff6b00;
+    }
+
+    body.theme-light .quick-tile i,
+    body.theme-light .status-row i {
+        background: #fff4ea;
+        color: #c55200;
+    }
+
+    body.theme-light .activity-row {
+        border-bottom-color: #d8e2ed;
+    }
+
+    @media (max-width: 980px) {
+        .section-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    @media (max-width: 720px) {
+        .exec-header {
+            display: block;
+        }
+
+        .exec-date {
+            display: inline-block;
+            margin-top: 12px;
+        }
+    }
+</style>
+
+<div class="exec-shell">
+    <div class="exec-header">
+        <div>
+            <h1>Panel ejecutivo</h1>
+            <p>Resumen operativo del establecimiento: ocupacion, ventas, compras, equipos, RRHH y trazabilidad.</p>
+        </div>
+        <div class="exec-date"><i class="fas fa-calendar-day"></i> {{ fecha_panel }}</div>
+    </div>
+
+    <div class="metric-grid">
+        <a class="metric-card metric-ok" href="{{ url_for('recepcion.ocupacion') }}">
+            <div class="metric-top"><span>Ocupacion</span><i class="fas fa-bed"></i></div>
+            <div>
+                <div class="metric-value">{{ ocupacion_pct }}%</div>
+                <div class="metric-meta">{{ habitaciones_ocupadas }} de {{ total_habitaciones }} habitaciones</div>
+            </div>
+        </a>
+        <a class="metric-card" href="{{ url_for('recepcion.reservas') }}">
+            <div class="metric-top"><span>Movimiento hoy</span><i class="fas fa-door-open"></i></div>
+            <div>
+                <div class="metric-value">{{ entradas_hoy }} / {{ salidas_hoy }}</div>
+                <div class="metric-meta">Entradas / salidas</div>
+            </div>
+        </a>
+        <a class="metric-card" href="{{ url_for('recepcion.facturas') }}">
+            <div class="metric-top"><span>Facturacion mes</span><i class="fas fa-file-invoice-dollar"></i></div>
+            <div>
+                <div class="metric-value">{{ "{:,.0f}".format(facturacion_mes) }} EUR</div>
+                <div class="metric-meta">Hoy {{ "{:,.0f}".format(facturacion_hoy + tpv_hoy) }} EUR</div>
+            </div>
+        </a>
+        <a class="metric-card {% if total_agotados %}metric-danger{% elif total_stock_bajo %}metric-warning{% endif %}" href="{{ url_for('productos.productos') }}">
+            <div class="metric-top"><span>Stock critico</span><i class="fas fa-box-open"></i></div>
+            <div>
+                <div class="metric-value">{{ total_agotados }} / {{ total_stock_bajo }}</div>
+                <div class="metric-meta">Agotados / bajo minimo</div>
+            </div>
+        </a>
+        <a class="metric-card {% if incidencias_abiertas %}metric-danger{% endif %}" href="{{ url_for('incidencias.lista') }}">
+            <div class="metric-top"><span>Incidencias</span><i class="fas fa-exclamation-triangle"></i></div>
+            <div>
+                <div class="metric-value">{{ incidencias_abiertas }}</div>
+                <div class="metric-meta">Abiertas o en proceso</div>
+            </div>
+        </a>
+    </div>
+
+    <div class="section-grid">
+        <div class="exec-panel">
+            <div class="exec-panel-header">
+                <h2><i class="fas fa-compass"></i> Accesos de direccion</h2>
+            </div>
+            <div class="quick-grid">
+                <a class="quick-tile" href="{{ url_for('recepcion.dashboard') }}"><i class="fas fa-concierge-bell"></i><span><strong>Recepcion</strong><span>Reservas, ocupacion y caja</span></span></a>
+                <a class="quick-tile" href="{{ url_for('recepcion.prevision_servicios') }}"><i class="fas fa-utensils"></i><span><strong>Prevision servicios</strong><span>Pax, entradas, salidas y regimenes</span></span></a>
+                <a class="quick-tile" href="{{ url_for('pisos.panel') }}"><i class="fas fa-broom"></i><span><strong>Pisos</strong><span>Partes, lenceria y zonas</span></span></a>
+                <a class="quick-tile" href="{{ url_for('tpv.dashboard') }}"><i class="fas fa-cash-register"></i><span><strong>TPV</strong><span>Puntos de venta y tickets</span></span></a>
+                <a class="quick-tile" href="{{ url_for('compras.lista_pedidos') }}"><i class="fas fa-shopping-cart"></i><span><strong>Compras</strong><span>Pedidos y recepciones</span></span></a>
+                <a class="quick-tile" href="{{ url_for('rrhh.panel_rrhh') }}"><i class="fas fa-users"></i><span><strong>RRHH</strong><span>Jornada, cuadrantes y coste</span></span></a>
+            </div>
+        </div>
+
+        <div class="exec-panel">
+            <div class="exec-panel-header">
+                <h2><i class="fas fa-bell"></i> Pendientes</h2>
+            </div>
+            <div class="alert-list">
+                <a class="status-row" href="{{ url_for('pisos.dashboard') }}"><i class="fas fa-broom"></i><span><strong>Pisos hoy</strong><small>Trabajos pendientes o en curso</small></span><span class="status-count">{{ trabajos_pisos_pendientes }}</span></a>
+                <a class="status-row" href="{{ url_for('mantenimiento.dashboard') }}"><i class="fas fa-wrench"></i><span><strong>Mantenimiento</strong><small>Ordenes abiertas</small></span><span class="status-count">{{ ordenes_mantenimiento_abiertas }}</span></a>
+                <a class="status-row" href="{{ url_for('compras.lista_pedidos') }}"><i class="fas fa-truck"></i><span><strong>Compras</strong><small>Pedidos vivos</small></span><span class="status-count">{{ pedidos_pendientes }}</span></a>
+                <a class="status-row" href="{{ url_for('rrhh.pendientes_rrhh') }}"><i class="fas fa-user-clock"></i><span><strong>RRHH</strong><small>Solicitudes pendientes</small></span><span class="status-count">{{ solicitudes_rrhh_pendientes }}</span></a>
+                <a class="status-row" href="{{ url_for('appcc.control_caducidades') }}"><i class="fas fa-shield-alt"></i><span><strong>APPCC</strong><small>Caducidad proxima</small></span><span class="status-count">{{ caducidad_proxima }}</span></a>
+            </div>
+        </div>
+    </div>
+
+    <div class="metric-grid">
+        <div class="metric-card">
+            <div class="metric-top"><span>Personal activo</span><i class="fas fa-id-badge"></i></div>
+            <div>
+                <div class="metric-value">{{ empleados_activos }}</div>
+                <div class="metric-meta">{{ fichajes_hoy }} empleados con fichaje hoy</div>
+            </div>
+        </div>
+        <div class="metric-card">
+            <div class="metric-top"><span>Catalogo</span><i class="fas fa-boxes"></i></div>
+            <div>
+                <div class="metric-value">{{ total_productos }}</div>
+                <div class="metric-meta">{{ total_proveedores }} proveedores activos</div>
+            </div>
+        </div>
+        <div class="metric-card">
+            <div class="metric-top"><span>Produccion</span><i class="fas fa-fire"></i></div>
+            <div>
+                <div class="metric-value">{{ partes_hoy }}</div>
+                <div class="metric-meta">Partes abiertos hoy</div>
+            </div>
+        </div>
+        <div class="metric-card">
+            <div class="metric-top"><span>Valor stock</span><i class="fas fa-warehouse"></i></div>
+            <div>
+                <div class="metric-value">{{ "{:,.0f}".format(valor_stock) }} EUR</div>
+                <div class="metric-meta">Inventario valorado</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="charts-grid">
+        {% if stock_familias %}
+        <div class="exec-panel chart-box">
+            <div class="exec-panel-header">
+                <h2><i class="fas fa-chart-pie"></i> Stock por familia</h2>
+                <a class="panel-link" href="{{ url_for('informes.stock') }}">Ver informe</a>
+            </div>
+            <canvas id="graficoFamilias"></canvas>
+        </div>
+        {% endif %}
+
+        {% if produccion_7dias %}
+        <div class="exec-panel chart-box">
+            <div class="exec-panel-header">
+                <h2><i class="fas fa-chart-line"></i> Produccion 7 dias</h2>
+                <a class="panel-link" href="{{ url_for('produccion.produccion_index') }}">Ver partes</a>
+            </div>
+            <canvas id="graficoProduccion"></canvas>
+        </div>
+        {% endif %}
+
+        {% if incidencias_tipo %}
+        <div class="exec-panel chart-box">
+            <div class="exec-panel-header">
+                <h2><i class="fas fa-chart-bar"></i> Incidencias por tipo</h2>
+                <a class="panel-link" href="{{ url_for('incidencias.lista') }}">Ver incidencias</a>
+            </div>
+            <canvas id="graficoIncidencias"></canvas>
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="section-grid">
+        <div class="exec-panel">
+            <div class="exec-panel-header">
+                <h2><i class="fas fa-clipboard-list"></i> Ultimos pedidos</h2>
+                <a class="panel-link" href="{{ url_for('compras.lista_pedidos') }}">Ver todos</a>
+            </div>
+            <div class="activity-list">
+                {% for p in ultimos_pedidos %}
+                <div class="activity-row">
+                    <div>
+                        <div class="activity-title">{{ p.numero_pedido }}</div>
+                        <div class="activity-meta">{{ p.proveedor_nombre }} - {{ p.fecha_pedido }}</div>
+                    </div>
+                    <span class="badge {% if p.estado == 'recibido' %}badge-success{% elif p.estado == 'enviado' %}badge-info{% else %}badge-warning{% endif %}">{{ p.estado }}</span>
+                </div>
+                {% else %}
+                <div class="activity-meta">No hay pedidos recientes</div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="exec-panel">
+            <div class="exec-panel-header">
+                <h2><i class="fas fa-exclamation-triangle"></i> Ultimas incidencias</h2>
+                <a class="panel-link" href="{{ url_for('incidencias.lista') }}">Ver todas</a>
+            </div>
+            <div class="activity-list">
+                {% for i in ultimas_incidencias %}
+                <div class="activity-row">
+                    <div>
+                        <div class="activity-title">{{ i.descripcion[:55] }}{% if i.descripcion|length > 55 %}...{% endif %}</div>
+                        <div class="activity-meta">{{ i.fecha[:10] }} - {{ i.tipo }}</div>
+                    </div>
+                    <span class="badge {% if i.estado == 'abierta' %}badge-danger{% elif i.estado == 'en_proceso' %}badge-warning{% else %}badge-success{% endif %}">{{ i.estado }}</span>
+                </div>
+                {% else %}
+                <div class="activity-meta">No hay incidencias recientes</div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const stockFamilias = {{ stock_familias | tojson }};
+    const produccion7dias = {{ produccion_7dias | tojson }};
+    const incidenciasTipo = {{ incidencias_tipo | tojson }};
+
+    const chartText = '#d7dee8';
+    const gridColor = 'rgba(174, 184, 198, .14)';
+
+    if (stockFamilias && stockFamilias.length > 0) {
+        const ctx = document.getElementById('graficoFamilias')?.getContext('2d');
+        if (ctx) {
+            new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: stockFamilias.map(f => f.familia || 'Sin familia'),
+                    datasets: [{
+                        data: stockFamilias.map(f => Number(f.valor_total || 0)),
+                        backgroundColor: ['#ff6b00', '#2f80ed', '#22c55e', '#ef4444', '#facc15', '#06b6d4', '#a855f7', '#f97316'],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    maintainAspectRatio: false,
+                    plugins: { legend: { position: 'bottom', labels: { color: chartText, boxWidth: 10 } } }
+                }
+            });
+        }
+    }
+
+    if (produccion7dias && produccion7dias.length > 0) {
+        const ctx = document.getElementById('graficoProduccion')?.getContext('2d');
+        if (ctx) {
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: produccion7dias.map(p => (p.dia || '').slice(5)),
+                    datasets: [
+                        {
+                            label: 'Partes',
+                            data: produccion7dias.map(p => Number(p.num_partes || 0)),
+                            borderColor: '#ff6b00',
+                            backgroundColor: 'rgba(255, 107, 0, .14)',
+                            tension: .3,
+                            fill: true
+                        },
+                        {
+                            label: 'Lineas',
+                            data: produccion7dias.map(p => Number(p.num_lineas || 0)),
+                            borderColor: '#22c55e',
+                            backgroundColor: 'rgba(34, 197, 94, .10)',
+                            tension: .3,
+                            fill: true
+                        }
+                    ]
+                },
+                options: {
+                    maintainAspectRatio: false,
+                    plugins: { legend: { labels: { color: chartText } } },
+                    scales: {
+                        x: { ticks: { color: chartText }, grid: { color: gridColor } },
+                        y: { ticks: { color: chartText }, grid: { color: gridColor }, beginAtZero: true }
+                    }
+                }
+            });
+        }
+    }
+
+    if (incidenciasTipo && incidenciasTipo.length > 0) {
+        const ctx = document.getElementById('graficoIncidencias')?.getContext('2d');
+        if (ctx) {
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: incidenciasTipo.map(i => i.tipo || 'Sin tipo'),
+                    datasets: [{
+                        label: 'Incidencias',
+                        data: incidenciasTipo.map(i => Number(i.total || 0)),
+                        backgroundColor: '#ff6b00'
+                    }]
+                },
+                options: {
+                    indexAxis: 'y',
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        x: { ticks: { color: chartText }, grid: { color: gridColor }, beginAtZero: true },
+                        y: { ticks: { color: chartText }, grid: { color: gridColor } }
+                    }
+                }
+            });
+        }
+    }
+});
+</script>
+{% endblock %}

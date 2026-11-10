@@ -1,0 +1,133 @@
+{% extends 'base.html' %}
+{% block title %}Demo guiada{% endblock %}
+{% block breadcrumb %}Demo guiada{% endblock %}
+{% block content %}
+<div class="card">
+  <div class="card-header">
+    <h2><i class="fas fa-route"></i> Demo guiada El Raco</h2>
+    <div style="display:flex; gap:8px; flex-wrap:wrap;">
+      <a class="btn btn-primary" href="{{ url_for('demo.guia') }}"><i class="fas fa-play"></i> Ver recorrido</a>
+      <a class="btn btn-info" href="{{ url_for('demo.simulador_centros') }}"><i class="fas fa-sliders-h"></i> Simulador por centro</a>
+      {% if estado.db.existe %}
+      <a class="btn btn-success" href="{{ estado.demo_url }}" target="_blank"><i class="fas fa-external-link-alt"></i> Abrir demo 5002</a>
+      {% endif %}
+    </div>
+  </div>
+  <p style="color:#cbd5e1; max-width:980px;">
+    Esta pantalla prepara una demo comercial separada de la base real. La idea es poder ensenar
+    el hotel desde cero: reservas, compras, produccion, APPCC, pisos, mantenimiento, RRHH,
+    experiencia cliente, TPV, contabilidad y el asistente IA 360.
+  </p>
+  <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap:12px; margin-top:16px;">
+    <div class="card" style="margin:0;"><small style="color:#94a3b8;">Base demo</small><h3>{{ 'Creada' if estado.db.existe else 'Pendiente' }}</h3><p>{{ estado.db.modificado or '-' }}</p></div>
+    <div class="card" style="margin:0;"><small style="color:#94a3b8;">Puerto 5002</small><h3>{{ 'Activo' if estado.server_running else 'Parado' }}</h3><p>{{ estado.demo_url }}</p></div>
+    <div class="card" style="margin:0;"><small style="color:#94a3b8;">Login demo</small><h3>{{ estado.login.email }}</h3><p>Clave: {{ estado.login.password }}</p></div>
+    <div class="card" style="margin:0;"><small style="color:#94a3b8;">Base real</small><h3>{{ 'Protegida' if estado.real_db_activa else 'Modo demo' }}</h3><p>La sala interna no toca pepe4.db.</p></div>
+  </div>
+</div>
+
+{% if estado.health and estado.health['items'] %}
+<div class="card">
+  <div class="card-header">
+    <h2><i class="fas fa-heartbeat"></i> Salud de la demo</h2>
+    {% if estado.health.ok %}
+    <span class="badge badge-success">Lista para ensenar</span>
+    {% else %}
+    <span class="badge badge-warning">Revisar antes de ensenar</span>
+    {% endif %}
+  </div>
+  <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap:12px;">
+    {% for item in estado.health['items'] %}
+    <div style="border:1px solid {{ '#22c55e' if item.ok else '#f59e0b' }}; border-radius:8px; padding:12px;">
+      <div style="display:flex; justify-content:space-between; gap:8px;">
+        <strong>{{ item.titulo }}</strong>
+        <span class="badge {{ 'badge-success' if item.ok else 'badge-warning' }}">{{ 'OK' if item.ok else 'Falta' }}</span>
+      </div>
+      <small style="color:#94a3b8;">{{ item.detalle }}</small>
+      <div style="display:flex; gap:5px; flex-wrap:wrap; margin-top:8px;">
+        {% for tabla, total in item.conteos.items() %}
+        <span class="badge badge-info">{{ tabla }}: {{ total }}</span>
+        {% endfor %}
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% if estado.health.smoke_total %}
+  <p style="margin-top:12px; color:#cbd5e1;">
+    Rutas probadas por el simulador: {{ estado.health.smoke_ok }} / {{ estado.health.smoke_total }} correctas.
+  </p>
+  {% endif %}
+</div>
+{% endif %}
+
+<div style="display:grid; grid-template-columns: minmax(300px, 420px) minmax(320px, 1fr); gap:16px;">
+  <div class="card" style="margin:0;">
+    <div class="card-header"><h2><i class="fas fa-database"></i> Crear / actualizar demo</h2></div>
+    <form method="post" action="{{ url_for('demo.generar') }}">
+      <div class="form-group">
+        <label class="form-label">Habitaciones</label>
+        <input class="form-control" type="number" min="10" max="400" name="habitaciones" value="80">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Dias de simulacion</label>
+        <input class="form-control" type="number" min="7" max="180" name="dias" value="45">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Ocupacion objetivo</label>
+        <input class="form-control" type="number" min="0.10" max="0.98" step="0.01" name="ocupacion" value="0.72">
+      </div>
+      <label style="display:flex; gap:8px; align-items:center; margin:12px 0;">
+        <input type="checkbox" name="reset" value="1" checked>
+        Reiniciar base demo antes de generar
+      </label>
+      <button class="btn btn-warning" type="submit" onclick="return confirm('Generar la base demo separada? Puede tardar unos segundos.');">
+        <i class="fas fa-magic"></i> Generar demo
+      </button>
+    </form>
+    <form method="post" action="{{ url_for('demo.abrir_servidor') }}" style="margin-top:12px;">
+      <button class="btn btn-success" type="submit"><i class="fas fa-server"></i> Arrancar puerto 5002</button>
+    </form>
+  </div>
+
+  <div class="card" style="margin:0;">
+    <div class="card-header"><h2><i class="fas fa-chart-line"></i> Resultado simulador</h2></div>
+    {% if estado.report %}
+    <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap:10px;">
+      {% for clave, valor in estado.report.creado.items() %}
+      <div style="border:1px solid #334155; border-radius:8px; padding:10px;">
+        <small style="color:#94a3b8;">{{ clave.replace('_', ' ') }}</small><br>
+        <strong>{{ valor }}</strong>
+      </div>
+      {% endfor %}
+    </div>
+    {% if estado.report.conteos %}
+    <h3 style="margin-top:18px;">Conteos principales</h3>
+    <div style="display:flex; gap:8px; flex-wrap:wrap;">
+      {% for clave, valor in estado.report.conteos.items() %}
+      <span class="badge badge-info">{{ clave }}: {{ valor }}</span>
+      {% endfor %}
+    </div>
+    {% endif %}
+    {% else %}
+    <p>No hay resumen todavia. Pulsa <strong>Generar demo</strong>.</p>
+    {% endif %}
+    {% if estado.log_tail %}
+    <h3 style="margin-top:18px;">Ultimas lineas del log</h3>
+    <pre style="white-space:pre-wrap; background:#111827; border:1px solid #334155; border-radius:8px; padding:12px; max-height:220px; overflow:auto;">{{ estado.log_tail|join('\n') }}</pre>
+    {% endif %}
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header"><h2><i class="fas fa-map-signs"></i> Recorrido comercial</h2></div>
+  <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap:12px;">
+    {% for step in steps %}
+    <a href="{{ step.url }}" class="card" style="text-decoration:none; color:inherit; margin:0; border:1px solid #334155;">
+      <small style="color:#ff7a00; font-weight:700;">{{ step.grupo }}</small>
+      <h3 style="margin:8px 0;">{{ step.titulo }}</h3>
+      <p style="color:#cbd5e1;">{{ step.detalle }}</p>
+    </a>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}

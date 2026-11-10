@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Moluscos">
+  <circle cx="32" cy="32" r="30" fill="#d93855"/>
+  <g fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M17 42c4-15 13-25 15-25s11 10 15 25c-8 8-22 8-30 0z"/>
+    <path d="M32 18v28M24 27c3 6 4 12 3 19M40 27c-3 6-4 12-3 19"/>
+    <path d="M20 42c7 4 17 4 24 0"/>
+  </g>
+</svg>

@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;">
+        <div>
+            <h2 style="margin:0;">{{ almacen.nombre }}</h2>
+            <small>{{ almacen.tipo or '-' }} · {{ almacen.ubicacion or '-' }}</small>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <a href="{{ url_for('almacenes.almacenes') }}" class="btn btn-secondary">Volver</a>
+            <a href="{{ url_for('almacenes.editar_almacen', almacen_id=almacen.id) }}" class="btn btn-primary">Editar</a>
+        </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;margin:18px 0;">
+        <div><strong>Responsable:</strong><br>{{ almacen.responsable or '-' }}</div>
+        <div><strong>Departamento:</strong><br>{{ almacen.departamento_nombre or '-' }}</div>
+        <div><strong>Subdepartamento:</strong><br>{{ almacen.subdepartamento_nombre or '-' }}</div>
+        <div>
+            <strong>Control temperatura:</strong><br>
+            {% if almacen.requiere_control_temperatura %}
+                Si{% if almacen.rango_min is not none and almacen.rango_max is not none %} ({{ almacen.rango_min }} / {{ almacen.rango_max }} C){% endif %}
+            {% else %}
+                No
+            {% endif %}
+        </div>
+        <div>
+            <strong>Equipo mantenimiento:</strong><br>
+            {% if almacen.equipo_mantenimiento_id %}
+                <a href="{{ url_for('mantenimiento.ver_equipo', equipo_id=almacen.equipo_mantenimiento_id) }}">
+                    {{ almacen.equipo_mantenimiento_codigo or ('EQ-' ~ almacen.equipo_mantenimiento_id) }}
+                </a>
+                {% if almacen.equipo_mantenimiento_nombre %}<br><small>{{ almacen.equipo_mantenimiento_nombre }}</small>{% endif %}
+            {% else %}
+                -
+            {% endif %}
+        </div>
+        <div>
+            <strong>Equipo APPCC:</strong><br>
+            {% if almacen.equipo_appcc_id %}
+                {{ almacen.equipo_appcc_nombre or ('APPCC #' ~ almacen.equipo_appcc_id) }}
+            {% else %}
+                -
+            {% endif %}
+        </div>
+    </div>
+
+    <h3>Stock</h3>
+    <table>
+        <thead>
+            <tr>
+                <th>Producto</th>
+                <th>Cantidad</th>
+                <th>Unidad</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% if stock %}
+                {% for s in stock %}
+                <tr>
+                    <td>{{ s.nombre }}</td>
+                    <td>{{ s.cantidad }}</td>
+                    <td>{{ s.unidad }}</td>
+                </tr>
+                {% endfor %}
+            {% else %}
+                <tr>
+                    <td colspan="3">Sin stock</td>
+                </tr>
+            {% endif %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

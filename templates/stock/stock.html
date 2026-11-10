@@ -1,0 +1,145 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header">
+        <h2><i class="fas fa-boxes"></i> Stock total</h2>
+        <a href="/exportar/productos{% if busqueda or familia or tipo_conservacion %}?{% endif %}{% if busqueda %}busqueda={{ busqueda|urlencode }}{% endif %}{% if familia %}{% if busqueda %}&{% endif %}familia={{ familia|urlencode }}{% endif %}{% if tipo_conservacion %}{% if busqueda or familia %}&{% endif %}tipo_conservacion={{ tipo_conservacion|urlencode }}{% endif %}"
+           class="btn btn-success"
+           target="_blank">
+            <i class="fas fa-file-excel"></i> Exportar Excel
+        </a>
+    </div>
+
+    <div class="card" style="margin-bottom: 20px;">
+        <form method="GET" action="{{ url_for('stock.stock') }}">
+            <div style="display:grid; grid-template-columns: 2fr 1fr 1fr auto auto; gap: 12px; align-items:end;">
+                <div class="form-group" style="margin-bottom:0;">
+                    <label class="form-label">Buscar</label>
+                    <input type="text"
+                           name="busqueda"
+                           value="{{ busqueda }}"
+                           class="form-control"
+                           placeholder="Nombre o código del producto">
+                </div>
+
+                <div class="form-group" style="margin-bottom:0;">
+                    <label class="form-label">Familia</label>
+                    <select name="familia" class="form-control">
+                        <option value="">Todas</option>
+                        {% for f in familias %}
+                        <option value="{{ f.familia }}" {% if familia == f.familia %}selected{% endif %}>
+                            {{ f.familia }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="form-group" style="margin-bottom:0;">
+                    <label class="form-label">Conservación</label>
+                    <select name="tipo_conservacion" class="form-control">
+                        <option value="">Todas</option>
+                        {% for t in tipos_conservacion %}
+                        <option value="{{ t.tipo_conservacion }}" {% if tipo_conservacion == t.tipo_conservacion %}selected{% endif %}>
+                            {{ t.tipo_conservacion }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-search"></i> Buscar
+                    </button>
+                </div>
+
+                <div>
+                    <a href="{{ url_for('stock.stock') }}" class="btn btn-secondary">
+                        <i class="fas fa-eraser"></i> Limpiar
+                    </a>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <div style="display:flex; gap:15px; flex-wrap:wrap; margin-bottom:20px;">
+        <span class="badge badge-info">Productos: {{ total_productos }}</span>
+        <span class="badge badge-success">Con stock: {{ total_con_stock }}</span>
+        <span class="badge badge-danger">Sin stock: {{ total_sin_stock }}</span>
+        <span class="badge badge-warning">Valor total: {{ "%.2f"|format(total_valor) }} €</span>
+    </div>
+
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>Código</th>
+                    <th>Producto</th>
+                    <th>Familia</th>
+                    <th>Conservación</th>
+                    <th>Stock total</th>
+                    <th>Unidad</th>
+                    <th>Precio</th>
+                    <th>Valor</th>
+                    <th>Almacenes</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for s in stock %}
+                <tr>
+                    <td>{{ s.codigo or '---' }}</td>
+                    <td>{{ s.nombre }}</td>
+                    <td>{{ s.familia or '---' }}</td>
+                    <td>{{ s.tipo_conservacion or '---' }}</td>
+                    <td class="{% if s.stock_total is none or s.stock_total <= 0 %}stock-bajo{% endif %}">
+                        {% if s.stock_total is none %}
+                            0
+                        {% else %}
+                            {{ s.stock_total }}
+                        {% endif %}
+                    </td>
+                    <td>{{ s.unidad }}</td>
+                    <td>{{ "%.2f"|format(s.precio or 0) }} €</td>
+                    <td>
+                        {% if s.stock_total is none %}
+                            0.00 €
+                        {% else %}
+                            {{ "%.2f"|format((s.precio or 0) * s.stock_total) }} €
+                        {% endif %}
+                    </td>
+                    <td>{{ s.num_almacenes }} almacén(es)</td>
+                    <td>
+                        <a href="/stock/ajustar/{{ s.id }}" class="btn-small btn-primary">
+                            <i class="fas fa-sliders-h"></i> Ajustar
+                        </a>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="10" style="text-align: center;">No hay productos con stock</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<style>
+    .btn-small {
+        padding: 3px 8px;
+        border-radius: 3px;
+        text-decoration: none;
+        display: inline-block;
+        font-size: 12px;
+    }
+    .btn-primary {
+        background: #007bff;
+        color: white;
+    }
+    .stock-bajo {
+        color: #ff4d4d;
+        font-weight: bold;
+    }
+</style>
+{% endblock %}

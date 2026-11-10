@@ -1,0 +1,148 @@
+{% extends "base.html" %}
+
+{% block title %}Cliente 360{% endblock %}
+{% block breadcrumb %}Experiencia cliente / Cliente 360{% endblock %}
+
+{% block content %}
+<style>
+    .xp-head { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:16px; align-items:end; margin-bottom:18px; }
+    .xp-head h1 { margin:0 0 6px; color:#ff6b00; font-size:28px; }
+    .xp-head p, .xp-mini { color:var(--text-muted,#6b7280); }
+    .xp-search { display:flex; flex-wrap:wrap; gap:10px; margin-bottom:16px; }
+    .xp-search input { min-height:38px; min-width:280px; border:1px solid var(--border-color,#d5dde7); border-radius:7px; padding:8px 10px; background:var(--input-bg,#fff); color:var(--text-color,#16202a); }
+    .xp-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:12px; margin-bottom:16px; }
+    .xp-panel { border:1px solid var(--border-color,#d5dde7); background:var(--card-bg,#fff); border-radius:8px; overflow:hidden; margin-bottom:16px; }
+    .xp-panel h2 { margin:0; padding:14px 16px; color:#ff6b00; font-size:18px; border-bottom:1px solid var(--border-color,#d5dde7); background:rgba(255,107,0,.07); }
+    .xp-body { padding:14px 16px; }
+    .xp-table { width:100%; border-collapse:collapse; }
+    .xp-table th, .xp-table td { padding:10px 12px; border-bottom:1px solid var(--border-color,#d5dde7); text-align:left; vertical-align:top; }
+    .xp-table th { color:#ff6b00; font-size:12px; text-transform:uppercase; }
+    .xp-kv { display:grid; grid-template-columns:130px minmax(0,1fr); gap:6px 10px; }
+    .xp-kv span { color:var(--text-muted,#6b7280); }
+    .xp-mini { display:block; font-size:12px; margin-top:4px; }
+</style>
+
+<div class="xp-head">
+    <div>
+        <h1><i class="fas fa-address-card"></i> Cliente 360</h1>
+        <p>Ficha viva del cliente: estancias, viajeros, avisos, quejas y preferencias. Para fidelizar sin perder control de privacidad.</p>
+    </div>
+    {% if puede_gestionar %}
+    <a class="btn btn-success" href="{{ url_for('experiencia.nueva_queja') }}"><i class="fas fa-plus"></i> Nueva queja</a>
+    {% endif %}
+</div>
+
+<form class="xp-search" method="get" action="{{ url_for('experiencia.cliente_360') }}">
+    <input type="text" name="q" value="{{ buscar }}" placeholder="Buscar por nombre, documento, email o telefono">
+    <button class="btn btn-primary" type="submit"><i class="fas fa-search"></i> Buscar</button>
+    <a class="btn btn-secondary" href="{{ url_for('experiencia.cliente_360') }}">Limpiar</a>
+</form>
+
+{% if resultados %}
+<section class="xp-panel">
+    <h2>Resultados</h2>
+    <table class="xp-table">
+        <tbody>
+            {% for r in resultados %}
+            <tr>
+                <td><strong>{{ r.nombre }} {{ r.apellidos or '' }}</strong><span class="xp-mini">{{ r.documento or r.email or r.telefono or '-' }}</span></td>
+                <td>{{ r.tipo }}<span class="xp-mini">{{ r.reserva_codigo or '' }}</span></td>
+                <td>
+                    {% if r.tipo == 'viajero' %}
+                    <a class="btn btn-secondary" href="{{ url_for('experiencia.cliente_360', viajero_id=r.id, reserva_id=r.reserva_id) }}">Abrir</a>
+                    {% else %}
+                    <a class="btn btn-secondary" href="{{ url_for('experiencia.cliente_360', cliente_id=r.id) }}">Abrir</a>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</section>
+{% endif %}
+
+{% if perfil %}
+<section class="xp-panel">
+    <h2>Perfil</h2>
+    <div class="xp-body xp-kv">
+        <span>Nombre</span><strong>{{ perfil.titular_nombre or ((perfil.nombre or '') ~ ' ' ~ (perfil.apellidos or '')) or '-' }}</strong>
+        <span>Documento</span><strong>{{ perfil.documento or '-' }}</strong>
+        <span>Email</span><strong>{{ perfil.email or '-' }}</strong>
+        <span>Telefono</span><strong>{{ perfil.telefono or '-' }}</strong>
+        <span>Nacionalidad</span><strong>{{ perfil.nacionalidad or '-' }}</strong>
+        <span>Idioma / pais</span><strong>{{ perfil.idioma or perfil.pais or '-' }}</strong>
+        <span>Alergias</span><strong>{{ perfil.alergias_resumen or '-' }}</strong>
+        <span>Preferencias</span><strong>{{ perfil.preferencias or '-' }}</strong>
+    </div>
+</section>
+{% endif %}
+
+<div class="xp-grid">
+    <section class="xp-panel">
+        <h2>Reservas</h2>
+        <table class="xp-table">
+            <tbody>
+                {% for r in reservas %}
+                <tr>
+                    <td><strong>{{ r.codigo or ('Reserva ' ~ r.id) }}</strong><span class="xp-mini">Hab. {{ r.habitacion or '-' }} / {{ r.regimen or '-' }}</span></td>
+                    <td>{{ r.fecha_entrada|fecha_es }} - {{ r.fecha_salida|fecha_es }}<span class="xp-mini">{{ r.estado }}</span></td>
+                </tr>
+                {% else %}
+                <tr><td>Sin reservas vinculadas.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </section>
+    <section class="xp-panel">
+        <h2>Viajeros</h2>
+        <table class="xp-table">
+            <tbody>
+                {% for v in viajeros %}
+                <tr>
+                    <td><strong>{{ v.nombre }} {{ v.apellidos or '' }}</strong><span class="xp-mini">{{ v.numero_documento or '-' }} / {{ v.nacionalidad or '-' }}</span></td>
+                    <td>{{ v.alergias_intolerancias or '-' }}<span class="xp-mini">{{ v.observaciones_salud or '' }}</span></td>
+                </tr>
+                {% else %}
+                <tr><td>Sin viajeros vinculados.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </section>
+</div>
+
+<div class="xp-grid">
+    <section class="xp-panel">
+        <h2>Quejas y seguimiento</h2>
+        <table class="xp-table">
+            <tbody>
+                {% for q in quejas_cliente %}
+                <tr>
+                    <td><strong>{{ q.categoria }}</strong><span class="xp-mini">{{ q.fecha|fecha_es }} / {{ q.estado }}</span></td>
+                    <td>{{ q.descripcion[:120] }}{% if q.descripcion|length > 120 %}...{% endif %}</td>
+                    <td><a class="btn btn-secondary" href="{{ url_for('experiencia.detalle_queja', queja_id=q.id) }}">Ver</a></td>
+                </tr>
+                {% else %}
+                <tr><td>No hay quejas registradas.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </section>
+    <section class="xp-panel">
+        <h2>Avisos y actividades</h2>
+        <div class="xp-body">
+            <h3 style="margin:0 0 8px; color:#ff6b00; font-size:15px;">Avisos</h3>
+            {% for a in avisos %}
+            <p><strong>{{ a.tipo }}</strong> {{ a.descripcion }}<span class="xp-mini">{{ a.departamentos }} / {{ a.estado }}</span></p>
+            {% else %}
+            <p class="xp-mini">Sin avisos.</p>
+            {% endfor %}
+            <h3 style="margin:16px 0 8px; color:#ff6b00; font-size:15px;">Animacion</h3>
+            {% for a in asistencias %}
+            <p><strong>{{ a.titulo or 'Actividad' }}</strong> {{ a.pax or 0 }} pax<span class="xp-mini">{{ a.fecha|fecha_es if a.fecha else '' }} / Satisfaccion {{ a.satisfaccion or '-' }}</span></p>
+            {% else %}
+            <p class="xp-mini">Sin asistencias registradas.</p>
+            {% endfor %}
+        </div>
+    </section>
+</div>
+{% endblock %}

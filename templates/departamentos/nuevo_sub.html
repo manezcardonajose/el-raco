@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="card">
+    <h2>Nuevo subdepartamento</h2>
+    
+    <form method="POST">
+        <div style="margin-bottom: 15px;">
+            <label>Departamento padre:</label>
+            <select name="departamento_id" required style="width: 100%; padding: 8px;">
+                <option value="">-- Seleccionar --</option>
+                {% for d in departamentos %}
+                <option value="{{ d.id }}" {% if request.args.get('depto', '')|int == d.id %}selected{% endif %}>{{ d.nombre }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        
+        <div style="margin-bottom: 15px;">
+            <label>Nombre del subdepartamento:</label>
+            <input type="text" name="nombre" required style="width: 100%; padding: 8px;">
+        </div>
+        
+        <div style="margin-bottom: 15px;">
+            <label>Descripción:</label>
+            <textarea name="descripcion" rows="4" style="width: 100%; padding: 8px;"></textarea>
+        </div>
+        
+        <button type="submit" class="btn btn-success">Crear subdepartamento</button>
+        <a href="/departamentos" class="btn btn-red">Cancelar</a>
+    </form>
+</div>
+{% endblock %}

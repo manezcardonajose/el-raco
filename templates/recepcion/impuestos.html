@@ -1,0 +1,50 @@
+{% extends 'base.html' %}
+{% block title %}Impuestos recepcion{% endblock %}
+{% block breadcrumb %}Recepcion / Impuestos{% endblock %}
+{% block content %}
+<div class="card">
+  <div class="card-header">
+    <h2><i class="fas fa-percent"></i> Impuestos de facturacion</h2>
+    <a class="btn btn-primary" href="{{ url_for('recepcion.fiscalidad') }}">Configuracion fiscal</a>
+  </div>
+
+  <form method="post" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;align-items:end;margin-bottom:16px;">
+    <div class="form-group"><label class="form-label">Codigo</label><input class="form-control" name="codigo" placeholder="IGIC_7" required></div>
+    <div class="form-group"><label class="form-label">Nombre</label><input class="form-control" name="nombre" placeholder="IGIC general 7%" required></div>
+    <div class="form-group"><label class="form-label">Jurisdiccion</label><input class="form-control" name="jurisdiccion" value="canarias"></div>
+    <div class="form-group"><label class="form-label">Porcentaje</label><input class="form-control" type="number" step="0.01" name="porcentaje" value="7"></div>
+    <div class="form-group" style="grid-column:1/-1;"><label class="form-label">Descripcion / uso</label><input class="form-control" name="descripcion" placeholder="Usar cuando proceda legalmente"></div>
+    <label style="display:flex;gap:6px;align-items:center;"><input type="checkbox" name="activo" checked> Activo</label>
+    <button class="btn btn-success" type="submit">Crear impuesto</button>
+  </form>
+
+  <div class="alert alert-info">
+    Configura aqui IVA, IGIC, tipos cero o exenciones. La aplicacion no decide automaticamente una exencion fiscal: se selecciona en factura segun la normativa y el criterio del asesor.
+  </div>
+
+  <div class="table-container">
+    <table>
+      <thead><tr><th>Codigo</th><th>Nombre</th><th>Jurisdiccion</th><th>%</th><th>Descripcion</th><th>Activo</th><th>Guardar</th></tr></thead>
+      <tbody>
+        {% for imp in impuestos %}
+        <tr>
+          <td>
+            <form id="impuesto-{{ imp.id }}" method="post"></form>
+            <input form="impuesto-{{ imp.id }}" type="hidden" name="impuesto_id" value="{{ imp.id }}">
+            <input form="impuesto-{{ imp.id }}" class="form-control" name="codigo" value="{{ imp.codigo }}">
+          </td>
+          <td><input form="impuesto-{{ imp.id }}" class="form-control" name="nombre" value="{{ imp.nombre }}"></td>
+          <td><input form="impuesto-{{ imp.id }}" class="form-control" name="jurisdiccion" value="{{ imp.jurisdiccion or 'general' }}"></td>
+          <td><input form="impuesto-{{ imp.id }}" class="form-control" type="number" step="0.01" name="porcentaje" value="{{ '%.2f'|format(imp.porcentaje or 0) }}"></td>
+          <td><input form="impuesto-{{ imp.id }}" class="form-control" name="descripcion" value="{{ imp.descripcion or '' }}"></td>
+          <td style="text-align:center;"><input form="impuesto-{{ imp.id }}" type="checkbox" name="activo" {% if imp.activo %}checked{% endif %}></td>
+          <td><button form="impuesto-{{ imp.id }}" class="btn btn-sm btn-success" type="submit">Guardar</button></td>
+        </tr>
+        {% else %}
+        <tr><td colspan="7">No hay impuestos configurados.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

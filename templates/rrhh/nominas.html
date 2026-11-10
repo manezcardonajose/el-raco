@@ -1,0 +1,10 @@
+{% extends 'base.html' %}
+{% block title %}Nóminas{% endblock %}
+{% block breadcrumb %}RRHH / Nóminas{% endblock %}
+{% block content %}
+<div class="card"><div class="card-header"><h2><i class="fas fa-file-invoice-dollar"></i> Nóminas</h2>{% if puede_editar %}<a class="btn btn-success" href="{{ url_for('rrhh.nueva_nomina') }}">Nueva nómina</a>{% endif %}</div>
+{% include 'rrhh/_herramientas_tabla.html' %}
+<div class="table-container"><table><thead><tr><th>Empleado</th><th>Periodo</th><th>Bruto</th><th>Neto</th><th>Coste empresa</th><th>Estado</th><th>Acciones</th></tr></thead><tbody>
+{% for n in nominas %}<tr><td>{{ n.empleado_nombre }}</td><td>{{ n.mes }}/{{ n.anio }}</td><td>{{ '%.2f'|format(n.bruto or 0) }} €</td><td>{{ '%.2f'|format(n.neto or 0) }} €</td><td>{{ '%.2f'|format(n.coste_empresa or 0) }} €</td><td><span class="badge badge-info">{{ n.estado or 'pendiente' }}</span></td><td>{% if puede_editar %}<a class="btn btn-sm btn-primary" href="{{ url_for('rrhh.editar_nomina', id=n.id) }}">Editar</a> <form method="post" action="{{ url_for('rrhh.anular_nomina', id=n.id) }}" style="display:inline" onsubmit="return confirm('¿Anular nómina?')"><button class="btn btn-sm btn-warning">Anular</button></form>{% endif %}</td></tr>{% else %}<tr><td colspan="7">No hay nóminas registradas.</td></tr>{% endfor %}
+</tbody></table></div></div>
+{% endblock %}

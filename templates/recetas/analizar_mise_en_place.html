@@ -1,0 +1,197 @@
+{% extends "base.html" %}
+{% block title %}Analizar mise en place{% endblock %}
+{% block breadcrumb %}Recetas / Mise en place{% endblock %}
+{% block content %}
+<style>
+  .mise-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
+  .mise-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;align-items:end;}
+  .mise-note{color:#94a3b8;font-size:12px;line-height:1.35;}
+  .mise-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin:14px 0;}
+  .mise-kpi{border:1px solid #334155;border-radius:8px;background:#111827;padding:12px;}
+  .mise-kpi span{display:block;color:#94a3b8;font-size:12px;}
+  .mise-kpi strong{font-size:24px;}
+  .mise-card{border:1px solid #334155;border-radius:8px;background:#111827;padding:12px;margin-bottom:10px;}
+  .mise-card h3{margin:0 0 8px;font-size:17px;}
+  .mise-tags{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0;}
+  .mise-tag{border:1px solid #475569;border-radius:999px;padding:3px 8px;font-size:12px;color:#cbd5e1;background:#0f172a;}
+  .mise-list{columns:2;column-gap:24px;margin:8px 0 0;padding-left:18px;}
+  .mise-list li{break-inside:avoid;margin-bottom:4px;}
+  .mise-review{display:grid;gap:12px;}
+  .mise-section-head{display:grid;grid-template-columns:auto minmax(220px,1fr) auto;gap:10px;align-items:center;margin-bottom:10px;}
+  .mise-plato{border:1px solid #263244;border-radius:8px;background:#0f172a;padding:10px;margin-top:8px;}
+  .mise-plato-head{display:grid;grid-template-columns:auto minmax(220px,1fr) minmax(150px,auto);gap:10px;align-items:center;margin-bottom:8px;}
+  .mise-plato textarea{min-height:88px;font-family:inherit;line-height:1.35;}
+  .mise-raw{margin-top:8px;border-top:1px solid #263244;padding-top:8px;}
+  .mise-raw summary{cursor:pointer;color:#94a3b8;font-size:12px;}
+  @media(max-width:720px){.mise-list{columns:1;}}
+  @media(max-width:720px){.mise-section-head,.mise-plato-head{grid-template-columns:1fr;}}
+</style>
+
+<div class="card">
+  <div class="card-header">
+    <div>
+      <h2><i class="fas fa-file-pdf"></i> Analizar hojas de mise en place</h2>
+      <div class="mise-note">OCR del PDF, deteccion de hojas, ingredientes y alergenos para crear o actualizar borradores de recetas.</div>
+    </div>
+    <div class="mise-actions">
+      <a class="btn btn-secondary" href="{{ url_for('recetas.recetas') }}"><i class="fas fa-arrow-left"></i> Recetas</a>
+    </div>
+  </div>
+
+  <form method="post" enctype="multipart/form-data">
+    <input type="hidden" name="accion" value="analizar">
+    <div class="mise-grid">
+      <div class="form-group">
+        <label class="form-label">Ruta del PDF en este equipo</label>
+        <input class="form-control" name="ruta_pdf" value="{{ ruta_default }}" placeholder="c:\...\archivo.pdf">
+      </div>
+      <div class="form-group">
+        <label class="form-label">O subir PDF</label>
+        <input class="form-control" type="file" name="pdf" accept="application/pdf">
+      </div>
+      <button class="btn btn-primary" type="submit"><i class="fas fa-wand-magic-sparkles"></i> Analizar PDF</button>
+    </div>
+  </form>
+</div>
+
+{% if analisis %}
+<div class="card">
+  <div class="card-header">
+    <div>
+      <h2><i class="fas fa-clipboard-list"></i> Resultado</h2>
+      <div class="mise-note">{{ analisis.archivo }}</div>
+    </div>
+  </div>
+  <div class="mise-kpis">
+    <div class="mise-kpi"><span>Paginas</span><strong>{{ analisis.paginas or 0 }}</strong></div>
+    <div class="mise-kpi"><span>Hojas detectadas</span><strong>{{ analisis.hojas|length }}</strong></div>
+    <div class="mise-kpi"><span>Ingredientes detectados</span><strong>{{ analisis.total_ingredientes or 0 }}</strong></div>
+    <div class="mise-kpi"><span>OCR</span><strong>{% if analisis.ocr_disponible %}OK{% else %}No{% endif %}</strong></div>
+  </div>
+
+  {% if analisis.hojas %}
+  <form method="post" class="mise-review">
+    <input type="hidden" name="revision_mise" value="1">
+    <input type="hidden" name="hoja_count" value="{{ analisis.hojas|length }}">
+    <div style="border:1px solid #334155;border-radius:8px;background:#0f172a;padding:12px;">
+      <h3 style="margin:0 0 10px;"><i class="fas fa-check-square"></i> Revision antes de subir</h3>
+      <div class="mise-note">Corrige aqui lo que haya leido mal el OCR. Solo se suben los platos marcados y cada plato usara exclusivamente los ingredientes de su caja.</div>
+    </div>
+
+    <div style="border:1px solid #334155;border-radius:8px;background:#0f172a;padding:12px;">
+      <h3 style="margin:0 0 10px;"><i class="fas fa-bookmark"></i> Destino</h3>
+    <div class="mise-grid">
+      <div class="form-group">
+        <label class="form-label">Menu fijo destino</label>
+        <input class="form-control" name="nombre_menu" value="Restaurante la Caldera">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Punto de venta / TPV</label>
+        <select class="form-control" name="punto_venta_id">
+          <option value="">Sin publicar en TPV</option>
+          {% for p in puntos_venta %}
+          <option value="{{ p.id }}" {% if p.nombre == 'Restaurante la Caldera' %}selected{% endif %}>{{ p.nombre }}</option>
+          {% endfor %}
+        </select>
+      </div>
+    </div>
+    </div>
+
+    <div class="mise-actions" style="position:sticky;top:8px;z-index:3;border:1px solid #334155;border-radius:8px;background:#111827;padding:10px;">
+      <button class="btn btn-success" type="submit" name="accion" value="crear_menu"><i class="fas fa-upload"></i> Crear menu con lo marcado</button>
+      <button class="btn btn-primary" type="submit" name="accion" value="importar"><i class="fas fa-save"></i> Crear recetas marcadas</button>
+      <span class="mise-note">Primero revisa. Desmarca lo dudoso; luego vuelve a analizar o corrige a mano.</span>
+    </div>
+
+    {% for hoja in analisis.hojas %}
+    {% set hoja_idx = loop.index0 %}
+    {% set detalles = hoja.recetas_detalle if hoja.recetas_detalle else [] %}
+    {% if not detalles and hoja.recetas_detectadas %}
+      {% set detalles = [] %}
+    {% endif %}
+    <div class="mise-card">
+      <div class="mise-section-head">
+        <label><input type="checkbox" name="hoja_{{ hoja_idx }}_incluir" value="1" checked> Seccion</label>
+        <input class="form-control" name="hoja_{{ hoja_idx }}_nombre" value="{{ hoja.nombre }}">
+        <span class="mise-note">Pagina {{ hoja.pagina }} - {{ hoja.metodo }}</span>
+      </div>
+      <input type="hidden" name="hoja_{{ hoja_idx }}_pagina" value="{{ hoja.pagina }}">
+      <input type="hidden" id="hoja_{{ hoja_idx }}_plato_count" name="hoja_{{ hoja_idx }}_plato_count" value="{% if hoja.recetas_detalle %}{{ hoja.recetas_detalle|length }}{% elif hoja.recetas_detectadas %}{{ hoja.recetas_detectadas|length }}{% else %}0{% endif %}">
+      <div data-platos="{{ hoja_idx }}">
+      {% if hoja.recetas_detalle %}
+        {% for plato in hoja.recetas_detalle %}
+        <div class="mise-plato">
+          <div class="mise-plato-head">
+            <label><input type="checkbox" name="hoja_{{ hoja_idx }}_plato_{{ loop.index0 }}_incluir" value="1" checked> Plato</label>
+            <input class="form-control" name="hoja_{{ hoja_idx }}_plato_{{ loop.index0 }}_nombre" value="{{ plato.nombre }}">
+            <span class="mise-note">{{ plato.ingredientes|length }} ingredientes</span>
+          </div>
+          <label class="form-label">Ingredientes de este plato</label>
+          <textarea class="form-control" name="hoja_{{ hoja_idx }}_plato_{{ loop.index0 }}_ingredientes">{% for ing in plato.ingredientes %}{{ ing }}
+{% endfor %}</textarea>
+        </div>
+        {% endfor %}
+      {% elif hoja.recetas_detectadas %}
+        {% for receta in hoja.recetas_detectadas %}
+        <div class="mise-plato">
+          <div class="mise-plato-head">
+            <label><input type="checkbox" name="hoja_{{ hoja_idx }}_plato_{{ loop.index0 }}_incluir" value="1" checked> Plato</label>
+            <input class="form-control" name="hoja_{{ hoja_idx }}_plato_{{ loop.index0 }}_nombre" value="{{ receta }}">
+            <span class="mise-note">Sin ingredientes fiables</span>
+          </div>
+          <label class="form-label">Ingredientes de este plato</label>
+          <textarea class="form-control" name="hoja_{{ hoja_idx }}_plato_{{ loop.index0 }}_ingredientes"></textarea>
+        </div>
+        {% endfor %}
+      {% else %}
+        <div class="mise-note">No hay platos claros en esta hoja.</div>
+      {% endif %}
+      </div>
+      <button class="btn btn-sm btn-secondary" type="button" data-add-plato="{{ hoja_idx }}" style="margin-top:10px;"><i class="fas fa-plus"></i> Anadir plato manual</button>
+      {% if hoja.ingredientes %}
+      <details class="mise-raw">
+        <summary>Ver ingredientes sueltos detectados en la hoja</summary>
+        <ul class="mise-list">
+          {% for ing in hoja.ingredientes[:80] %}
+          <li>{{ ing }}</li>
+          {% endfor %}
+        </ul>
+      </details>
+      {% endif %}
+    </div>
+    {% endfor %}
+  </form>
+  {% else %}
+  <div class="mise-card">No se detectaron hojas con texto. Si el PDF es foto, revisa que Tesseract este instalado.</div>
+  {% endif %}
+</div>
+{% endif %}
+<script>
+(() => {
+  document.querySelectorAll('[data-add-plato]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const hoja = btn.dataset.addPlato;
+      const countInput = document.getElementById(`hoja_${hoja}_plato_count`);
+      const contenedor = document.querySelector(`[data-platos="${hoja}"]`);
+      if (!countInput || !contenedor) return;
+      const idx = parseInt(countInput.value || '0', 10);
+      const bloque = document.createElement('div');
+      bloque.className = 'mise-plato';
+      bloque.innerHTML = `
+        <div class="mise-plato-head">
+          <label><input type="checkbox" name="hoja_${hoja}_plato_${idx}_incluir" value="1" checked> Plato</label>
+          <input class="form-control" name="hoja_${hoja}_plato_${idx}_nombre" value="" placeholder="Nombre del plato">
+          <span class="mise-note">Manual</span>
+        </div>
+        <label class="form-label">Ingredientes de este plato</label>
+        <textarea class="form-control" name="hoja_${hoja}_plato_${idx}_ingredientes" placeholder="Un ingrediente por linea"></textarea>
+      `;
+      contenedor.appendChild(bloque);
+      countInput.value = String(idx + 1);
+      const input = bloque.querySelector('input.form-control');
+      if (input) input.focus();
+    });
+  });
+})();
+</script>
+{% endblock %}

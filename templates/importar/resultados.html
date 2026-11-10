@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="card">
+    <h2 style="color: #ff6b00;">Resultados de importación</h2>
+    
+    <div style="background: #3a3f44; padding: 20px; border-radius: 4px; margin: 20px 0;">
+        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px;">
+            <div style="text-align: center;">
+    <div style="font-size: 12px; color: #999;">Archivos procesados</div>
+    <div style="font-size: 32px; font-weight: bold;">{{ resultados.get('archivos_procesados', 0) }}</div>
+</div>
+<div style="text-align: center;">
+    <div style="font-size: 12px; color: #999;">Hojas procesadas</div>
+    <div style="font-size: 32px; font-weight: bold;">{{ resultados.get('hojas_procesadas', 0) }}</div>
+</div>
+<div style="text-align: center;">
+    <div style="font-size: 12px; color: #999;">Recetas nuevas</div>
+    <div style="font-size: 32px; font-weight: bold;">{{ resultados.get('recetas_nuevas', 0) }}</div>
+</div>
+<div style="text-align: center;">
+    <div style="font-size: 12px; color: #999;">Alérgenos actualizados</div>
+    <div style="font-size: 32px; font-weight: bold;">{{ resultados.get('alergenos_actualizados', 0) }}</div>
+</div>
+        </div>
+    </div>
+    
+    {% if resultados.get('log') %}
+    <div style="background: #2b2f33; padding: 15px; border-radius: 4px; margin: 20px 0;">
+        <h4 style="margin-top: 0;">Log de importación</h4>
+        <pre style="background: #1c1f23; padding: 10px; border-radius: 4px; max-height: 300px; overflow-y: auto;">{{ resultados.log }}</pre>
+    </div>
+    {% endif %}
+    
+    {% if resultados.get('errores') %}
+    <div style="background: #dc3545; padding: 15px; border-radius: 4px; margin: 20px 0;">
+        <h4 style="margin-top: 0;">Errores encontrados ({{ resultados.errores|length }})</h4>
+        <ul style="margin-bottom: 0;">
+            {% for error in resultados.errores[:10] %}
+            <li>{{ error }}</li>
+            {% endfor %}
+        </ul>
+    </div>
+    {% endif %}
+    
+    <div style="margin-top: 30px;">
+        <a href="/importar" class="btn btn-primary">Nueva importación</a>
+        <a href="/importar/masivo" class="btn btn-info">Importar otra carpeta</a>
+        <a href="/recetas" class="btn btn-success">Ver recetas</a>
+    </div>
+</div>
+{% endblock %}

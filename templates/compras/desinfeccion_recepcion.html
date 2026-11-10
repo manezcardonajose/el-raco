@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="card">
+    <div class="card-header" style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;">
+        <h2 style="margin:0;"><i class="fas fa-shield-alt"></i> Desinfeccion por recepcion</h2>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <a href="{{ url_for('compras.etiquetas_recepcion', recepcion_id=recepcion.id) }}" class="btn btn-secondary" target="_blank">Etiquetas</a>
+            <a href="{{ url_for('compras.validar_recepciones') }}" class="btn btn-secondary">Recepciones</a>
+        </div>
+    </div>
+
+    <div class="card-body">
+        <div class="alert alert-info">
+            Registra un unico control APPCC para todos los lotes seleccionados de esta recepcion.
+            Si un producto no aparece aqui, no esta marcado como fruta/verdura o no tiene lote aplicado.
+        </div>
+
+        <div style="padding:12px;border:1px solid #374151;border-radius:8px;margin-bottom:16px;">
+            <strong>Recepcion {{ recepcion.id }}</strong>
+            {% if recepcion.numero_pedido %} - pedido {{ recepcion.numero_pedido }}{% endif %}
+            - proveedor {{ recepcion.proveedor_nombre or '-' }}
+            - fecha {{ recepcion.fecha_recepcion or '-' }}
+        </div>
+
+        {% if lineas %}
+        <form method="post">
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-bottom:14px;">
+                <div>
+                    <label>Producto desinfectante</label>
+                    <input type="text" name="producto_usado" class="form-control" placeholder="Ej: higienizante alimentario">
+                </div>
+                <div>
+                    <label>Dosis</label>
+                    <input type="text" name="dosis" class="form-control" placeholder="Ej: 5 ml/l">
+                </div>
+                <div>
+                    <label>Tiempo contacto</label>
+                    <input type="text" name="tiempo_contacto" class="form-control" placeholder="Ej: 10 min">
+                </div>
+                <div>
+                    <label>Resultado</label>
+                    <select name="resultado" class="form-control">
+                        <option value="apto">Apto</option>
+                        <option value="repetir">Repetir limpieza</option>
+                        <option value="no_apto">No apto</option>
+                    </select>
+                </div>
+            </div>
+
+            <label style="display:flex;gap:8px;align-items:center;margin:12px 0;">
+                <input type="checkbox" name="aclarado" checked> Aclarado realizado si procede
+            </label>
+
+            <label>Observaciones</label>
+            <textarea name="observaciones" rows="3" class="form-control"></textarea>
+
+            <div style="overflow:auto;margin-top:16px;">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th><input type="checkbox" checked onclick="document.querySelectorAll('.js-lote-des').forEach(cb => cb.checked = this.checked)"></th>
+                            <th>Producto</th>
+                            <th>Lote</th>
+                            <th>Cantidad</th>
+                            <th>Caducidad</th>
+                            <th>Almacen</th>
+                            <th>Estado</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for l in lineas %}
+                        <tr>
+                            <td><input class="js-lote-des" type="checkbox" name="lote_id" value="{{ l.lote_id }}" {% if not l.num_desinfecciones %}checked{% endif %}></td>
+                            <td>{{ l.producto_nombre }}</td>
+                            <td>{{ l.codigo_lote }}</td>
+                            <td>{{ '%.3f'|format(l.cantidad_recibida or 0) }} {{ l.unidad or '' }}</td>
+                            <td>{{ l.fecha_caducidad or '-' }}</td>
+                            <td>{{ l.almacen_nombre or '-' }}</td>
+                            <td>
+                                {% if l.num_desinfecciones %}
+                                <span class="badge bg-success">Ya registrado</span>
+                                {% else %}
+                                <span class="badge bg-warning text-dark">Pendiente</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <label style="display:flex;gap:8px;align-items:center;margin:12px 0;">
+                <input type="checkbox" name="imprimir_etiquetas" value="1" checked>
+                Abrir etiquetas al guardar
+            </label>
+
+            <button class="btn btn-success"><i class="fas fa-save"></i> Registrar APPCC</button>
+        </form>
+        {% else %}
+        <p class="text-muted">No hay lotes de fruta o verdura pendientes en esta recepcion.</p>
+        {% endif %}
+    </div>
+</div>
+
+{% endblock %}

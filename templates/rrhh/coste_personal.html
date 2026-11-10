@@ -1,0 +1,183 @@
+{% extends 'base.html' %}
+{% block title %}Coste de personal{% endblock %}
+{% block breadcrumb %}RRHH / Coste de personal{% endblock %}
+{% block content %}
+<style>
+  .coste-summary{display:grid;grid-template-columns:repeat(5,minmax(150px,1fr));gap:12px;margin-bottom:16px;}
+  .coste-box{border:1px solid #334155;background:#111827;border-radius:8px;padding:14px;}
+  .coste-box span{display:block;color:#94a3b8;font-size:12px;}
+  .coste-box strong{display:block;font-size:22px;line-height:1.2;margin-top:4px;}
+  .coste-filters{display:grid;grid-template-columns:repeat(auto-fit,minmax(165px,1fr));gap:12px;align-items:end;margin-bottom:16px;}
+  .coste-filters .wide{grid-column:span 2;}
+  .coste-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
+  .coste-panels{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px;}
+  .origen-chip{display:inline-block;border-radius:6px;padding:3px 7px;font-size:11px;font-weight:800;background:#334155;color:#dbeafe;}
+  .origen-chip.nomina{background:#14532d;color:#bbf7d0;}
+  .origen-chip.estimado{background:#713f12;color:#fde68a;}
+  @media(max-width:1100px){.coste-summary{grid-template-columns:repeat(2,minmax(150px,1fr));}.coste-panels{grid-template-columns:1fr;}}
+  @media(max-width:700px){.coste-summary,.coste-filters{grid-template-columns:1fr;}.coste-filters .wide{grid-column:1;}}
+</style>
+
+<div class="card">
+  <div class="card-header">
+    <h2><i class="fas fa-chart-pie"></i> Coste de personal</h2>
+    <div class="coste-actions">
+      <a class="btn btn-secondary" href="{{ url_for('rrhh.lista_prenomina', anio=anio, mes=mes) }}"><i class="fas fa-calculator"></i> Pre-nomina</a>
+      <a class="btn btn-info" href="{{ url_for('rrhh.coste_personal_csv', anio=anio, mes=mes, empleado_id=empleado_id, departamento_id=departamento_id, subdepartamento_id=subdepartamento_id) }}"><i class="fas fa-download"></i> CSV</a>
+      <a class="btn btn-warning" href="{{ url_for('rrhh.coste_personal', anio=anio, mes=mes, empleado_id=empleado_id, departamento_id=departamento_id, subdepartamento_id=subdepartamento_id, recalcular=1) }}"><i class="fas fa-sync"></i> Recalcular</a>
+    </div>
+  </div>
+
+  <div class="alert alert-info">
+    <strong>Periodo:</strong> {{ periodo_desde }} &rarr; {{ periodo_hasta }}.
+    El coste total usa la nomina real cuando tiene coste de empresa; si no existe, usa la pre-nomina mas SS empresa ({{ '%.2f'|format(ss_empresa_porcentaje) }}%).
+  </div>
+  {% if calculados %}
+  <div class="alert alert-success">Se ha calculado pre-nomina para {{ calculados }} empleado(s) sin resumen en este periodo.</div>
+  {% endif %}
+
+  <form method="get" class="coste-filters">
+    <div class="form-group">
+      <label class="form-label">Ano</label>
+      <input class="form-control" type="number" name="anio" value="{{ anio }}">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Mes</label>
+      <input class="form-control" type="number" name="mes" min="1" max="12" value="{{ mes }}">
+    </div>
+    <div class="form-group wide">
+      <label class="form-label">Empleado</label>
+      <select class="form-control" name="empleado_id">
+        <option value="">Todos</option>
+        {% for e in empleados %}
+        <option value="{{ e.id }}" {% if empleado_id|string == e.id|string %}selected{% endif %}>{{ e.nombre }} {{ e.apellidos or '' }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Departamento</label>
+      <select class="form-control" name="departamento_id">
+        <option value="">Todos</option>
+        {% for d in departamentos %}
+        <option value="{{ d.id }}" {% if departamento_id|string == d.id|string %}selected{% endif %}>{{ d.nombre }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Subdepartamento</label>
+      <select class="form-control" name="subdepartamento_id">
+        <option value="">Todos</option>
+        {% for sd in subdepartamentos %}
+        <option value="{{ sd.id }}" {% if subdepartamento_id|string == sd.id|string %}selected{% endif %}>{{ sd.nombre }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <button class="btn btn-primary" type="submit"><i class="fas fa-search"></i> Ver</button>
+  </form>
+
+  <form method="post" action="{{ url_for('rrhh.guardar_configuracion_coste_personal') }}" class="coste-filters">
+    <input type="hidden" name="anio" value="{{ anio }}">
+    <input type="hidden" name="mes" value="{{ mes }}">
+    <input type="hidden" name="empleado_id" value="{{ empleado_id }}">
+    <input type="hidden" name="departamento_id" value="{{ departamento_id }}">
+    <input type="hidden" name="subdepartamento_id" value="{{ subdepartamento_id }}">
+    <div class="form-group">
+      <label class="form-label">SS empresa %</label>
+      <input class="form-control" type="number" name="ss_empresa_pct" min="0" max="100" step="0.01" value="{{ '%.2f'|format(ss_empresa_porcentaje) }}">
+    </div>
+    <button class="btn btn-success" type="submit"><i class="fas fa-save"></i> Guardar coste</button>
+  </form>
+
+  <div class="coste-summary">
+    <div class="coste-box"><span>Coste total empresa</span><strong>{{ '%.2f'|format(totales.coste_total or 0) }} &euro;</strong></div>
+    <div class="coste-box"><span>Coste/hora medio</span><strong>{{ '%.2f'|format(totales.coste_hora_empresa or 0) }} &euro;</strong></div>
+    <div class="coste-box"><span>Horas pagadas</span><strong>{{ '%.2f'|format(totales.horas_total or 0) }}</strong></div>
+    <div class="coste-box"><span>Empleados</span><strong>{{ totales.empleados or 0 }}</strong></div>
+    <div class="coste-box"><span>Nominas reales</span><strong>{{ totales.nominas_reales or 0 }}</strong></div>
+  </div>
+
+  <div class="coste-summary">
+    <div class="coste-box"><span>Pre-nomina</span><strong>{{ '%.2f'|format(totales.coste_prenomina or 0) }} &euro;</strong></div>
+    <div class="coste-box"><span>SS empresa aplicada</span><strong>{{ '%.2f'|format(totales.ss_empresa or 0) }} &euro;</strong></div>
+    <div class="coste-box"><span>Estimado empresa</span><strong>{{ '%.2f'|format(totales.coste_empresa_estimado or 0) }} &euro;</strong></div>
+    <div class="coste-box"><span>Coste real nominas</span><strong>{{ '%.2f'|format(totales.coste_nomina or 0) }} &euro;</strong></div>
+    <div class="coste-box"><span>IRPF estimado / neto</span><strong>{{ '%.2f'|format(totales.irpf_importe or 0) }} / {{ '%.2f'|format(totales.neto_estimado or 0) }} &euro;</strong></div>
+  </div>
+
+  <div class="coste-summary">
+    <div class="coste-box"><span>Embargos pre-nomina</span><strong>{{ '%.2f'|format(totales.embargos or 0) }} &euro;</strong></div>
+    <div class="coste-box"><span>Embargos nomina</span><strong>{{ '%.2f'|format(totales.nomina_embargos or 0) }} &euro;</strong></div>
+    <div class="coste-box"><span>Neto real nominas</span><strong>{{ '%.2f'|format(totales.neto_nomina or 0) }} &euro;</strong></div>
+    <div class="coste-box"><span>Descuentos totales</span><strong>{{ '%.2f'|format(totales.descuentos or 0) }} &euro;</strong></div>
+    <div class="coste-box"><span>Pluses</span><strong>{{ '%.2f'|format(totales.pluses or 0) }} &euro;</strong></div>
+  </div>
+</div>
+
+<div class="coste-panels">
+  <div class="card">
+    <div class="card-header"><h2><i class="fas fa-sitemap"></i> Por departamento</h2></div>
+    <div class="table-container">
+      <table>
+        <thead><tr><th>Departamento</th><th>Empleados</th><th>Horas</th><th>Coste total</th><th>Coste/h</th></tr></thead>
+        <tbody>
+          {% for g in grupos_departamento %}
+          <tr><td>{{ g.nombre }}</td><td>{{ g.empleados }}</td><td>{{ '%.2f'|format(g.horas_total or 0) }}</td><td><strong>{{ '%.2f'|format(g.coste_total or 0) }} &euro;</strong></td><td>{{ '%.2f'|format(g.coste_hora_empresa or 0) }} &euro;</td></tr>
+          {% else %}
+          <tr><td colspan="5">No hay datos de coste para este periodo.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-header"><h2><i class="fas fa-layer-group"></i> Por subdepartamento</h2></div>
+    <div class="table-container">
+      <table>
+        <thead><tr><th>Subdepartamento</th><th>Empleados</th><th>Horas</th><th>Coste total</th><th>Coste/h</th></tr></thead>
+        <tbody>
+          {% for g in grupos_subdepartamento %}
+          <tr><td>{{ g.nombre }}</td><td>{{ g.empleados }}</td><td>{{ '%.2f'|format(g.horas_total or 0) }}</td><td><strong>{{ '%.2f'|format(g.coste_total or 0) }} &euro;</strong></td><td>{{ '%.2f'|format(g.coste_hora_empresa or 0) }} &euro;</td></tr>
+          {% else %}
+          <tr><td colspan="5">No hay datos de coste para este periodo.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div class="card" style="margin-top:16px;">
+  <div class="card-header"><h2><i class="fas fa-users"></i> Detalle por empleado</h2></div>
+  <div class="table-container">
+    <table>
+      <thead>
+        <tr>
+          <th>Empleado</th><th>Departamento</th><th>Horas</th><th>Base</th><th>Pluses</th><th>Desc.</th><th>Embargos</th><th>Pre-nomina</th><th>IRPF</th><th>Neto</th><th>SS empresa</th><th>Coste total</th><th>Coste/h</th><th>Origen</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in filas %}
+        <tr>
+          <td><strong>{{ r.empleado_nombre }}</strong><br><small>{{ r.categoria_nombre or '-' }}</small></td>
+          <td>{{ r.departamento_nombre or '-' }}{% if r.subdepartamento_nombre %}<br><small>{{ r.subdepartamento_nombre }}</small>{% endif %}</td>
+          <td>{{ '%.2f'|format(r.horas_total or 0) }}</td>
+          <td>{{ '%.2f'|format(r.salario_base_mes or 0) }} &euro;</td>
+          <td>{{ '%.2f'|format(r.pluses or 0) }} &euro;</td>
+          <td>{{ '%.2f'|format(r.descuentos or 0) }} &euro;</td>
+          <td>{{ '%.2f'|format(r.embargo_aplicado or 0) }} &euro;</td>
+          <td>{{ '%.2f'|format(r.coste_prenomina or 0) }} &euro;</td>
+          <td>{{ '%.2f'|format(r.irpf_pct or 0) }}%<br><small>{{ '%.2f'|format(r.irpf_importe or 0) }} &euro;</small></td>
+          <td>{{ '%.2f'|format(r.neto_operativo or 0) }} &euro;</td>
+          <td>{{ '%.2f'|format(r.ss_empresa or 0) }} &euro;</td>
+          <td><strong>{{ '%.2f'|format(r.coste_total or 0) }} &euro;</strong></td>
+          <td>{{ '%.2f'|format(r.coste_hora_empresa or 0) }} &euro;</td>
+          <td><span class="origen-chip {{ r.origen_coste }}">{{ 'Nomina' if r.origen_coste == 'nomina' else 'Estimado' }}</span>{% if r.nomina_id %}<br><small>#{{ r.nomina_id }}</small>{% endif %}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="14">No hay empleados para este filtro.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

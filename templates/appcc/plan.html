@@ -1,0 +1,278 @@
+{% extends "base.html" %}
+
+{% block title %}Plan APPCC - El Raco ERP{% endblock %}
+
+{% block content %}
+<style>
+    .appcc-kpis {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 14px;
+        margin-bottom: 20px;
+    }
+
+    .appcc-kpi {
+        background: #1e252b;
+        border: 1px solid #2c3e50;
+        border-radius: 8px;
+        padding: 16px;
+    }
+
+    .appcc-kpi span {
+        display: block;
+        color: #9fb0c0;
+        font-size: 12px;
+        margin-bottom: 8px;
+    }
+
+    .appcc-kpi strong {
+        color: #fff;
+        font-size: 28px;
+    }
+
+    .appcc-panel {
+        background: #1e252b;
+        border: 1px solid #2c3e50;
+        border-radius: 8px;
+        padding: 18px;
+        margin-bottom: 20px;
+    }
+
+    .appcc-panel h3 {
+        color: #ff6b00;
+        margin: 0 0 14px;
+        font-size: 18px;
+    }
+
+    .appcc-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        align-items: center;
+    }
+
+    .appcc-muted {
+        color: #9fb0c0;
+        font-size: 12px;
+    }
+
+    .appcc-critico {
+        color: #ffc107;
+        font-weight: 700;
+    }
+
+    .appcc-ok {
+        color: #7be08a;
+        font-weight: 700;
+    }
+
+    .appcc-no-ok {
+        color: #ff8d8d;
+        font-weight: 700;
+    }
+</style>
+
+<div class="card">
+    <div class="card-header">
+        <h2><i class="fas fa-shield-alt"></i> Plan APPCC</h2>
+        <div class="appcc-actions">
+            <form method="POST" action="{{ url_for('appcc.crear_plan_appcc_base') }}">
+                <button type="submit" class="btn btn-success">
+                    <i class="fas fa-seedling"></i> Crear plan base
+                </button>
+            </form>
+            <a href="{{ url_for('appcc.nuevo_control_appcc') }}" class="btn btn-primary">
+                <i class="fas fa-plus"></i> Nuevo control
+            </a>
+            <a href="{{ url_for('appcc.exportar_informe_appcc', tipo='plan') }}" class="btn btn-info">
+                <i class="fas fa-file-excel"></i> Exportar
+            </a>
+            <a href="{{ url_for('appcc.operativa_appcc') }}" class="btn btn-primary">
+                <i class="fas fa-clipboard-list"></i> Operativa
+            </a>
+            <a href="{{ url_for('appcc.appcc_dashboard') }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Dashboard
+            </a>
+        </div>
+    </div>
+
+    <div class="appcc-kpis">
+        <div class="appcc-kpi">
+            <span>Controles activos</span>
+            <strong>{{ resumen.controles }}</strong>
+        </div>
+        <div class="appcc-kpi">
+            <span>Registros APPCC</span>
+            <strong>{{ resumen.registros }}</strong>
+        </div>
+        <div class="appcc-kpi">
+            <span>Registros no OK</span>
+            <strong>{{ resumen.no_ok }}</strong>
+        </div>
+        <div class="appcc-kpi">
+            <span>No conformidades abiertas</span>
+            <strong>{{ resumen.no_conformidades }}</strong>
+        </div>
+    </div>
+
+    <div class="appcc-panel">
+        <h3>Controles del plan</h3>
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th style="width: 9%;">Codigo</th>
+                        <th style="width: 16%;">Area</th>
+                        <th style="width: 15%;">Etapa</th>
+                        <th style="width: 10%;">Tipo</th>
+                        <th style="width: 18%;">Limite / criterio</th>
+                        <th style="width: 11%;">Frecuencia</th>
+                        <th style="width: 10%;">Ultimo</th>
+                        <th style="width: 11%;">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for c in controles %}
+                    <tr>
+                        <td><strong>{{ c.codigo or ('CTRL-' ~ c.id) }}</strong></td>
+                        <td>{{ c.area or '-' }}</td>
+                        <td>{{ c.etapa or '-' }}</td>
+                        <td>
+                            {% if c.tipo_control == 'pcc' %}
+                                <span class="badge badge-warning">PCC</span>
+                            {% elif c.tipo_control == 'verificacion' %}
+                                <span class="badge badge-info">Verificacion</span>
+                            {% else %}
+                                <span class="badge badge-secondary">Prerequisito</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {{ c.limite_critico or '-' }}
+                            {% if c.no_ok %}
+                                <br><span class="appcc-no-ok">{{ c.no_ok }} no OK</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ c.frecuencia or '-' }}</td>
+                        <td>
+                            {% if c.ultimo_registro %}
+                                {{ c.ultimo_registro[:16] }}
+                            {% else %}
+                                <span class="appcc-muted">Sin registros</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <a href="{{ url_for('appcc.registrar_control_appcc', control_id=c.id) }}" class="btn btn-primary btn-sm">
+                                <i class="fas fa-clipboard-check"></i> Registrar
+                            </a>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="8">
+                            No hay controles APPCC creados. Pulsa "Crear plan base" para levantar la estructura inicial.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="appcc-panel">
+        <h3>Ultimos registros</h3>
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Fecha</th>
+                        <th>Control</th>
+                        <th>Resultado</th>
+                        <th>Valor</th>
+                        <th>Realizado por</th>
+                        <th>Verificacion</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for r in ultimos %}
+                    <tr>
+                        <td>{{ r.fecha[:16] if r.fecha else '-' }}</td>
+                        <td>
+                            <strong>{{ r.codigo or '-' }}</strong><br>
+                            <span class="appcc-muted">{{ r.area or '-' }} / {{ r.etapa or '-' }}</span>
+                            {% if r.origen_tabla %}
+                                <br><span class="appcc-muted">{{ r.origen_tabla }} #{{ r.origen_id or '-' }}</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if r.resultado == 'ok' %}
+                                <span class="appcc-ok">OK</span>
+                            {% else %}
+                                <span class="appcc-no-ok">{{ r.resultado or 'pendiente' }}</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ r.valor or '-' }}</td>
+                        <td>{{ r.realizado_por or '-' }}</td>
+                        <td>
+                            {% if r.verificado_por %}
+                                <span class="badge badge-success">{{ r.verificado_por }}</span><br>
+                                <span class="appcc-muted">{{ r.fecha_verificacion[:16] if r.fecha_verificacion else '' }}</span>
+                            {% else %}
+                                <form method="POST" action="{{ url_for('appcc.verificar_registro_appcc', registro_id=r.id) }}">
+                                    <button type="submit" class="btn btn-success btn-sm">
+                                        <i class="fas fa-check"></i> Verificar
+                                    </button>
+                                </form>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="6">Todavia no hay registros APPCC.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="appcc-panel">
+        <h3>No conformidades APPCC abiertas</h3>
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Fecha</th>
+                        <th>Tipo</th>
+                        <th>Descripcion</th>
+                        <th>Gravedad</th>
+                        <th>Estado</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for i in no_conformidades %}
+                    <tr>
+                        <td>{{ i.fecha[:16] if i.fecha else '-' }}</td>
+                        <td>{{ i.tipo or '-' }}</td>
+                        <td>{{ i.descripcion or '-' }}</td>
+                        <td>
+                            {% if i.gravedad == 'alta' %}
+                                <span class="badge badge-danger">Alta</span>
+                            {% elif i.gravedad == 'media' %}
+                                <span class="badge badge-warning">Media</span>
+                            {% else %}
+                                <span class="badge badge-secondary">{{ i.gravedad or '-' }}</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ i.estado or '-' }}</td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="5">No hay no conformidades APPCC abiertas.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

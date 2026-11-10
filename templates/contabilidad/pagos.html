@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+{% block breadcrumb %}Contabilidad / Pagos y caja{% endblock %}
+{% block content %}
+
+<div class="card">
+    <div class="card-header">
+        <div>
+            <h2><i class="fas fa-cash-register"></i> Pagos y caja</h2>
+            <div style="font-size:13px;opacity:.8;">Movimientos de pago/cobro sincronizados o registrados manualmente.</div>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <a href="{{ url_for('contabilidad.documentos') }}" class="btn btn-secondary">Documentos</a>
+            <a href="{{ url_for('contabilidad.dashboard') }}" class="btn btn-primary">Panel</a>
+        </div>
+    </div>
+
+    <form method="GET" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;align-items:end;margin-bottom:16px;">
+        <div>
+            <label class="form-label">Desde</label>
+            <input type="date" name="desde" class="form-control" value="{{ filtros.desde }}">
+        </div>
+        <div>
+            <label class="form-label">Hasta</label>
+            <input type="date" name="hasta" class="form-control" value="{{ filtros.hasta }}">
+        </div>
+        <div style="display:flex;gap:8px;">
+            <button class="btn btn-primary">Filtrar</button>
+            <a class="btn btn-secondary" href="{{ url_for('contabilidad.pagos') }}">Mes actual</a>
+        </div>
+        <div style="background:#20252a;border:1px solid #344150;border-radius:8px;padding:12px;">
+            <div style="font-size:12px;opacity:.75;">Total periodo</div>
+            <div style="font-size:22px;font-weight:700;">{{ total|euros }}</div>
+        </div>
+    </form>
+
+    <div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(280px,.45fr);gap:16px;">
+        <div class="table-container">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Fecha</th>
+                        <th>Documento</th>
+                        <th>Tercero</th>
+                        <th>Metodo</th>
+                        <th>Cuenta</th>
+                        <th style="text-align:right;">Importe</th>
+                        <th>Referencia</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for p in pagos %}
+                    <tr>
+                        <td>{{ p.fecha_pago|fecha_es }}</td>
+                        <td><a href="{{ url_for('contabilidad.ver_documento', documento_id=p.documento_id) }}">{{ p.numero or ('Doc #' ~ p.documento_id) }}</a></td>
+                        <td>{{ p.tercero_nombre or '-' }}</td>
+                        <td>{{ p.metodo or '-' }}</td>
+                        <td>{{ p.cuenta_tesoreria or '-' }}</td>
+                        <td style="text-align:right;">{{ p.importe|euros }}</td>
+                        <td>{{ p.referencia or '-' }}</td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="7" style="text-align:center;padding:24px;">Sin pagos en este periodo.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <div class="table-container">
+            <table class="table">
+                <thead><tr><th>Metodo</th><th>Cuenta</th><th style="text-align:right;">Total</th></tr></thead>
+                <tbody>
+                    {% for r in resumen %}
+                    <tr>
+                        <td>{{ r.metodo or '-' }}</td>
+                        <td>{{ r.cuenta_tesoreria or '-' }}</td>
+                        <td style="text-align:right;">{{ r.total|euros }}</td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="3" style="text-align:center;padding:18px;">Sin resumen.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

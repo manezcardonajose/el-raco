@@ -1,0 +1,89 @@
+{% extends 'base.html' %}
+{% block title %}Laboratorio fichajes{% endblock %}
+{% block breadcrumb %}RRHH / Laboratorio fichajes{% endblock %}
+{% block content %}
+<style>
+  .lab-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin:12px 0 18px;}
+  .lab-kpi{border:1px solid var(--border-color,#334155);border-radius:8px;background:var(--card-bg,#111827);padding:12px;}
+  .lab-kpi span{display:block;color:var(--text-muted,#94a3b8);font-size:12px;}
+  .lab-kpi strong{display:block;font-size:26px;margin-top:4px;}
+  .lab-filter{display:flex;gap:10px;flex-wrap:wrap;align-items:end;margin-bottom:14px;}
+  .lab-filter .form-group{min-width:160px;margin:0;}
+  .lab-table-wrap{overflow:auto;border:1px solid var(--border-color,#334155);border-radius:8px;}
+  .lab-table{width:100%;border-collapse:collapse;min-width:1100px;}
+  .lab-table th,.lab-table td{padding:9px;border-bottom:1px solid var(--border-color,#334155);vertical-align:top;}
+  .lab-table th{background:rgba(15,23,42,.72);text-align:left;color:var(--accent,#ff6b00);font-size:12px;text-transform:uppercase;}
+  .lab-badge{display:inline-flex;border-radius:999px;padding:3px 8px;font-size:12px;font-weight:700;background:#334155;color:#e2e8f0;}
+  .lab-badge.pendiente{background:#78350f;color:#fde68a;}
+  .lab-badge.revisado{background:#064e3b;color:#bbf7d0;}
+  .lab-muted{color:var(--text-muted,#94a3b8);}
+</style>
+
+<div class="card">
+  <div class="card-header">
+    <h2><i class="fas fa-vial-circle-check"></i> Laboratorio fichajes Hotel 1</h2>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+      <a class="btn btn-secondary" href="{{ url_for('rrhh.alertas_rrhh', fecha=desde, centro_id=centro_id) }}"><i class="fas fa-bell"></i> Alertas del primer dia</a>
+      <a class="btn btn-secondary" href="{{ url_for('rrhh.cuadrante_real', fecha=desde, centro_id=centro_id) }}"><i class="fas fa-calendar-week"></i> Cuadrante</a>
+      <a class="btn btn-secondary" href="{{ url_for('rrhh.lista_fichajes') }}"><i class="fas fa-clock"></i> Fichajes</a>
+    </div>
+  </div>
+
+  <form class="lab-filter" method="get">
+    <div class="form-group"><label class="form-label">Desde</label><input class="form-control" type="date" name="desde" value="{{ desde }}"></div>
+    <div class="form-group"><label class="form-label">Hasta</label><input class="form-control" type="date" name="hasta" value="{{ hasta }}"></div>
+    <div class="form-group"><label class="form-label">Centro</label><select class="form-control" name="centro_id">
+      <option value="">Todos</option>
+      {% for c in centros %}
+      <option value="{{ c.id }}" {% if centro_id|string == c.id|string %}selected{% endif %}>{{ c.nombre }}</option>
+      {% endfor %}
+    </select></div>
+    <button class="btn btn-primary" type="submit"><i class="fas fa-search"></i> Revisar</button>
+  </form>
+
+  <div class="lab-grid">
+    <div class="lab-kpi"><span>Casos</span><strong>{{ resumen.casos }}</strong></div>
+    <div class="lab-kpi"><span>Pendientes</span><strong>{{ resumen.pendientes }}</strong></div>
+    <div class="lab-kpi"><span>Dias afectados</span><strong>{{ resumen.fechas }}</strong></div>
+    <div class="lab-kpi"><span>Empleados</span><strong>{{ resumen.empleados }}</strong></div>
+  </div>
+
+  {% if recomendaciones %}
+  <div class="alert alert-warning">
+    {% for r in recomendaciones %}
+    <strong>{{ r.titulo }}</strong>: {{ r.recomendacion }}<br>
+    <span class="lab-muted">{{ r.impacto }}</span>
+    {% endfor %}
+  </div>
+  {% endif %}
+</div>
+
+<div class="card" style="margin-top:16px;">
+  <div class="card-header"><h2><i class="fas fa-triangle-exclamation"></i> Casos inyectados</h2></div>
+  {% if casos %}
+  <div class="lab-table-wrap">
+    <table class="lab-table">
+      <thead><tr><th>Fecha</th><th>Caso</th><th>Empleado</th><th>Departamento</th><th>Turno</th><th>Que debe pasar</th><th>Estado</th><th>Accion</th></tr></thead>
+      <tbody>
+      {% for c in casos %}
+      <tr>
+        <td>{{ c.fecha }}</td>
+        <td>{{ c.caso }}<br><span class="lab-muted">{{ c.descripcion }}</span></td>
+        <td>{{ c.empleado_nombre or c.empleado_id }}<br><span class="lab-muted">{{ c.rol or '-' }}</span></td>
+        <td>{{ c.departamento_nombre or '-' }}<br><span class="lab-muted">{{ c.subdepartamento_nombre or '-' }}</span></td>
+        <td>{% if c.turno_id %}{{ c.hora_inicio or '-' }} / {{ c.hora_fin or '-' }}{% else %}Sin turno{% endif %}</td>
+        <td>{{ c.resultado_esperado }}</td>
+        <td><span class="lab-badge {{ c.estado_revision }}">{{ c.estado_revision }}</span></td>
+        <td>
+          <a class="btn btn-sm btn-primary" href="{{ url_for('rrhh.alertas_rrhh', fecha=c.fecha, centro_id=centro_id) }}">Ver alertas</a>
+        </td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <p class="lab-muted">No hay casos de laboratorio para el periodo seleccionado.</p>
+  {% endif %}
+</div>
+{% endblock %}

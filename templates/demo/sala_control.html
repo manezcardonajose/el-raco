@@ -1,0 +1,1715 @@
+{% extends 'base.html' %}
+{% block title %}Sala interna de pruebas{% endblock %}
+{% block breadcrumb %}Demo / Sala interna de pruebas{% endblock %}
+{% block content %}
+<style>
+  .control-grid { display:grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap:12px; }
+  .control-kpi { border:1px solid #334155; border-radius:8px; padding:14px; background:rgba(15,23,42,.35); }
+  .control-kpi small { color:#94a3b8; display:block; margin-bottom:6px; }
+  .control-kpi strong { font-size:1.55rem; color:#fff; }
+  .decision-card { border:1px solid #334155; border-radius:8px; padding:14px; margin-bottom:10px; background:rgba(15,23,42,.32); }
+  .priority-critica { border-color:#ef4444; }
+  .priority-alta { border-color:#f59e0b; }
+  .priority-media { border-color:#38bdf8; }
+  .control-table { width:100%; border-collapse:collapse; }
+  .control-table th, .control-table td { padding:9px 8px; border-bottom:1px solid #334155; text-align:left; vertical-align:top; }
+  .control-table th { color:#ff7a00; font-size:.78rem; text-transform:uppercase; }
+  .muted { color:#94a3b8; }
+  .radar-row { display:grid; grid-template-columns: 190px 105px minmax(180px, 1fr) minmax(220px, 1.3fr); gap:12px; align-items:start; padding:12px 0; border-bottom:1px solid #334155; }
+  .radar-row:last-child { border-bottom:0; }
+  .radar-module { display:flex; gap:9px; align-items:flex-start; }
+  .radar-icon { width:30px; height:30px; border-radius:8px; display:grid; place-items:center; background:rgba(255,122,0,.13); color:#ff7a00; flex:0 0 auto; }
+  .radar-state { font-weight:700; text-transform:uppercase; font-size:.76rem; }
+  .radar-vivo { color:#22c55e; }
+  .radar-vigilar { color:#f59e0b; }
+  .radar-flojo { color:#ef4444; }
+  .mini-list { display:flex; gap:6px; flex-wrap:wrap; }
+  @media (max-width: 920px) { .radar-row { grid-template-columns:1fr; } }
+</style>
+
+<div class="card">
+  <div class="card-header">
+    <h2><i class="fas fa-tower-observation"></i> Sala interna de pruebas</h2>
+    <div style="display:flex; gap:8px; flex-wrap:wrap;">
+      {% if estado.db.existe %}
+      <a class="btn btn-success" href="{{ estado.demo_url }}" target="_blank"><i class="fas fa-external-link-alt"></i> Abrir demo 5002</a>
+      {% endif %}
+      <a class="btn btn-info" href="{{ url_for('demo.simulador_centros') }}"><i class="fas fa-sliders-h"></i> Simulador por centro</a>
+      <a class="btn btn-secondary" href="{{ url_for('demo.dashboard') }}"><i class="fas fa-route"></i> Demo guiada</a>
+    </div>
+  </div>
+  <p class="muted" style="max-width:980px;">
+    Esta sala queda para nosotros: laboratorio bruto <strong>Hotel 1</strong>, separado de la base real.
+    Aqui se ve si la simulacion esta rompiendo algo: datos creados, decisiones automaticas,
+    alertas criticas y modulos tensionados. Para Albarracin usa sus pantallas reales de centro, presupuesto,
+    reservas y gestion operativa.
+  </p>
+  <div style="border:1px solid #f59e0b;background:rgba(245,158,11,.10);border-radius:8px;padding:12px;margin-bottom:14px;">
+    <strong>Contexto:</strong> Demo / Sala interna de pruebas = Hotel 1, centro 3, base separada <code>simulacion_hotel1_vida.db</code>.
+    No cambia el centro activo de El Raco ni mezcla datos con Hotel Albarracin.
+  </div>
+  <div class="control-grid">
+    <div class="control-kpi"><small>Base vida operativa</small><strong>{{ 'Creada' if estado.db.existe else 'Pendiente' }}</strong><div class="muted">{{ estado.db.modificado or '-' }}</div></div>
+    <div class="control-kpi"><small>Puerto 5002</small><strong>{{ 'Activo' if estado.server_running else 'Parado' }}</strong><div class="muted">{{ estado.demo_url }}</div></div>
+    <div class="control-kpi"><small>Corrida</small><strong>{{ estado.corrida.id if estado.corrida else '-' }}</strong><div class="muted">{{ estado.corrida.fecha_inicio if estado.corrida else '' }} / {{ estado.corrida.fecha_fin if estado.corrida else '' }}</div></div>
+    <div class="control-kpi"><small>Decisiones</small><strong>{{ estado.decisiones|length }}</strong><div class="muted">pendientes de revisar</div></div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header"><h2><i class="fas fa-scale-balanced"></i> Veredicto brutal</h2></div>
+  {% if estado.veredicto_brutal %}
+  <div class="control-grid" style="margin-bottom:14px;">
+    <div class="control-kpi"><small>Nota honesta</small><strong>{{ estado.veredicto_brutal.nota }}/100</strong></div>
+    <div class="control-kpi"><small>Nivel</small><strong>{{ estado.veredicto_brutal.nivel }}</strong></div>
+    <div class="control-kpi"><small>Corrida</small><strong>{{ estado.veredicto_brutal.corrida_id }}</strong></div>
+  </div>
+  <h3 style="margin-top:0;">{{ estado.veredicto_brutal.titular }}</h3>
+  <p>{{ estado.veredicto_brutal.veredicto }}</p>
+  <p class="muted">{{ estado.veredicto_brutal.conclusion }}</p>
+  <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:14px;">
+    <div>
+      <h3>Lo que aguanta</h3>
+      {% for item in estado.veredicto_brutal.fortalezas %}
+      <div class="decision-card priority-media">{{ item }}</div>
+      {% endfor %}
+    </div>
+    <div>
+      <h3>Lo que rompe</h3>
+      {% for item in estado.veredicto_brutal.roturas %}
+      <div class="decision-card priority-{{ item.nivel }}">
+        <strong>{{ item.area }}</strong><br>{{ item.texto }}
+      </div>
+      {% endfor %}
+    </div>
+    <div>
+      <h3>Siguiente golpe</h3>
+      {% for item in estado.veredicto_brutal.acciones %}
+      <div class="decision-card">{{ item }}</div>
+      {% endfor %}
+    </div>
+  </div>
+  {% else %}
+  <p class="muted">Todavia no hay veredicto brutal. Ejecuta la auditoria para saber si la ERP aguanta o se cae.</p>
+  {% endif %}
+</div>
+
+<div style="display:grid; grid-template-columns:minmax(280px, 390px) minmax(360px, 1fr); gap:16px;">
+  <div class="card" style="margin:0;">
+    <div class="card-header"><h2><i class="fas fa-play"></i> Generar vida operativa</h2></div>
+    <form method="post" action="{{ url_for('demo.generar_vida') }}">
+      <div class="control-kpi" style="margin-bottom:12px;">
+        <small>Escenario objetivo</small>
+        <strong>Hotel 1</strong>
+        <div class="muted">Centro 3 · laboratorio de prueba de fuego</div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Duracion</label>
+        <select class="form-control" name="duracion">
+          <option value="9m">9 meses temporada</option>
+          <option value="12m">12 meses con parada tecnica</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Fecha inicio</label>
+        <input class="form-control" type="date" name="inicio" value="2026-06-01">
+      </div>
+      <label style="display:flex; gap:8px; align-items:center; margin:12px 0;">
+        <input type="checkbox" name="reset" value="1" checked>
+        Reiniciar base de simulacion
+      </label>
+      <button class="btn btn-warning" type="submit" onclick="return confirm('Generar vida operativa? Puede tardar un poco.');">
+        <i class="fas fa-bolt"></i> Lanzar prueba de fuego
+      </button>
+    </form>
+    {% if estado.log_tail %}
+    <h3 style="margin-top:18px;">Log</h3>
+    <pre style="white-space:pre-wrap; background:#111827; border:1px solid #334155; border-radius:8px; padding:12px; max-height:220px; overflow:auto;">{{ estado.log_tail|join('\n') }}</pre>
+    {% endif %}
+  </div>
+
+  <div class="card" style="margin:0;">
+    <div class="card-header"><h2><i class="fas fa-gauge-high"></i> Movimiento generado</h2></div>
+    <div class="control-grid">
+      {% for clave, valor in estado.metricas.items() %}
+      <div class="control-kpi"><small>{{ clave.replace('_', ' ') }}</small><strong>{{ valor }}</strong></div>
+      {% endfor %}
+    </div>
+    {% if estado.report and estado.report.creado %}
+    <h3 style="margin-top:18px;">Resumen bruto</h3>
+    <div style="display:flex; gap:8px; flex-wrap:wrap;">
+      {% for clave, valor in estado.report.creado.items() %}
+      <span class="badge badge-info">{{ clave.replace('_', ' ') }}: {{ valor }}</span>
+      {% endfor %}
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header"><h2><i class="fas fa-bullseye"></i> Radar operativo por modulos</h2></div>
+  {% if estado.radar_modulos and estado.radar_modulos.resumen %}
+  <div class="control-grid" style="margin-bottom:14px;">
+    <div class="control-kpi"><small>Modulos vivos</small><strong>{{ estado.radar_modulos.resumen.ok or 0 }}/{{ estado.radar_modulos.resumen.total or 0 }}</strong><div class="muted">{{ '%.1f'|format(estado.radar_modulos.resumen.pct_vivo or 0) }}%</div></div>
+    <div class="control-kpi"><small>A vigilar</small><strong>{{ estado.radar_modulos.resumen.vigilar or 0 }}</strong><div class="muted">tienen datos, pero no completos</div></div>
+    <div class="control-kpi"><small>Flojos</small><strong>{{ estado.radar_modulos.resumen.flojo or 0 }}</strong><div class="muted">faltan datos de prueba</div></div>
+    <div class="control-kpi"><small>Riesgos detectados</small><strong>{{ estado.radar_modulos.resumen.riesgos or 0 }}</strong><div class="muted">alertas o casos abiertos</div></div>
+    <div class="control-kpi"><small>Movimiento total</small><strong>{{ estado.radar_modulos.resumen.total_movimiento or 0 }}</strong><div class="muted">registros cruzados</div></div>
+  </div>
+  <div>
+    {% for row in estado.radar_modulos.filas %}
+    <div class="radar-row">
+      <div class="radar-module">
+        <span class="radar-icon"><i class="fas fa-{{ row.icono }}"></i></span>
+        <div>
+          <strong>{{ row.modulo }}</strong><br>
+          <span class="radar-state radar-{{ row.estado }}">{{ row.estado }}</span>
+        </div>
+      </div>
+      <div>
+        <span class="muted">Movimiento</span><br>
+        <strong>{{ row.movimiento }}</strong>
+        {% if row.riesgos %}
+        <br><span class="badge badge-danger">{{ row.riesgos }} riesgos</span>
+        {% endif %}
+      </div>
+      <div>
+        <span class="muted">Soportes</span>
+        <div class="mini-list" style="margin-top:6px;">
+          <span class="badge badge-info">Base {{ row.principal }}</span>
+          {% for apoyo in row.apoyos %}
+          <span class="badge {{ 'badge-success' if apoyo.total else 'badge-secondary' }}">{{ apoyo.nombre }} {{ apoyo.total }}</span>
+          {% endfor %}
+        </div>
+      </div>
+      <div>
+        <strong>{{ row.lectura }}</strong><br>
+        <span class="muted">{{ row.accion }}</span>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <p class="muted">Todavia no hay radar operativo calculado.</p>
+  {% endif %}
+</div>
+
+<div class="card">
+  <div class="card-header"><h2><i class="fas fa-fingerprint"></i> Origen de datos</h2></div>
+  {% if estado.origen_datos and estado.origen_datos.resumen %}
+  <div class="control-grid" style="margin-bottom:14px;">
+    <div class="control-kpi"><small>Total registros</small><strong>{{ estado.origen_datos.resumen.total or 0 }}</strong></div>
+    <div class="control-kpi"><small>Simulados</small><strong>{{ estado.origen_datos.resumen.simulado or 0 }}</strong></div>
+    <div class="control-kpi"><small>Base/manual</small><strong>{{ estado.origen_datos.resumen.real or 0 }}</strong></div>
+    <div class="control-kpi"><small>Importados</small><strong>{{ estado.origen_datos.resumen.importado or 0 }}</strong></div>
+    <div class="control-kpi"><small>Indeterminados</small><strong>{{ estado.origen_datos.resumen.indeterminado or 0 }}</strong></div>
+    <div class="control-kpi"><small>% simulado</small><strong>{{ '%.1f'|format(estado.origen_datos.resumen.pct_simulado or 0) }}%</strong></div>
+  </div>
+  <table class="control-table">
+    <thead>
+      <tr><th>Modulo</th><th>Total</th><th>Simulado</th><th>Base/manual</th><th>Importado</th><th>Indet.</th><th>% sim.</th><th>Lectura</th></tr>
+    </thead>
+    <tbody>
+    {% for row in estado.origen_datos.filas %}
+    <tr>
+      <td><strong>{{ row.modulo }}</strong><br><span class="muted">{{ row.tabla }}</span></td>
+      <td>{{ row.total }}</td>
+      <td><span class="badge badge-info">{{ row.simulado }}</span></td>
+      <td>{{ row.real }}</td>
+      <td>{{ row.importado }}</td>
+      <td>
+        {% if row.indeterminado %}
+          <span class="badge badge-warning">{{ row.indeterminado }}</span>
+        {% else %}
+          0
+        {% endif %}
+      </td>
+      <td>{{ '%.1f'|format(row.pct_simulado or 0) }}%</td>
+      <td>{{ row.detalle }}</td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p class="muted">Todavia no hay mapa de origen de datos.</p>
+  {% endif %}
+</div>
+
+<div class="card">
+  <div class="card-header"><h2><i class="fas fa-microscope"></i> Calidad de la simulacion</h2></div>
+  {% if estado.calidad_resumen %}
+  <div class="control-grid" style="margin-bottom:14px;">
+    <div class="control-kpi"><small>Score confianza</small><strong>{{ '%.1f'|format(estado.calidad_resumen.score_confianza or 0) }}</strong></div>
+    <div class="control-kpi"><small>Incidencias</small><strong>{{ estado.calidad_resumen.total or 0 }}</strong></div>
+    <div class="control-kpi"><small>Criticas</small><strong>{{ estado.calidad_resumen.criticas or 0 }}</strong></div>
+    <div class="control-kpi"><small>Altas</small><strong>{{ estado.calidad_resumen.altas or 0 }}</strong></div>
+    <div class="control-kpi"><small>Medias</small><strong>{{ estado.calidad_resumen.medias or 0 }}</strong></div>
+  </div>
+  <p class="muted">{{ estado.calidad_resumen.lectura }}</p>
+  {% endif %}
+  {% if estado.calidad_incidencias %}
+  <table class="control-table">
+    <thead><tr><th>Area</th><th>Nivel</th><th>Codigo</th><th>Incidencia</th><th>Detalle</th></tr></thead>
+    <tbody>
+    {% for row in estado.calidad_incidencias %}
+    <tr>
+      <td>{{ row.area }}</td>
+      <td><span class="badge {{ 'badge-danger' if row.severidad == 'critica' else 'badge-warning' if row.severidad == 'alta' else 'badge-info' }}">{{ row.severidad }}</span></td>
+      <td>{{ row.codigo }}</td>
+      <td>{{ row.titulo }}</td>
+      <td>{{ row.detalle }}</td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p class="muted">Todavia no hay auditoria de calidad. Ejecuta el auditor para saber si la realidad simulada es coherente.</p>
+  {% endif %}
+</div>
+
+<div class="card">
+  <div class="card-header"><h2><i class="fas fa-clipboard-check"></i> Acciones PRL desde auditoria</h2></div>
+  {% if estado.prl_acciones_resumen %}
+  <div class="control-grid" style="margin-bottom:14px;">
+    <div class="control-kpi"><small>Abiertas</small><strong>{{ estado.prl_acciones_resumen.abiertas or 0 }}</strong></div>
+    <div class="control-kpi"><small>Criticas</small><strong>{{ estado.prl_acciones_resumen.criticas or 0 }}</strong></div>
+    <div class="control-kpi"><small>Altas</small><strong>{{ estado.prl_acciones_resumen.altas or 0 }}</strong></div>
+    <div class="control-kpi"><small>Total generadas</small><strong>{{ estado.prl_acciones_resumen.total or 0 }}</strong></div>
+  </div>
+  {% endif %}
+  {% if estado.prl_acciones %}
+  <table class="control-table">
+    <thead>
+      <tr>
+        <th>Prioridad</th>
+        <th>Estado</th>
+        <th>Accion</th>
+        <th>Responsable</th>
+        <th>Limite</th>
+        <th>Riesgo</th>
+        <th>Evidencia</th>
+      </tr>
+    </thead>
+    <tbody>
+    {% for row in estado.prl_acciones %}
+    <tr>
+      <td><span class="badge {{ 'badge-danger' if row.prioridad == 'critica' else 'badge-warning' if row.prioridad == 'alta' else 'badge-info' }}">{{ row.prioridad }}</span></td>
+      <td>{{ row.estado }}</td>
+      <td><strong>{{ row.titulo }}</strong><br><span class="muted">{{ row.descripcion }}</span></td>
+      <td>{{ row.responsable }}</td>
+      <td>{{ row.fecha_limite }}</td>
+      <td>{{ row.riesgo_codigo or '-' }}</td>
+      <td>{{ row.evidencia }}</td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p class="muted">Todavia no hay acciones PRL generadas desde la auditoria del simulador.</p>
+  {% endif %}
+</div>
+
+<div class="card">
+  <div class="card-header"><h2><i class="fas fa-shield-virus"></i> Acciones seguridad alimentaria</h2></div>
+  {% if estado.seguridad_alimentaria_acciones_resumen %}
+  <div class="control-grid" style="margin-bottom:14px;">
+    <div class="control-kpi"><small>Abiertas</small><strong>{{ estado.seguridad_alimentaria_acciones_resumen.abiertas or 0 }}</strong></div>
+    <div class="control-kpi"><small>Criticas</small><strong>{{ estado.seguridad_alimentaria_acciones_resumen.criticas or 0 }}</strong></div>
+    <div class="control-kpi"><small>Altas</small><strong>{{ estado.seguridad_alimentaria_acciones_resumen.altas or 0 }}</strong></div>
+    <div class="control-kpi"><small>Total generadas</small><strong>{{ estado.seguridad_alimentaria_acciones_resumen.total or 0 }}</strong></div>
+  </div>
+  {% endif %}
+  {% if estado.seguridad_alimentaria_acciones %}
+  <table class="control-table">
+    <thead>
+      <tr>
+        <th>Prioridad</th>
+        <th>Estado</th>
+        <th>Area</th>
+        <th>Accion</th>
+        <th>Responsable</th>
+        <th>Limite</th>
+        <th>Evidencia</th>
+      </tr>
+    </thead>
+    <tbody>
+    {% for row in estado.seguridad_alimentaria_acciones %}
+    <tr>
+      <td><span class="badge {{ 'badge-danger' if row.prioridad == 'critica' else 'badge-warning' if row.prioridad == 'alta' else 'badge-info' }}">{{ row.prioridad }}</span></td>
+      <td>{{ row.estado }}</td>
+      <td>{{ row.area }}</td>
+      <td><strong>{{ row.titulo }}</strong><br><span class="muted">{{ row.descripcion }}</span></td>
+      <td>{{ row.responsable }}</td>
+      <td>{{ row.fecha_limite }}</td>
+      <td>{{ row.evidencia }}</td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p class="muted">Todavia no hay acciones alimentarias generadas desde la auditoria del simulador.</p>
+  {% endif %}
+</div>
+
+<div class="card">
+  <div class="card-header"><h2><i class="fas fa-vial-circle-check"></i> Prueba de fuego de pantallas</h2></div>
+  {% if estado.prueba_fuego_resumen %}
+  <div class="control-grid" style="margin-bottom:14px;">
+    <div class="control-kpi"><small>Score rutas</small><strong>{{ '%.1f'|format(estado.prueba_fuego_resumen.score or 0) }}</strong></div>
+    <div class="control-kpi"><small>Rutas probadas</small><strong>{{ estado.prueba_fuego_resumen.total or 0 }}</strong></div>
+    <div class="control-kpi"><small>OK</small><strong>{{ estado.prueba_fuego_resumen.ok or 0 }}</strong></div>
+    <div class="control-kpi"><small>Fallos</small><strong>{{ estado.prueba_fuego_resumen.fallos or 0 }}</strong></div>
+  </div>
+  <p class="muted">{{ estado.prueba_fuego_resumen.lectura }}</p>
+  {% endif %}
+  {% if estado.prueba_fuego_fallos %}
+  <table class="control-table">
+    <thead><tr><th>Modulo</th><th>Ruta</th><th>Status</th><th>Tiempo</th><th>Error</th></tr></thead>
+    <tbody>
+    {% for row in estado.prueba_fuego_fallos %}
+    <tr>
+      <td>{{ row.modulo }}</td>
+      <td>{{ row.ruta }}</td>
+      <td><span class="badge badge-danger">{{ row.status_code }}</span></td>
+      <td>{{ '%.1f'|format(row.tiempo_ms or 0) }} ms</td>
+      <td>{{ row.error }}</td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% elif estado.prueba_fuego_resumen %}
+  <p class="muted">No hay fallos de carga en las rutas probadas.</p>
+  {% else %}
+  <p class="muted">Todavia no se ha ejecutado la prueba de fuego de pantallas.</p>
+  {% endif %}
+</div>
+
+<div class="card">
+  <div class="card-header"><h2><i class="fas fa-link"></i> Trazabilidad operativa</h2></div>
+  {% if estado.trazabilidad_resumen %}
+  <div class="control-grid" style="margin-bottom:14px;">
+    <div class="control-kpi"><small>Score trazabilidad</small><strong>{{ '%.1f'|format(estado.trazabilidad_resumen.score or 0) }}</strong></div>
+    <div class="control-kpi"><small>Incidencias</small><strong>{{ estado.trazabilidad_resumen.total or 0 }}</strong></div>
+    <div class="control-kpi"><small>Criticas</small><strong>{{ estado.trazabilidad_resumen.criticas or 0 }}</strong></div>
+    <div class="control-kpi"><small>Altas</small><strong>{{ estado.trazabilidad_resumen.altas or 0 }}</strong></div>
+    <div class="control-kpi"><small>Medias</small><strong>{{ estado.trazabilidad_resumen.medias or 0 }}</strong></div>
+  </div>
+  <p class="muted">{{ estado.trazabilidad_resumen.lectura }}</p>
+  {% endif %}
+  {% if estado.trazabilidad_alertas %}
+  <table class="control-table">
+    <thead><tr><th>Area</th><th>Nivel</th><th>Codigo</th><th>Alerta</th><th>Detalle</th></tr></thead>
+    <tbody>
+    {% for row in estado.trazabilidad_alertas %}
+    <tr>
+      <td>{{ row.area }}</td>
+      <td><span class="badge {{ 'badge-danger' if row.severidad == 'critica' else 'badge-warning' if row.severidad == 'alta' else 'badge-info' }}">{{ row.severidad }}</span></td>
+      <td>{{ row.codigo }}</td>
+      <td>{{ row.titulo }}</td>
+      <td>{{ row.detalle }}</td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% elif estado.trazabilidad_resumen %}
+  <p class="muted">No hay roturas de trazabilidad en los modulos auditados.</p>
+  {% else %}
+  <p class="muted">Todavia no se ha ejecutado la auditoria de trazabilidad operativa.</p>
+  {% endif %}
+</div>
+
+<div class="card">
+  <div class="card-header"><h2><i class="fas fa-calendar-week"></i> Menu semanal y mise en place</h2></div>
+  {% if estado.menu_semanal_resumen %}
+  <div class="control-grid" style="margin-bottom:14px;">
+    <div class="control-kpi"><small>Semanas</small><strong>{{ estado.menu_semanal_resumen.semanas or 0 }}</strong></div>
+    <div class="control-kpi"><small>Dias</small><strong>{{ estado.menu_semanal_resumen.dias or 0 }}</strong></div>
+    <div class="control-kpi"><small>Servicios</small><strong>{{ estado.menu_semanal_resumen.servicios or 0 }}</strong></div>
+    <div class="control-kpi"><small>Pax</small><strong>{{ '%.0f'|format(estado.menu_semanal_resumen.pax or 0) }}</strong></div>
+    <div class="control-kpi"><small>Kg pescado</small><strong>{{ '%.2f'|format(estado.menu_semanal_resumen.kg_pescado or 0) }}</strong></div>
+    <div class="control-kpi"><small>Kg carne</small><strong>{{ '%.2f'|format(estado.menu_semanal_resumen.kg_carne or 0) }}</strong></div>
+    <div class="control-kpi"><small>Alertas</small><strong>{{ estado.menu_semanal_resumen.alertas or 0 }}</strong></div>
+  </div>
+  {% if estado.mise_alertas_resumen %}
+  <div class="control-grid" style="margin-bottom:14px;">
+    <div class="control-kpi"><small>Mise pendiente</small><strong>{{ estado.mise_alertas_resumen.total or 0 }}</strong></div>
+    <div class="control-kpi"><small>Criticas</small><strong>{{ estado.mise_alertas_resumen.criticas or 0 }}</strong></div>
+    <div class="control-kpi"><small>Altas</small><strong>{{ estado.mise_alertas_resumen.altas or 0 }}</strong></div>
+    <div class="control-kpi"><small>Pescado</small><strong>{{ estado.mise_alertas_resumen.pescado or 0 }}</strong></div>
+    <div class="control-kpi"><small>Carne</small><strong>{{ estado.mise_alertas_resumen.carne or 0 }}</strong></div>
+    <div class="control-kpi"><small>Desinfeccion</small><strong>{{ estado.mise_alertas_resumen.desinfeccion or 0 }}</strong></div>
+  </div>
+  {% endif %}
+  {% if estado.mise_alertas %}
+  <h3 style="margin:10px 0;">Avisos de cocina</h3>
+  <table class="control-table">
+    <thead><tr><th>Aviso</th><th>Servicio</th><th>Nivel</th><th>Estado</th><th>Tipo</th><th>Producto</th><th>Cantidad</th><th>Accion</th></tr></thead>
+    <tbody>
+    {% for row in estado.mise_alertas %}
+    <tr>
+      <td>{{ row.fecha_alerta }}</td>
+      <td>{{ row.fecha_servicio }} {{ row.servicio }}</td>
+      <td><span class="badge {{ 'badge-danger' if row.prioridad == 'critica' else 'badge-warning' if row.prioridad == 'alta' else 'badge-info' }}">{{ row.prioridad }}</span></td>
+      <td><span class="badge {{ 'badge-danger' if row.estado == 'bloqueada_stock' else 'badge-warning' if row.estado == 'bloqueada_capacidad' else 'badge-info' }}">{{ row.estado }}</span></td>
+      <td>{{ row.tipo }}</td>
+      <td>{{ row.producto }}</td>
+      <td>{{ '%.2f'|format(row.cantidad or 0) }} {{ row.unidad or '' }}</td>
+      <td>{{ row.accion }}</td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% endif %}
+  {% if estado.pedidos_mise_resumen %}
+  <h3 style="margin:16px 0 10px;">Pedidos generados desde mise en place</h3>
+  <div class="control-grid" style="margin-bottom:14px;">
+    <div class="control-kpi"><small>Pedidos</small><strong>{{ estado.pedidos_mise_resumen.pedidos or 0 }}</strong></div>
+    <div class="control-kpi"><small>Lineas</small><strong>{{ estado.pedidos_mise_resumen.lineas or 0 }}</strong></div>
+    <div class="control-kpi"><small>Importe</small><strong>{{ '%.2f'|format(estado.pedidos_mise_resumen.importe or 0) }} EUR</strong></div>
+    <div class="control-kpi"><small>Borradores</small><strong>{{ estado.pedidos_mise_resumen.borradores or 0 }}</strong></div>
+    <div class="control-kpi"><small>Recibidos</small><strong>{{ estado.pedidos_mise_resumen.recibidos or 0 }}</strong></div>
+    <div class="control-kpi"><small>Parciales</small><strong>{{ estado.pedidos_mise_resumen.parciales or 0 }}</strong></div>
+    <div class="control-kpi"><small>Recepciones</small><strong>{{ estado.pedidos_mise_resumen.recepciones or 0 }}</strong></div>
+    <div class="control-kpi"><small>Val. economica</small><strong>{{ estado.pedidos_mise_resumen.economicas_validadas or 0 }}</strong></div>
+    <div class="control-kpi"><small>Pend. economica</small><strong>{{ estado.pedidos_mise_resumen.pendiente_economica or 0 }}</strong></div>
+    <div class="control-kpi"><small>Docs compra</small><strong>{{ estado.pedidos_mise_resumen.documentos_compra or 0 }}</strong></div>
+    <div class="control-kpi"><small>Docs contables</small><strong>{{ estado.pedidos_mise_resumen.documentos_contables or 0 }}</strong></div>
+    <div class="control-kpi"><small>Coste contable</small><strong>{{ '%.2f'|format(estado.pedidos_mise_resumen.total_contable or 0) }} EUR</strong></div>
+    <div class="control-kpi"><small>Pagado</small><strong>{{ '%.2f'|format(estado.pedidos_mise_resumen.pagado_contable or 0) }} EUR</strong></div>
+    <div class="control-kpi"><small>Pendiente pago</small><strong>{{ '%.2f'|format(estado.pedidos_mise_resumen.pendiente_contable or 0) }} EUR</strong></div>
+    <div class="control-kpi"><small>Pagos</small><strong>{{ estado.pedidos_mise_resumen.pagos_tesoreria or 0 }}</strong></div>
+    <div class="control-kpi"><small>Vencidos</small><strong>{{ estado.pedidos_mise_resumen.contables_vencidos or 0 }}</strong></div>
+    <div class="control-kpi"><small>Parciales</small><strong>{{ estado.pedidos_mise_resumen.contables_parciales or 0 }}</strong></div>
+    <div class="control-kpi"><small>Incidencias</small><strong>{{ estado.pedidos_mise_resumen.incidencias or 0 }}</strong></div>
+    <div class="control-kpi"><small>Lotes</small><strong>{{ estado.pedidos_mise_resumen.lotes or 0 }}</strong></div>
+    <div class="control-kpi"><small>Sin recepcion</small><strong>{{ estado.pedidos_mise_resumen.sin_recepcion or 0 }}</strong></div>
+  </div>
+  {% if estado.pedidos_mise %}
+  <table class="control-table">
+    <thead><tr><th>Pedido</th><th>Proveedor</th><th>Departamento</th><th>Estado</th><th>Entrega</th><th>Lineas</th><th>Total</th></tr></thead>
+    <tbody>
+    {% for row in estado.pedidos_mise %}
+    <tr>
+      <td>{{ row.numero_pedido }}</td>
+      <td>{{ row.proveedor_nombre or '-' }}</td>
+      <td>{{ row.departamento_nombre or '-' }}</td>
+      <td>{{ row.estado }}</td>
+      <td>{{ row.fecha_entrega or '-' }}</td>
+      <td>{{ row.lineas or 0 }}</td>
+      <td>{{ '%.2f'|format(row.total or 0) }} EUR</td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% endif %}
+  {% endif %}
+  {% if estado.menu_semanal_proximos %}
+  <h3 style="margin:16px 0 10px;">Primeros servicios planificados</h3>
+  <table class="control-table">
+    <thead><tr><th>Fecha</th><th>Servicio</th><th>Partes</th><th>Lineas</th><th>Pax</th><th>Pescado</th><th>Carne</th><th>Congelado</th><th>Lectura</th></tr></thead>
+    <tbody>
+    {% for row in estado.menu_semanal_proximos %}
+    <tr>
+      <td>{{ row.fecha }}</td>
+      <td>{{ row.servicio }}</td>
+      <td>{{ row.partes }}</td>
+      <td>{{ row.lineas }}</td>
+      <td>{{ '%.0f'|format(row.pax_previstos or 0) }}</td>
+      <td>{{ '%.2f'|format(row.kg_pescado or 0) }}</td>
+      <td>{{ '%.2f'|format(row.kg_carne or 0) }}</td>
+      <td>{{ '%.2f'|format(row.kg_congelado or 0) }}</td>
+      <td>{{ row.lectura }}</td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% endif %}
+  {% else %}
+  <p class="muted">Todavia no hay plan semanal operativo ni avisos de mise en place.</p>
+  {% endif %}
+</div>
+
+<div class="card">
+  <div class="card-header"><h2><i class="fas fa-clipboard-list"></i> Jornada operativa simulada</h2></div>
+  {% if estado.jornada_resumen %}
+  <div class="control-grid" style="margin-bottom:14px;">
+    <div class="control-kpi"><small>Dias</small><strong>{{ estado.jornada_resumen.dias or 0 }}</strong></div>
+    <div class="control-kpi"><small>Entradas trabajo</small><strong>{{ estado.jornada_resumen.entrada or 0 }}</strong></div>
+    <div class="control-kpi"><small>Completadas</small><strong>{{ estado.jornada_resumen.completadas or 0 }}</strong></div>
+    <div class="control-kpi"><small>Bloq. stock</small><strong>{{ estado.jornada_resumen.bloqueadas_stock or 0 }}</strong></div>
+    <div class="control-kpi"><small>Bloq. capacidad</small><strong>{{ estado.jornada_resumen.bloqueadas_capacidad or 0 }}</strong></div>
+    <div class="control-kpi"><small>Pendiente final</small><strong>{{ estado.jornada_resumen.pendientes_final or 0 }}</strong></div>
+    <div class="control-kpi"><small>Criticas</small><strong>{{ estado.jornada_resumen.criticas or 0 }}</strong></div>
+  </div>
+  {% if estado.jornada_critica %}
+  <table class="control-table">
+    <thead><tr><th>Fecha</th><th>Area</th><th>Riesgo</th><th>Entrada</th><th>OK</th><th>Stock</th><th>Capacidad</th><th>Pendiente</th><th>Lectura</th><th>Accion</th></tr></thead>
+    <tbody>
+    {% for row in estado.jornada_critica %}
+    <tr>
+      <td>{{ row.fecha }}</td>
+      <td>{{ row.area }}</td>
+      <td><span class="badge {{ 'badge-danger' if row.riesgo == 'critica' else 'badge-warning' }}">{{ row.riesgo }}</span></td>
+      <td>{{ row.entrada }}</td>
+      <td>{{ row.completadas }}</td>
+      <td>{{ row.bloqueadas_stock }}</td>
+      <td>{{ row.bloqueadas_capacidad }}</td>
+      <td>{{ row.pendientes_final }}</td>
+      <td>{{ row.lectura }}</td>
+      <td>{{ row.accion_direccion }}</td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p class="muted">La jornada no deja dias criticos o altos.</p>
+  {% endif %}
+  {% else %}
+  <p class="muted">Todavia no se ha convertido la cola de trabajo en jornada operativa.</p>
+  {% endif %}
+</div>
+
+<div class="card">
+  <div class="card-header"><h2><i class="fas fa-boxes-stacked"></i> Brechas de stock que paran cocina</h2></div>
+  {% if estado.brechas_stock_resumen %}
+  <div class="control-grid" style="margin-bottom:14px;">
+    <div class="control-kpi"><small>Productos criticos</small><strong>{{ estado.brechas_stock_resumen.productos or 0 }}</strong></div>
+    <div class="control-kpi"><small>Avisos bloqueados</small><strong>{{ estado.brechas_stock_resumen.avisos or 0 }}</strong></div>
+    <div class="control-kpi"><small>Cant. bloqueada</small><strong>{{ '%.2f'|format(estado.brechas_stock_resumen.cantidad_bloqueada or 0) }}</strong></div>
+    <div class="control-kpi"><small>Cant. pedida</small><strong>{{ '%.2f'|format(estado.brechas_stock_resumen.cantidad_pedida or 0) }}</strong></div>
+    <div class="control-kpi"><small>Brecha estimada</small><strong>{{ '%.2f'|format(estado.brechas_stock_resumen.brecha or 0) }}</strong></div>
+    <div class="control-kpi"><small>Coste brecha</small><strong>{{ '%.2f'|format(estado.brechas_stock_resumen.coste or 0) }} EUR</strong></div>
+  </div>
+  {% if estado.brechas_stock %}
+  <table class="control-table">
+    <thead><tr><th>Producto</th><th>Proveedor</th><th>Avisos</th><th>Bloqueado</th><th>Pedido/recibido</th><th>Brecha</th><th>Coste</th><th>Accion</th></tr></thead>
+    <tbody>
+    {% for row in estado.brechas_stock %}
+    <tr>
+      <td><strong>{{ row.producto }}</strong><br><span class="muted">{{ row.familia or '-' }} / {{ row.primera_fecha }} - {{ row.ultima_fecha }}</span></td>
+      <td>{{ row.proveedor or 'Sin proveedor' }}<br><span class="muted">{{ row.departamento or '-' }}</span></td>
+      <td><span class="badge {{ 'badge-danger' if row.prioridad == 'critica' else 'badge-warning' }}">{{ row.avisos }}</span></td>
+      <td>{{ '%.2f'|format(row.cantidad_bloqueada or 0) }} {{ row.unidad or '' }}<br><span class="muted">Stock {{ '%.2f'|format(row.cantidad_stock or 0) }}</span></td>
+      <td>{{ '%.2f'|format(row.cantidad_pedida_mise or 0) }} / {{ '%.2f'|format(row.cantidad_recibida_mise or 0) }}</td>
+      <td>{{ '%.2f'|format(row.brecha_estimada or 0) }} {{ row.unidad or '' }}</td>
+      <td>{{ '%.2f'|format(row.coste_brecha_estimado or 0) }} EUR</td>
+      <td><strong>{{ row.accion }}</strong><br><span class="muted">{{ row.lectura }}</span></td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% endif %}
+  {% else %}
+  <p class="muted">Todavia no hay resumen de brechas de stock.</p>
+  {% endif %}
+</div>
+
+<div class="card">
+  <div class="card-header"><h2><i class="fas fa-calendar-check"></i> Plan semanal de compras para desbloquear cocina</h2></div>
+  {% if estado.plan_compras_mise_resumen %}
+  <div class="control-grid" style="margin-bottom:14px;">
+    <div class="control-kpi"><small>Semanas</small><strong>{{ estado.plan_compras_mise_resumen.semanas or 0 }}</strong></div>
+    <div class="control-kpi"><small>Lineas compra</small><strong>{{ estado.plan_compras_mise_resumen.lineas or 0 }}</strong></div>
+    <div class="control-kpi"><small>Proveedores</small><strong>{{ estado.plan_compras_mise_resumen.proveedores or 0 }}</strong></div>
+    <div class="control-kpi"><small>Cantidad total</small><strong>{{ '%.2f'|format(estado.plan_compras_mise_resumen.cantidad or 0) }}</strong></div>
+    <div class="control-kpi"><small>Coste total plan</small><strong>{{ '%.2f'|format(estado.plan_compras_mise_resumen.coste or 0) }} EUR</strong></div>
+    <div class="control-kpi"><small>Riesgos</small><strong>{{ estado.plan_compras_mise_resumen.riesgos or 0 }}</strong></div>
+  </div>
+  <div style="display:grid; grid-template-columns:minmax(360px, 1fr) minmax(320px, .85fr); gap:16px;">
+    <div>
+      <h3 style="margin:0 0 10px;">Primeras semanas</h3>
+      <table class="control-table">
+        <thead><tr><th>Semana</th><th>Pedido desde</th><th>Lineas</th><th>Prov.</th><th>Cantidad</th><th>Coste</th></tr></thead>
+        <tbody>
+        {% for row in estado.plan_compras_mise_semanas %}
+        <tr>
+          <td>{{ row.semana_inicio }}</td>
+          <td>{{ row.primer_pedido }}</td>
+          <td>{{ row.lineas }}</td>
+          <td>{{ row.proveedores }}</td>
+          <td>{{ '%.2f'|format(row.cantidad or 0) }}</td>
+          <td>{{ '%.2f'|format(row.coste or 0) }} EUR</td>
+        </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <div>
+      <h3 style="margin:0 0 10px;">Carga por proveedor</h3>
+      <table class="control-table">
+        <thead><tr><th>Proveedor</th><th>Lineas</th><th>Cantidad</th><th>Coste</th></tr></thead>
+        <tbody>
+        {% for row in estado.plan_compras_mise_proveedores %}
+        <tr>
+          <td>{{ row.proveedor or 'Sin proveedor' }}</td>
+          <td>{{ row.lineas }}</td>
+          <td>{{ '%.2f'|format(row.cantidad or 0) }}</td>
+          <td>{{ '%.2f'|format(row.coste or 0) }} EUR</td>
+        </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% else %}
+  <p class="muted">Todavia no hay plan semanal de compras desde brechas.</p>
+  {% endif %}
+</div>
+
+<div class="card">
+  <div class="card-header"><h2><i class="fas fa-money-bill-trend-up"></i> Impacto en caja del plan de compras</h2></div>
+  {% if estado.tesoreria_mise_resumen %}
+  <div class="control-grid" style="margin-bottom:14px;">
+    <div class="control-kpi"><small>Meses</small><strong>{{ estado.tesoreria_mise_resumen.meses or 0 }}</strong></div>
+    <div class="control-kpi"><small>Coste plan</small><strong>{{ '%.2f'|format(estado.tesoreria_mise_resumen.coste_plan or 0) }} EUR</strong></div>
+    <div class="control-kpi"><small>Margen original</small><strong>{{ '%.2f'|format(estado.tesoreria_mise_resumen.margen_original or 0) }} EUR</strong></div>
+    <div class="control-kpi"><small>Margen ajustado</small><strong>{{ '%.2f'|format(estado.tesoreria_mise_resumen.margen_ajustado or 0) }} EUR</strong></div>
+    <div class="control-kpi"><small>Meses criticos</small><strong>{{ estado.tesoreria_mise_resumen.criticos or 0 }}</strong></div>
+  </div>
+  <table class="control-table">
+    <thead><tr><th>Mes</th><th>Riesgo</th><th>Ingresos</th><th>Margen original</th><th>Plan compras</th><th>Compras/ing.</th><th>Margen ajustado</th><th>Caja minima</th><th>Decision</th></tr></thead>
+    <tbody>
+    {% for row in estado.tesoreria_mise_meses %}
+    <tr>
+      <td>{{ row.mes }}</td>
+      <td><span class="badge {{ 'badge-danger' if row.riesgo == 'critico' else 'badge-warning' if row.riesgo == 'alto' else 'badge-info' }}">{{ row.riesgo }}</span></td>
+      <td>{{ '%.2f'|format(row.ingresos_total or 0) }} EUR</td>
+      <td>{{ '%.2f'|format(row.margen_original or 0) }} EUR</td>
+      <td>{{ '%.2f'|format(row.coste_plan_mise or 0) }} EUR</td>
+      <td>{{ '%.1f'|format(row.compras_pct_ingresos or 0) }}%</td>
+      <td>{{ '%.2f'|format(row.margen_ajustado or 0) }} EUR</td>
+      <td>{{ '%.2f'|format(row.caja_minima_recomendada or 0) }} EUR</td>
+      <td><strong>{{ row.decision }}</strong><br><span class="muted">{{ row.condicion_control }}</span></td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p class="muted">Todavia no hay evaluacion de tesoreria del plan de compras.</p>
+  {% endif %}
+</div>
+
+<div class="card">
+  <div class="card-header"><h2><i class="fas fa-chess-board"></i> Escenarios MISE: cocina sin romper caja</h2></div>
+  {% if estado.escenarios_mise_resumen %}
+  <div class="control-grid" style="margin-bottom:14px;">
+    <div class="control-kpi"><small>Escenarios</small><strong>{{ estado.escenarios_mise_resumen.escenarios or 0 }}</strong></div>
+    <div class="control-kpi"><small>Recomendados</small><strong>{{ estado.escenarios_mise_resumen.recomendados or 0 }}</strong></div>
+    <div class="control-kpi"><small>Negativos</small><strong>{{ estado.escenarios_mise_resumen.negativos or 0 }}</strong></div>
+    <div class="control-kpi"><small>Mejor margen</small><strong>{{ '%.2f'|format(estado.escenarios_mise_resumen.mejor_margen or 0) }} EUR</strong></div>
+  </div>
+  <h3 style="margin:0 0 10px;">Mejor escenario por mes</h3>
+  <table class="control-table" style="margin-bottom:16px;">
+    <thead><tr><th>Mes</th><th>Veredicto</th><th>Escenario</th><th>Coste</th><th>Ahorro</th><th>Margen</th><th>Cobertura</th><th>Decision</th></tr></thead>
+    <tbody>
+    {% for row in estado.escenarios_mise_recomendados %}
+    <tr>
+      <td>{{ row.mes }}</td>
+      <td><span class="badge {{ 'badge-success' if row.veredicto == 'recomendado' else 'badge-warning' if row.veredicto in ['piloto_controlado','aplicar_con_cuidado'] else 'badge-danger' }}">{{ row.veredicto }}</span></td>
+      <td><strong>{{ row.nombre }}</strong><br><span class="muted">{{ row.descripcion }}</span></td>
+      <td>{{ '%.2f'|format(row.coste_escenario or 0) }} EUR</td>
+      <td>{{ '%.2f'|format(row.ahorro_vs_plan or 0) }} EUR</td>
+      <td>{{ '%.2f'|format(row.margen_escenario or 0) }} EUR</td>
+      <td>{{ '%.1f'|format(row.cobertura_operativa_pct or 0) }}%</td>
+      <td><strong>{{ row.decision }}</strong><br><span class="muted">{{ row.condicion_control }}</span></td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p class="muted">Todavia no hay escenarios MISE simulados.</p>
+  {% endif %}
+</div>
+
+<div class="card">
+  <div class="card-header"><h2><i class="fas fa-life-ring"></i> Rescate de meses criticos</h2></div>
+  {% if estado.rescate_criticos_resumen %}
+  <div class="control-grid" style="margin-bottom:14px;">
+    <div class="control-kpi"><small>Meses criticos</small><strong>{{ estado.rescate_criticos_resumen.meses or 0 }}</strong></div>
+    <div class="control-kpi"><small>Escenarios</small><strong>{{ estado.rescate_criticos_resumen.escenarios or 0 }}</strong></div>
+    <div class="control-kpi"><small>Salvables</small><strong>{{ estado.rescate_criticos_resumen.salvables or 0 }}</strong></div>
+    <div class="control-kpi"><small>Mejor margen</small><strong>{{ '%.2f'|format(estado.rescate_criticos_resumen.mejor_margen or 0) }} EUR</strong></div>
+  </div>
+  <table class="control-table">
+    <thead><tr><th>Mes</th><th>Veredicto</th><th>Accion</th><th>Base MISE</th><th>Ingreso</th><th>Ahorro</th><th>Margen</th><th>Objetivos</th><th>Decision</th></tr></thead>
+    <tbody>
+    {% for row in estado.rescate_criticos %}
+    <tr>
+      <td>{{ row.mes }}</td>
+      <td><span class="badge {{ 'badge-success' if row.veredicto == 'recomendado' else 'badge-warning' if row.veredicto == 'piloto_controlado' else 'badge-danger' }}">{{ row.veredicto }}</span></td>
+      <td><strong>{{ row.accion }}</strong><br><span class="muted">{{ row.descripcion }}</span></td>
+      <td>{{ '%.2f'|format(row.margen_base_mise or 0) }} EUR</td>
+      <td>{{ '%.2f'|format(row.ingreso_delta or 0) }} EUR<br><span class="muted">Coste {{ '%.2f'|format(row.coste_delta or 0) }}</span></td>
+      <td>{{ '%.2f'|format(row.ahorro_delta or 0) }} EUR</td>
+      <td>{{ '%.2f'|format(row.margen_estimado or 0) }} EUR</td>
+      <td>Ocup. {{ '%.1f'|format(row.ocupacion_objetivo_pct or 0) }}%<br>ADR {{ '%.2f'|format(row.adr_objetivo or 0) }} EUR<br>TPV/pax {{ '%.2f'|format(row.tpv_pax_objetivo or 0) }} EUR</td>
+      <td><strong>{{ row.decision }}</strong><br><span class="muted">{{ row.condicion_control }}</span></td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p class="muted">Todavia no hay rescates simulados para meses criticos.</p>
+  {% endif %}
+</div>
+
+<div class="card">
+  <div class="card-header"><h2><i class="fas fa-scale-balanced"></i> Decision financiera mensual</h2></div>
+  {% if estado.decision_financiera_resumen %}
+  <div class="control-grid" style="margin-bottom:14px;">
+    <div class="control-kpi"><small>Meses</small><strong>{{ estado.decision_financiera_resumen.meses or 0 }}</strong></div>
+    <div class="control-kpi"><small>Verdes</small><strong>{{ estado.decision_financiera_resumen.verdes or 0 }}</strong></div>
+    <div class="control-kpi"><small>Ambar</small><strong>{{ estado.decision_financiera_resumen.ambar or 0 }}</strong></div>
+    <div class="control-kpi"><small>Rojos</small><strong>{{ estado.decision_financiera_resumen.rojos or 0 }}</strong></div>
+    <div class="control-kpi"><small>Margen final</small><strong>{{ '%.2f'|format(estado.decision_financiera_resumen.margen_final or 0) }} EUR</strong></div>
+  </div>
+  <table class="control-table">
+    <thead><tr><th>Mes</th><th>Estado</th><th>Ingresos</th><th>Margen base</th><th>Margen final</th><th>Accion</th><th>Decision</th></tr></thead>
+    <tbody>
+    {% for row in estado.decision_financiera_meses %}
+    <tr>
+      <td>{{ row.mes }}</td>
+      <td><span class="badge {{ 'badge-success' if row.estado == 'verde' else 'badge-warning' if row.estado == 'ambar' else 'badge-danger' }}">{{ row.estado }}</span></td>
+      <td>{{ '%.2f'|format(row.ingresos_total or 0) }} EUR</td>
+      <td>{{ '%.2f'|format(row.margen_base or 0) }} EUR</td>
+      <td><strong>{{ '%.2f'|format(row.margen_final_estimado or 0) }} EUR</strong><br><span class="muted">MISE {{ '%.2f'|format(row.margen_mise or 0) }}</span></td>
+      <td>{% if row.escenario_rescate %}{{ row.escenario_rescate }}{% else %}{{ row.escenario_mise or '-' }}{% endif %}<br><span class="muted">{{ row.causa_principal }}</span></td>
+      <td><strong>{{ row.decision }}</strong><br><span class="muted">{{ row.indicador_clave }}</span></td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p class="muted">Todavia no hay decision financiera mensual consolidada.</p>
+  {% endif %}
+</div>
+
+<div class="card">
+  <div class="card-header"><h2><i class="fas fa-triangle-exclamation"></i> Stop-loss semanal</h2></div>
+  {% if estado.stoploss_semanal_resumen %}
+  <div class="control-grid" style="margin-bottom:14px;">
+    <div class="control-kpi"><small>Semanas vigiladas</small><strong>{{ estado.stoploss_semanal_resumen.semanas or 0 }}</strong></div>
+    <div class="control-kpi"><small>Verdes</small><strong>{{ estado.stoploss_semanal_resumen.verdes or 0 }}</strong></div>
+    <div class="control-kpi"><small>Ambar</small><strong>{{ estado.stoploss_semanal_resumen.ambar or 0 }}</strong></div>
+    <div class="control-kpi"><small>Rojas</small><strong>{{ estado.stoploss_semanal_resumen.rojos or 0 }}</strong></div>
+    <div class="control-kpi"><small>Margen semanas</small><strong>{{ '%.2f'|format(estado.stoploss_semanal_resumen.margen or 0) }} EUR</strong></div>
+  </div>
+  <table class="control-table">
+    <thead><tr><th>Semana</th><th>Estado</th><th>Ocupacion</th><th>ADR</th><th>TPV/pax</th><th>Compras</th><th>Margen</th><th>Accion</th></tr></thead>
+    <tbody>
+    {% for row in estado.stoploss_semanal %}
+    <tr>
+      <td>{{ row.mes }}<br><span class="muted">{{ row.semana_inicio }} · {{ row.dias }} dias</span></td>
+      <td><span class="badge {{ 'badge-success' if row.estado == 'verde' else 'badge-warning' if row.estado == 'ambar' else 'badge-danger' }}">{{ row.estado }}</span><br><span class="muted">{{ row.incumplimientos }} fallos</span></td>
+      <td>{{ '%.1f'|format(row.ocupacion_pct or 0) }}%<br><span class="muted">Min. {{ '%.1f'|format(row.ocupacion_minima_pct or 0) }}%</span></td>
+      <td>{{ '%.2f'|format(row.adr or 0) }} EUR<br><span class="muted">Min. {{ '%.2f'|format(row.adr_minimo or 0) }}</span></td>
+      <td>{{ '%.2f'|format(row.tpv_pax or 0) }} EUR<br><span class="muted">Min. {{ '%.2f'|format(row.tpv_pax_minimo or 0) }}</span></td>
+      <td>{{ '%.2f'|format(row.compras or 0) }} EUR<br><span class="muted">Max. {{ '%.2f'|format(row.compra_maxima or 0) }}</span></td>
+      <td>{{ '%.2f'|format(row.margen or 0) }} EUR<br><span class="muted">Min. {{ '%.2f'|format(row.margen_minimo or 0) }}</span></td>
+      <td><strong>{{ row.causa }}</strong><br><span class="muted">{{ row.accion }}</span></td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p class="muted">Todavia no hay stop-loss semanal calculado.</p>
+  {% endif %}
+</div>
+
+<div class="card">
+  <div class="card-header"><h2><i class="fas fa-shield-halved"></i> Semaforo no arruinarse</h2></div>
+  {% if estado.guardarrailes_resumen %}
+  <div class="control-grid" style="margin-bottom:14px;">
+    <div class="control-kpi"><small>Guardarrailes</small><strong>{{ estado.guardarrailes_resumen.guardarrailes or 0 }}</strong></div>
+    <div class="control-kpi"><small>Verdes</small><strong>{{ estado.guardarrailes_resumen.verdes or 0 }}</strong></div>
+    <div class="control-kpi"><small>Ambar</small><strong>{{ estado.guardarrailes_resumen.ambar or 0 }}</strong></div>
+    <div class="control-kpi"><small>Rojos</small><strong>{{ estado.guardarrailes_resumen.rojos or 0 }}</strong></div>
+    <div class="control-kpi"><small>Brecha seguridad</small><strong>{{ '%.2f'|format(estado.guardarrailes_resumen.brecha_seguridad or 0) }} EUR</strong></div>
+  </div>
+  <table class="control-table">
+    <thead><tr><th>Mes</th><th>Estado</th><th>Escenario</th><th>Margen</th><th>Colchon</th><th>Minimos</th><th>Decision</th></tr></thead>
+    <tbody>
+    {% for row in estado.guardarrailes %}
+    <tr>
+      <td>{{ row.mes }}</td>
+      <td><span class="badge {{ 'badge-success' if row.estado_margen == 'verde' else 'badge-warning' if row.estado_margen == 'ambar' else 'badge-danger' }}">{{ row.estado_margen }}</span></td>
+      <td><strong>{{ row.escenario }}</strong><br><span class="muted">{{ row.lectura }}</span></td>
+      <td>{{ '%.2f'|format(row.margen_estimado or 0) }} EUR<br><span class="muted">Base {{ '%.2f'|format(row.margen_base or 0) }}</span></td>
+      <td>Objetivo {{ '%.2f'|format(row.margen_seguridad_objetivo or 0) }} EUR<br><span class="muted">Brecha {{ '%.2f'|format(row.brecha_seguridad or 0) }}</span></td>
+      <td>Ocup. {{ '%.1f'|format(row.ocupacion_minima_pct or 0) }}%<br>ADR {{ '%.2f'|format(row.adr_minimo or 0) }} EUR<br>TPV/pax {{ '%.2f'|format(row.tpv_pax_minimo or 0) }} EUR<br>Compra max. {{ '%.2f'|format(row.compra_maxima or 0) }} EUR</td>
+      <td><strong>{{ row.decision }}</strong><br><span class="muted">{{ row.parada_si }}</span></td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p class="muted">Todavia no hay guardarrailes calculados para evitar perdidas.</p>
+  {% endif %}
+</div>
+
+<div class="card">
+  <div class="card-header"><h2><i class="fas fa-gauge-high"></i> Control de desviaciones</h2></div>
+  {% if estado.desviaciones_resumen %}
+  <div class="control-grid" style="margin-bottom:14px;">
+    <div class="control-kpi"><small>Score</small><strong>{{ '%.0f'|format(estado.desviaciones_resumen.score or 0) }}</strong></div>
+    <div class="control-kpi"><small>Total</small><strong>{{ estado.desviaciones_resumen.total or 0 }}</strong></div>
+    <div class="control-kpi"><small>Criticas</small><strong>{{ estado.desviaciones_resumen.criticas or 0 }}</strong></div>
+    <div class="control-kpi"><small>Altas</small><strong>{{ estado.desviaciones_resumen.altas or 0 }}</strong></div>
+    <div class="control-kpi"><small>Medias</small><strong>{{ estado.desviaciones_resumen.medias or 0 }}</strong></div>
+  </div>
+  <p>{{ estado.desviaciones_resumen.lectura }}</p>
+  {% if estado.desviaciones_operativas %}
+  <table class="control-table">
+    <thead><tr><th>Fecha</th><th>Area</th><th>Nivel</th><th>Desviacion</th><th>Accion</th></tr></thead>
+    <tbody>
+    {% for row in estado.desviaciones_operativas %}
+    <tr>
+      <td>{{ row.fecha or '-' }}</td>
+      <td>{{ row.area }}</td>
+      <td><span class="badge {{ 'badge-danger' if row.nivel == 'critica' else 'badge-warning' if row.nivel == 'alta' else 'badge-info' }}">{{ row.nivel }}</span></td>
+      <td><strong>{{ row.titulo }}</strong><br><span class="muted">{{ row.detalle }}</span></td>
+      <td>{{ row.accion_recomendada or '-' }}</td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% endif %}
+  {% else %}
+  <p class="muted">Todavia no se ha ejecutado el control de desviaciones.</p>
+  {% endif %}
+</div>
+
+<div class="card">
+  <div class="card-header"><h2><i class="fas fa-utensils"></i> Produccion operativa y salida de camaras</h2></div>
+  {% if estado.produccion_resumen %}
+  <div class="control-grid" style="margin-bottom:14px;">
+    <div class="control-kpi"><small>Dias</small><strong>{{ estado.produccion_resumen.dias or 0 }}</strong></div>
+    <div class="control-kpi"><small>Partes</small><strong>{{ estado.produccion_resumen.partes or 0 }}</strong></div>
+    <div class="control-kpi"><small>Lineas</small><strong>{{ estado.produccion_resumen.lineas or 0 }}</strong></div>
+    <div class="control-kpi"><small>Ingredientes reales</small><strong>{{ estado.produccion_resumen.ingredientes or 0 }}</strong></div>
+    <div class="control-kpi"><small>Kg carnes</small><strong>{{ '%.2f'|format(estado.produccion_resumen.kg_carnes or 0) }}</strong></div>
+    <div class="control-kpi"><small>Kg pescados</small><strong>{{ '%.2f'|format(estado.produccion_resumen.kg_pescados or 0) }}</strong></div>
+    <div class="control-kpi"><small>Mov. camara</small><strong>{{ estado.produccion_resumen.movimientos_camara or 0 }}</strong></div>
+    <div class="control-kpi"><small>APPCC</small><strong>{{ estado.produccion_resumen.controles_appcc or 0 }}</strong></div>
+    <div class="control-kpi"><small>Incidencias</small><strong>{{ estado.produccion_resumen.incidencias or 0 }}</strong></div>
+  </div>
+  {% endif %}
+  {% if estado.produccion_diaria %}
+  <table class="control-table">
+    <thead><tr><th>Fecha</th><th>Partes</th><th>Lineas</th><th>Ingredientes</th><th>Carnes</th><th>Pescados</th><th>Camara</th><th>APPCC</th><th>Inc.</th><th>Lectura</th></tr></thead>
+    <tbody>
+    {% for row in estado.produccion_diaria %}
+    <tr>
+      <td>{{ row.fecha }}</td>
+      <td>{{ row.partes }}</td>
+      <td>{{ row.lineas }}</td>
+      <td>{{ row.ingredientes_reales }}</td>
+      <td>{{ '%.2f'|format(row.kg_carnes or 0) }}</td>
+      <td>{{ '%.2f'|format(row.kg_pescados or 0) }}</td>
+      <td>{{ row.movimientos_camara }}</td>
+      <td>{{ row.controles_appcc }}</td>
+      <td><span class="badge {{ 'badge-danger' if row.incidencias else 'badge-success' }}">{{ row.incidencias }}</span></td>
+      <td>{{ row.lectura }}</td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p class="muted">Todavia no hay produccion operativa simulada.</p>
+  {% endif %}
+</div>
+
+<div class="card">
+  <div class="card-header"><h2><i class="fas fa-calculator"></i> Escandallos diarios y coste por plato</h2></div>
+  {% if estado.escandallos_resumen %}
+  <div class="control-grid" style="margin-bottom:14px;">
+    <div class="control-kpi"><small>Lineas plato</small><strong>{{ estado.escandallos_resumen.platos or 0 }}</strong></div>
+    <div class="control-kpi"><small>Dias</small><strong>{{ estado.escandallos_resumen.dias or 0 }}</strong></div>
+    <div class="control-kpi"><small>Coste teorico</small><strong>{{ '%.2f'|format(estado.escandallos_resumen.coste_teorico or 0) }} EUR</strong></div>
+    <div class="control-kpi"><small>Coste real</small><strong>{{ '%.2f'|format(estado.escandallos_resumen.coste_real or 0) }} EUR</strong></div>
+    <div class="control-kpi"><small>Desviacion</small><strong>{{ '%.2f'|format(estado.escandallos_resumen.desviacion or 0) }} EUR</strong></div>
+    <div class="control-kpi"><small>Merma estimada</small><strong>{{ '%.2f'|format(estado.escandallos_resumen.coste_merma or 0) }} EUR</strong></div>
+    <div class="control-kpi"><small>Riesgo alto</small><strong>{{ estado.escandallos_resumen.altos or 0 }}</strong></div>
+    <div class="control-kpi"><small>Riesgo medio</small><strong>{{ estado.escandallos_resumen.medios or 0 }}</strong></div>
+  </div>
+  {% if estado.escandallos_servicios %}
+  <h3 style="margin:0 0 10px;">Coste por dia y servicio</h3>
+  <table class="control-table" style="margin-bottom:16px;">
+    <thead><tr><th>Fecha</th><th>Servicio</th><th>Platos</th><th>Raciones</th><th>Coste real</th><th>Coste/racion</th><th>Merma</th><th>Sobrante</th><th>Riesgo</th></tr></thead>
+    <tbody>
+    {% for row in estado.escandallos_servicios %}
+    <tr>
+      <td>{{ row.fecha }}</td>
+      <td><strong>{{ row.servicio }}</strong></td>
+      <td>{{ row.platos or 0 }}</td>
+      <td>{{ '%.1f'|format(row.raciones or 0) }}</td>
+      <td><strong>{{ '%.2f'|format(row.coste_real or 0) }} EUR</strong></td>
+      <td>{{ '%.2f'|format(row.coste_racion or 0) }} EUR</td>
+      <td>{{ '%.2f'|format(row.merma or 0) }} EUR</td>
+      <td>{{ '%.1f'|format(row.sobrante or 0) }} rac.</td>
+      <td><span class="badge {{ 'badge-danger' if row.altos else 'badge-success' }}">{{ row.altos or 0 }} altos</span></td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% endif %}
+  {% if estado.escandallos_sobrantes_destino %}
+  <h3 style="margin:0 0 10px;">Sobrantes al cierre por destino</h3>
+  <table class="control-table" style="margin-bottom:16px;">
+    <thead><tr><th>Fecha</th><th>Servicio</th><th>Destino</th><th>Lineas</th><th>Sobrante</th><th>Lectura</th></tr></thead>
+    <tbody>
+    {% for row in estado.escandallos_sobrantes_destino %}
+    <tr>
+      <td>{{ row.fecha }}</td>
+      <td><strong>{{ row.servicio }}</strong></td>
+      <td>{{ row.destino }}</td>
+      <td>{{ row.lineas or 0 }}</td>
+      <td>{{ '%.1f'|format(row.sobrante or 0) }}</td>
+      <td>
+        {% if row.destino == 'reaprovechamiento' %}
+          Producto guardado con trazabilidad.
+        {% elif row.destino in ['merma_buffet', 'desecho'] %}
+          Merma o retirada del servicio.
+        {% else %}
+          Sobrante registrado pendiente de revisar.
+        {% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% endif %}
+  <h3 style="margin:0 0 10px;">Platos con mas coste acumulado</h3>
+  <table class="control-table" style="margin-bottom:16px;">
+    <thead><tr><th>Plato</th><th>Veces</th><th>Raciones</th><th>Coste</th><th>Coste/racion</th><th>Merma</th><th>Altos</th></tr></thead>
+    <tbody>
+    {% for row in estado.escandallos_top_coste %}
+    <tr>
+      <td><strong>{{ row.plato }}</strong></td>
+      <td>{{ row.veces }}</td>
+      <td>{{ '%.1f'|format(row.raciones or 0) }}</td>
+      <td>{{ '%.2f'|format(row.coste or 0) }} EUR</td>
+      <td>{{ '%.2f'|format(row.coste_racion or 0) }} EUR</td>
+      <td>{{ '%.2f'|format(row.merma or 0) }} EUR</td>
+      <td><span class="badge {{ 'badge-danger' if row.altos else 'badge-success' }}">{{ row.altos or 0 }}</span></td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  <h3 style="margin:0 0 10px;">Platos con mas merma estimada</h3>
+  <table class="control-table">
+    <thead><tr><th>Plato</th><th>Veces</th><th>Sobrante</th><th>Merma</th><th>Coste/racion</th><th>Altos</th></tr></thead>
+    <tbody>
+    {% for row in estado.escandallos_top_merma %}
+    <tr>
+      <td><strong>{{ row.plato }}</strong></td>
+      <td>{{ row.veces }}</td>
+      <td>{{ '%.1f'|format(row.sobrante or 0) }}</td>
+      <td>{{ '%.2f'|format(row.merma or 0) }} EUR</td>
+      <td>{{ '%.2f'|format(row.coste_racion or 0) }} EUR</td>
+      <td><span class="badge {{ 'badge-danger' if row.altos else 'badge-success' }}">{{ row.altos or 0 }}</span></td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% if estado.escandallos_riesgo %}
+  <h3 style="margin:16px 0 10px;">Lineas de riesgo alto</h3>
+  <table class="control-table">
+    <thead><tr><th>Fecha</th><th>Servicio</th><th>Plato</th><th>Coste</th><th>Desv.</th><th>Merma</th><th>Lectura</th></tr></thead>
+    <tbody>
+    {% for row in estado.escandallos_riesgo %}
+    <tr>
+      <td>{{ row.fecha }}</td>
+      <td>{{ row.servicio }}</td>
+      <td><strong>{{ row.plato }}</strong><br><span class="muted">{{ '%.1f'|format(row.raciones_reales or 0) }} raciones</span></td>
+      <td>{{ '%.2f'|format(row.coste_real or 0) }} EUR<br><span class="muted">{{ '%.2f'|format(row.coste_racion_real or 0) }} EUR/rac.</span></td>
+      <td>{{ '%.1f'|format(row.desviacion_pct or 0) }}%</td>
+      <td>{{ '%.2f'|format(row.coste_merma_estimado or 0) }} EUR<br><span class="muted">{{ '%.1f'|format(row.sobrante_raciones or 0) }} rac.</span></td>
+      <td>{{ row.lectura }}<br><span class="muted">{{ row.accion }}</span></td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% endif %}
+  {% else %}
+  <p class="muted">Todavia no hay escandallos diarios calculados.</p>
+  {% endif %}
+</div>
+
+<div class="card">
+  <div class="card-header"><h2><i class="fas fa-kitchen-set"></i> Propuestas de cocina para proteger margen</h2></div>
+  {% if estado.recomendaciones_cocina_resumen %}
+  <div class="control-grid" style="margin-bottom:14px;">
+    <div class="control-kpi"><small>Propuestas</small><strong>{{ estado.recomendaciones_cocina_resumen.recomendaciones or 0 }}</strong></div>
+    <div class="control-kpi"><small>Criticas</small><strong>{{ estado.recomendaciones_cocina_resumen.criticas or 0 }}</strong></div>
+    <div class="control-kpi"><small>Altas</small><strong>{{ estado.recomendaciones_cocina_resumen.altas or 0 }}</strong></div>
+    <div class="control-kpi"><small>Medias</small><strong>{{ estado.recomendaciones_cocina_resumen.medias or 0 }}</strong></div>
+    <div class="control-kpi"><small>Ahorro estimado</small><strong>{{ '%.2f'|format(estado.recomendaciones_cocina_resumen.ahorro_estimado or 0) }} EUR</strong></div>
+  </div>
+  <table class="control-table">
+    <thead><tr><th>Prioridad</th><th>Plato</th><th>Datos</th><th>Propuesta</th><th>Ahorro</th><th>Control</th></tr></thead>
+    <tbody>
+    {% for row in estado.recomendaciones_cocina %}
+    <tr>
+      <td><span class="badge {{ 'badge-danger' if row.prioridad == 'critica' else 'badge-warning' if row.prioridad == 'alta' else 'badge-info' }}">{{ row.prioridad }}</span></td>
+      <td><strong>{{ row.plato }}</strong><br><span class="muted">{{ row.veces }} veces · {{ row.servicios or '-' }}</span></td>
+      <td>Coste {{ '%.2f'|format(row.coste_total or 0) }} EUR<br>Coste/rac. {{ '%.2f'|format(row.coste_racion or 0) }} EUR<br>Merma {{ '%.2f'|format(row.merma_total or 0) }} EUR</td>
+      <td><strong>{{ row.recomendacion }}</strong><br><span class="muted">{{ row.decision_propuesta }}</span></td>
+      <td>{{ '%.2f'|format(row.ahorro_estimado or 0) }} EUR</td>
+      <td>{{ row.condicion_control }}</td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p class="muted">Todavia no hay propuestas de cocina calculadas.</p>
+  {% endif %}
+</div>
+
+<div class="card">
+  <div class="card-header"><h2><i class="fas fa-chart-line"></i> Impacto mensual de cocina</h2></div>
+  {% if estado.impacto_cocina_resumen %}
+  <div class="control-grid" style="margin-bottom:14px;">
+    <div class="control-kpi"><small>Meses</small><strong>{{ estado.impacto_cocina_resumen.meses or 0 }}</strong></div>
+    <div class="control-kpi"><small>Ahorro cocina</small><strong>{{ '%.2f'|format(estado.impacto_cocina_resumen.ahorro_estimado or 0) }} EUR</strong></div>
+    <div class="control-kpi"><small>Meses rescatados</small><strong>{{ estado.impacto_cocina_resumen.meses_rescatados or 0 }}</strong></div>
+    <div class="control-kpi"><small>Ambar restantes</small><strong>{{ estado.impacto_cocina_resumen.ambar_restantes or 0 }}</strong></div>
+    <div class="control-kpi"><small>Rojos restantes</small><strong>{{ estado.impacto_cocina_resumen.rojos_restantes or 0 }}</strong></div>
+  </div>
+  <table class="control-table">
+    <thead><tr><th>Mes</th><th>Estado</th><th>Ahorro</th><th>Margen antes</th><th>Margen despues</th><th>Platos clave</th><th>Decision</th></tr></thead>
+    <tbody>
+    {% for row in estado.impacto_cocina_meses %}
+    <tr>
+      <td>{{ row.mes }}</td>
+      <td><span class="badge {{ 'badge-success' if row.estado_antes == 'verde' else 'badge-warning' if row.estado_antes == 'ambar' else 'badge-danger' }}">{{ row.estado_antes }}</span> ->
+          <span class="badge {{ 'badge-success' if row.estado_despues == 'verde' else 'badge-warning' if row.estado_despues == 'ambar' else 'badge-danger' }}">{{ row.estado_despues }}</span></td>
+      <td>{{ '%.2f'|format(row.ahorro_estimado or 0) }} EUR</td>
+      <td>{{ '%.2f'|format(row.margen_antes or 0) }} EUR</td>
+      <td><strong>{{ '%.2f'|format(row.margen_despues or 0) }} EUR</strong></td>
+      <td>{{ row.top_platos or '-' }}</td>
+      <td>{{ row.decision }}<br><span class="muted">{{ row.condicion_control }}</span></td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p class="muted">Todavia no hay impacto mensual de cocina calculado.</p>
+  {% endif %}
+</div>
+
+<div class="card">
+  <div class="card-header"><h2><i class="fas fa-route"></i> Plan integral para meses en riesgo</h2></div>
+  {% if estado.plan_integral_resumen %}
+  <div class="control-grid" style="margin-bottom:14px;">
+    <div class="control-kpi"><small>Planes</small><strong>{{ estado.plan_integral_resumen.planes or 0 }}</strong></div>
+    <div class="control-kpi"><small>Brecha total</small><strong>{{ '%.2f'|format(estado.plan_integral_resumen.brecha_total or 0) }} EUR</strong></div>
+    <div class="control-kpi"><small>Hab. extra</small><strong>{{ estado.plan_integral_resumen.habitaciones_extra or 0 }}</strong></div>
+    <div class="control-kpi"><small>Ocup. objetivo</small><strong>{{ '%.1f'|format(estado.plan_integral_resumen.ocupacion_objetivo_media or 0) }}%</strong></div>
+    <div class="control-kpi"><small>ADR objetivo</small><strong>{{ '%.2f'|format(estado.plan_integral_resumen.adr_objetivo_medio or 0) }} EUR</strong></div>
+  </div>
+  <table class="control-table">
+    <thead><tr><th>Mes</th><th>Margen</th><th>Ocupacion</th><th>Habitaciones</th><th>ADR / TPV</th><th>Palancas</th><th>Stop-loss</th></tr></thead>
+    <tbody>
+    {% for row in estado.plan_integral_meses %}
+    <tr>
+      <td>{{ row.mes }}<br><span class="badge badge-warning">{{ row.estado_origen }}</span></td>
+      <td>Actual {{ '%.2f'|format(row.margen_actual or 0) }} EUR<br>Objetivo {{ '%.2f'|format(row.margen_objetivo or 0) }} EUR<br><strong>Brecha {{ '%.2f'|format(row.brecha_margen or 0) }} EUR</strong></td>
+      <td>{{ '%.1f'|format(row.ocupacion_actual_pct or 0) }}% -> <strong>{{ '%.1f'|format(row.ocupacion_objetivo_pct or 0) }}%</strong></td>
+      <td>{{ row.habitaciones_extra or 0 }} extra<br><span class="muted">Ahorro cocina {{ '%.2f'|format(row.ahorro_cocina or 0) }} EUR</span></td>
+      <td>ADR {{ '%.2f'|format(row.adr_actual or 0) }} -> {{ '%.2f'|format(row.adr_objetivo or 0) }} EUR<br>TPV/pax {{ '%.2f'|format(row.tpv_pax_actual or 0) }} -> {{ '%.2f'|format(row.tpv_pax_objetivo or 0) }} EUR</td>
+      <td><strong>{{ row.decision }}</strong><br><span class="muted">{{ row.palancas }}</span></td>
+      <td>{{ row.stop_loss }}<br><span class="muted">{{ row.condicion_control }}</span></td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p class="muted">Todavia no hay plan integral para meses en riesgo.</p>
+  {% endif %}
+</div>
+
+<div class="card">
+  <div class="card-header"><h2><i class="fas fa-bullseye"></i> Resumen ejecutivo de margen</h2></div>
+  {% if estado.resumen_ejecutivo_margen %}
+  <div class="control-grid" style="margin-bottom:14px;">
+    <div class="control-kpi"><small>Acciones</small><strong>{{ estado.resumen_ejecutivo_margen_resumen.acciones or 0 }}</strong></div>
+    <div class="control-kpi"><small>Impacto estimado</small><strong>{{ '%.2f'|format(estado.resumen_ejecutivo_margen_resumen.impacto_estimado or 0) }} EUR</strong></div>
+  </div>
+  <table class="control-table">
+    <thead><tr><th>#</th><th>Area</th><th>Accion</th><th>Problema</th><th>Decision</th><th>Impacto/control</th></tr></thead>
+    <tbody>
+    {% for row in estado.resumen_ejecutivo_margen %}
+    <tr>
+      <td><strong>{{ row.prioridad }}</strong><br><span class="badge {{ 'badge-danger' if row.estado == 'critico' else 'badge-warning' if row.estado == 'riesgo' else 'badge-info' }}">{{ row.estado }}</span></td>
+      <td>{{ row.area }}</td>
+      <td><strong>{{ row.titulo }}</strong></td>
+      <td>{{ row.problema }}</td>
+      <td>{{ row.decision }}</td>
+      <td>{{ '%.2f'|format(row.impacto_estimado or 0) }} EUR<br><span class="muted">{{ row.indicador_control }}</span></td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p class="muted">Todavia no hay resumen ejecutivo de margen.</p>
+  {% endif %}
+</div>
+
+<div class="card">
+  <div class="card-header"><h2><i class="fas fa-stethoscope"></i> Auditoria del cerebro de margen</h2></div>
+  {% if estado.auditoria_margen_resumen %}
+  <div class="control-grid" style="margin-bottom:14px;">
+    <div class="control-kpi"><small>Score</small><strong>{{ '%.0f'|format(estado.auditoria_margen_resumen.score or 0) }}</strong></div>
+    <div class="control-kpi"><small>Total</small><strong>{{ estado.auditoria_margen_resumen.total or 0 }}</strong></div>
+    <div class="control-kpi"><small>Criticas</small><strong>{{ estado.auditoria_margen_resumen.criticas or 0 }}</strong></div>
+    <div class="control-kpi"><small>Altas</small><strong>{{ estado.auditoria_margen_resumen.altas or 0 }}</strong></div>
+    <div class="control-kpi"><small>Medias</small><strong>{{ estado.auditoria_margen_resumen.medias or 0 }}</strong></div>
+  </div>
+  <p>{{ estado.auditoria_margen_resumen.lectura }}</p>
+  {% if estado.auditoria_margen_alertas %}
+  <table class="control-table">
+    <thead><tr><th>Area</th><th>Nivel</th><th>Codigo</th><th>Detalle</th></tr></thead>
+    <tbody>
+    {% for row in estado.auditoria_margen_alertas %}
+    <tr>
+      <td>{{ row.area }}</td>
+      <td><span class="badge {{ 'badge-danger' if row.severidad == 'critica' else 'badge-warning' if row.severidad == 'alta' else 'badge-info' }}">{{ row.severidad }}</span></td>
+      <td><strong>{{ row.codigo }}</strong><br><span class="muted">{{ row.titulo }}</span></td>
+      <td>{{ row.detalle }}</td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% endif %}
+  {% else %}
+  <p class="muted">Todavia no hay auditoria del cerebro de margen.</p>
+  {% endif %}
+</div>
+
+<div class="card">
+  <div class="card-header"><h2><i class="fas fa-chess-king"></i> Decisiones para direccion</h2></div>
+  {% if estado.decisiones %}
+    {% for d in estado.decisiones %}
+    <div class="decision-card priority-{{ d.prioridad }}">
+      <div style="display:flex; justify-content:space-between; gap:12px; flex-wrap:wrap;">
+        <div>
+          <span class="badge {{ 'badge-danger' if d.prioridad == 'critica' else 'badge-warning' if d.prioridad == 'alta' else 'badge-info' }}">{{ d.prioridad }}</span>
+          <span class="badge badge-secondary">{{ d.modulo }}</span>
+        </div>
+        <span class="muted">{{ d.estado }}</span>
+      </div>
+      <h3 style="margin:10px 0 6px;">{{ d.titulo }}</h3>
+      <p><strong>Diagnostico:</strong> {{ d.diagnostico }}</p>
+      <p><strong>Decision:</strong> {{ d.decision_recomendada }}</p>
+      <p class="muted"><strong>Impacto:</strong> {{ d.impacto_estimado }}</p>
+    </div>
+    {% endfor %}
+  {% else %}
+    <p>No hay decisiones generadas todavia.</p>
+  {% endif %}
+</div>
+
+<div class="card">
+  <div class="card-header"><h2><i class="fas fa-users-gear"></i> RRHH, fichajes y pre-nomina</h2></div>
+  {% if estado.rrhh_resumen %}
+  <div class="control-grid" style="margin-bottom:14px;">
+    <div class="control-kpi"><small>Dias analizados</small><strong>{{ estado.rrhh_resumen.dias or 0 }}</strong></div>
+    <div class="control-kpi"><small>Dias tensionados</small><strong>{{ estado.rrhh_resumen.dias_tension or 0 }}</strong></div>
+    <div class="control-kpi"><small>Sin fichar</small><strong>{{ estado.rrhh_resumen.sin_fichar or 0 }}</strong></div>
+    <div class="control-kpi"><small>Fichaje sin turno</small><strong>{{ estado.rrhh_resumen.fichaje_sin_turno or 0 }}</strong></div>
+    <div class="control-kpi"><small>Extras pendientes</small><strong>{{ estado.rrhh_resumen.extras_pendientes or 0 }}</strong></div>
+    <div class="control-kpi"><small>Riesgo estimado</small><strong>{{ '%.2f'|format(estado.rrhh_resumen.coste_riesgo or 0) }} EUR</strong></div>
+  </div>
+  {% endif %}
+  {% if estado.rrhh_escenarios %}
+  <h3>Escenarios RRHH</h3>
+  <table class="control-table" style="margin-bottom:16px;">
+    <thead><tr><th>Modo</th><th>Dias</th><th>Criticos</th><th>Altos</th><th>Sin fichar</th><th>Sin turno</th><th>Salidas</th><th>Riesgo</th><th>Lectura</th></tr></thead>
+    <tbody>
+    {% for row in estado.rrhh_escenarios %}
+    <tr>
+      <td><strong>{{ row.modo }}</strong></td>
+      <td>{{ row.dias }}</td>
+      <td>{{ row.dias_criticos }}</td>
+      <td>{{ row.dias_altos }}</td>
+      <td>{{ row.sin_fichar }}</td>
+      <td>{{ row.fichaje_sin_turno }}</td>
+      <td>{{ row.salidas_anticipadas }}</td>
+      <td>{{ '%.2f'|format(row.coste_riesgo_estimado or 0) }} EUR</td>
+      <td>{{ row.lectura }}</td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% endif %}
+  {% if estado.rrhh_vivienda_resumen %}
+  <h3>Vivienda laboral, rotacion y estabilidad</h3>
+  <div class="control-grid" style="margin-bottom:14px;">
+    <div class="control-kpi"><small>Fuentes externas</small><strong>{{ estado.rrhh_vivienda_resumen.fuentes_externas or 0 }}</strong></div>
+    <div class="control-kpi"><small>Meses evaluados</small><strong>{{ estado.rrhh_vivienda_resumen.meses or 0 }}</strong></div>
+    <div class="control-kpi"><small>Meses rojos</small><strong>{{ estado.rrhh_vivienda_resumen.meses_rojo or 0 }}</strong></div>
+    <div class="control-kpi"><small>Meses ambar</small><strong>{{ estado.rrhh_vivienda_resumen.meses_ambar or 0 }}</strong></div>
+    <div class="control-kpi"><small>Coste riesgo</small><strong>{{ '%.2f'|format(estado.rrhh_vivienda_resumen.coste_riesgo or 0) }} EUR</strong></div>
+    <div class="control-kpi"><small>Confianza fuente</small><strong>{{ '%.0f'|format(estado.rrhh_vivienda_resumen.confianza_media or 0) }}%</strong></div>
+  </div>
+  <p><strong>Lectura:</strong> {{ estado.rrhh_vivienda_resumen.lectura }}</p>
+  <p><strong>Accion prioritaria:</strong> {{ estado.rrhh_vivienda_resumen.accion_prioritaria }}</p>
+  <p class="muted"><strong>Datos que faltan para afinar:</strong> {{ estado.rrhh_vivienda_resumen.datos_faltantes }}</p>
+  {% endif %}
+  {% if estado.rrhh_vivienda_meses %}
+  <table class="control-table" style="margin-bottom:16px;">
+    <thead><tr><th>Mes</th><th>Nivel</th><th>Riesgo</th><th>Fuente</th><th>Tension interna</th><th>Extras/ausencias</th><th>Coste</th><th>Lectura</th><th>Acciones</th></tr></thead>
+    <tbody>
+    {% for row in estado.rrhh_vivienda_meses %}
+    <tr>
+      <td><strong>{{ row.mes }}</strong></td>
+      <td><span class="badge {{ 'badge-danger' if row.nivel == 'rojo' else 'badge-warning' if row.nivel == 'ambar' else 'badge-success' }}">{{ row.nivel }}</span></td>
+      <td>{{ '%.1f'|format(row.riesgo_pct or 0) }}%</td>
+      <td>{{ row.fuentes_externas }}<br><span class="muted">{{ '%.0f'|format(row.confianza_media or 0) }}% confianza</span></td>
+      <td>
+        {{ row.dias_tension }}/{{ row.dias_rrhh }} dias<br>
+        <span class="muted">sin fichar {{ row.sin_fichar }}, sin turno {{ row.fichaje_sin_turno }}</span>
+      </td>
+      <td>{{ row.extras_pendientes }} extras<br><span class="muted">{{ row.horas_extra_nomina or 0 }} h extra / {{ row.ausencias_horas or 0 }} h ausencia</span></td>
+      <td>{{ '%.2f'|format(row.coste_riesgo or 0) }} EUR<br><span class="muted">laboral {{ '%.2f'|format(row.coste_laboral or 0) }} EUR</span></td>
+      <td>{{ row.lectura }}</td>
+      <td>{{ row.acciones }}</td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% endif %}
+  {% if estado.rrhh_control %}
+  <table class="control-table">
+    <thead><tr><th>Fecha</th><th>Nivel</th><th>Turnos</th><th>Fichajes</th><th>Sin fichar</th><th>Sin entrada/salida</th><th>Sin turno</th><th>Extras</th><th>Riesgo</th><th>Lectura</th></tr></thead>
+    <tbody>
+    {% for row in estado.rrhh_control %}
+    <tr>
+      <td>{{ row.fecha }}</td>
+      <td><span class="badge {{ 'badge-danger' if row.nivel == 'critica' else 'badge-warning' if row.nivel == 'alta' else 'badge-info' }}">{{ row.nivel }}</span></td>
+      <td>{{ row.turnos }}<br><span class="muted">{{ row.empleados_con_turno }} emp.</span></td>
+      <td>{{ row.fichajes }}<br><span class="muted">{{ row.empleados_fichados }} emp.</span></td>
+      <td>{{ row.sin_fichar }}</td>
+      <td>{{ row.sin_entrada }} / {{ row.sin_salida }}</td>
+      <td>{{ row.fichaje_sin_turno }}</td>
+      <td>{{ row.extras_pendientes }}<br><span class="muted">{{ row.minutos_extra_pendientes }} min</span></td>
+      <td>{{ '%.2f'|format(row.coste_riesgo_estimado or 0) }} EUR</td>
+      <td>{{ row.lectura }}</td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p class="muted">Ejecuta el diagnostico RRHH de fichajes para ver riesgo diario.</p>
+  {% endif %}
+</div>
+
+<div class="card">
+  <div class="card-header"><h2><i class="fas fa-clipboard-check"></i> Cierre diario operativo</h2></div>
+  {% if estado.cierre_resumen %}
+  <div class="control-grid" style="margin-bottom:14px;">
+    <div class="control-kpi"><small>Dias</small><strong>{{ estado.cierre_resumen.dias or 0 }}</strong></div>
+    <div class="control-kpi"><small>Bloqueados</small><strong>{{ estado.cierre_resumen.bloqueados or 0 }}</strong></div>
+    <div class="control-kpi"><small>A revisar</small><strong>{{ estado.cierre_resumen.revisar or 0 }}</strong></div>
+    <div class="control-kpi"><small>Cerrados</small><strong>{{ estado.cierre_resumen.cerrados or 0 }}</strong></div>
+    <div class="control-kpi"><small>Margen negativo</small><strong>{{ '%.2f'|format(estado.cierre_resumen.margen_negativo or 0) }} EUR</strong></div>
+    <div class="control-kpi"><small>Riesgo medio</small><strong>{{ estado.cierre_resumen.riesgo_medio or 0 }}</strong></div>
+    <div class="control-kpi"><small>Hora corte</small><strong>{{ estado.cierre_resumen.hora_corte or '01:00' }}</strong></div>
+  </div>
+  {% endif %}
+  {% if estado.cierre_diario %}
+  {% if estado.resultado_mensual %}
+  <table class="control-table" style="margin-bottom:16px;">
+    <thead><tr><th>Mes</th><th>Dias</th><th>Negativos</th><th>Ingresos</th><th>Laboral</th><th>Compras</th><th>Fijos</th><th>Coste total</th><th>Margen</th><th>PM hab.</th><th>Punto muerto/dia</th><th>Lectura</th></tr></thead>
+    <tbody>
+    {% for mes in estado.resultado_mensual %}
+    <tr>
+      <td>{{ mes.mes }}</td>
+      <td>{{ mes.dias_simulados }}/{{ mes.dias_calendario }}</td>
+      <td>{{ mes.dias_negativos }}</td>
+      <td>{{ '%.2f'|format(mes.ingresos_total or 0) }} EUR</td>
+      <td>{{ '%.2f'|format(mes.coste_laboral or 0) }} EUR</td>
+      <td>{{ '%.2f'|format(mes.coste_compras or 0) }} EUR</td>
+      <td>{{ '%.2f'|format(mes.coste_fijo or 0) }} EUR</td>
+      <td>{{ '%.2f'|format(mes.coste_total or 0) }} EUR</td>
+      <td>{{ '%.2f'|format(mes.margen or 0) }} EUR</td>
+      <td>{{ '%.2f'|format(mes.precio_medio_habitacion or 0) }} EUR</td>
+      <td>{{ '%.2f'|format(mes.punto_muerto_diario or 0) }} EUR</td>
+      <td>{{ mes.lectura }}</td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% endif %}
+  <table class="control-table">
+    <thead><tr><th>Dia operativo</th><th>Ventana</th><th>Estado</th><th>Riesgo</th><th>Margen</th><th>Coste fijo</th><th>RRHH</th><th>Overbooking</th><th>APPCC</th><th>Compras</th><th>Mant.</th><th>Clientes</th><th>Accion</th></tr></thead>
+    <tbody>
+    {% for row in estado.cierre_diario %}
+    <tr>
+      <td>{{ row.dia_operativo or row.fecha }}</td>
+      <td>{{ row.cierre_desde or row.fecha }}<br><small>{{ row.cierre_hasta or '' }}</small></td>
+      <td><span class="badge {{ 'badge-danger' if row.estado == 'bloqueado' else 'badge-warning' if row.estado == 'revisar' else 'badge-success' }}">{{ row.estado }}</span></td>
+      <td>{{ row.score_riesgo }}</td>
+      <td>{{ '%.2f'|format(row.margen_estimado or 0) }} EUR</td>
+      <td>{{ '%.2f'|format(row.coste_fijo or 0) }} EUR</td>
+      <td>{{ row.rrhh_alertas }}</td>
+      <td>{{ row.overbooking_alertas }}</td>
+      <td>{{ row.appcc_alertas }}</td>
+      <td>{{ row.compras_alertas }}</td>
+      <td>{{ row.mantenimiento_alertas }}</td>
+      <td>{{ row.experiencia_alertas }}</td>
+      <td>{{ row.accion_direccion }}</td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p class="muted">Ejecuta el cierre diario para ver si cada dia puede cerrarse.</p>
+  {% endif %}
+</div>
+
+<div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(360px, 1fr)); gap:16px;">
+  <div class="card" style="margin:0;">
+    <div class="card-header"><h2><i class="fas fa-fire"></i> Alertas por modulo</h2></div>
+    <table class="control-table">
+      <thead><tr><th>Modulo</th><th>Total</th><th>Altas</th><th>Medias</th></tr></thead>
+      <tbody>
+      {% for row in estado.eventos_modulo %}
+      <tr><td>{{ row.modulo }}</td><td>{{ row.total }}</td><td>{{ row.altas }}</td><td>{{ row.medias }}</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <div class="card" style="margin:0;">
+    <div class="card-header"><h2><i class="fas fa-tags"></i> Etiquetas a revisar</h2></div>
+    <table class="control-table">
+      <thead><tr><th>Plato</th><th>Total</th><th>Alergenos</th><th>Traduccion</th></tr></thead>
+      <tbody>
+      {% for row in estado.top_etiquetas %}
+      <tr><td>{{ row.nombre_plato }}</td><td>{{ row.total }}</td><td>{{ row.sin_alergenos }}</td><td>{{ row.traduccion }}</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header"><h2><i class="fas fa-chart-line"></i> Diagnostico financiero mensual</h2></div>
+  {% if estado.finanzas_diagnostico %}
+  <table class="control-table">
+    <thead><tr><th>Mes</th><th>Estado</th><th>Causa</th><th>Ocup.</th><th>ADR</th><th>RevPAR</th><th>TPV/pax</th><th>Laboral</th><th>Fijos</th><th>Margen</th><th>Experimento</th><th>Condicion</th></tr></thead>
+    <tbody>
+    {% for row in estado.finanzas_diagnostico %}
+    <tr>
+      <td>{{ row.mes }}</td>
+      <td><span class="badge {{ 'badge-danger' if row.estado == 'perdida' else 'badge-success' }}">{{ row.estado }}</span></td>
+      <td><strong>{{ row.causa_principal }}</strong><br><span class="muted">{{ row.causa_secundaria }}</span></td>
+      <td>{{ '%.1f'|format(row.ocupacion_pct or 0) }}%</td>
+      <td>{{ '%.2f'|format(row.adr or 0) }} EUR</td>
+      <td>{{ '%.2f'|format(row.revpar or 0) }} EUR</td>
+      <td>{{ '%.2f'|format(row.tpv_pax or 0) }} EUR</td>
+      <td>{{ '%.1f'|format(row.coste_laboral_pct or 0) }}%</td>
+      <td>{{ '%.1f'|format(row.coste_fijo_pct or 0) }}%</td>
+      <td>{{ '%.2f'|format(row.margen or 0) }} EUR<br><span class="muted">Brecha/dia {{ '%.2f'|format(row.brecha_diaria or 0) }} EUR</span></td>
+      <td>{{ row.experimento_recomendado }}</td>
+      <td>{{ row.condicion_no_arruinarse }}</td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p class="muted">Todavia no hay diagnostico financiero mensual.</p>
+  {% endif %}
+</div>
+
+<div class="card">
+  <div class="card-header"><h2><i class="fas fa-flask"></i> Simulador de acciones financieras</h2></div>
+  {% if estado.plan_accion_mensual_elegido %}
+  <h3 style="margin:0 0 10px;">Plan elegido por mes</h3>
+  <table class="control-table" style="margin-bottom:16px;">
+    <thead><tr><th>Mes</th><th>Prioridad</th><th>Accion elegida</th><th>Margen original</th><th>Margen simulado</th><th>Refuerzo</th><th>Decision</th><th>Condicion</th></tr></thead>
+    <tbody>
+    {% for row in estado.plan_accion_mensual_elegido %}
+    <tr>
+      <td>{{ row.mes }}</td>
+      <td><span class="badge {{ 'badge-danger' if row.prioridad == 'critica' else 'badge-warning' if row.prioridad == 'alta' else 'badge-info' }}">{{ row.prioridad }}</span></td>
+      <td><strong>{{ row.accion_elegida }}</strong><br><span class="muted">{{ row.descripcion }}</span></td>
+      <td>{{ '%.2f'|format(row.margen_original or 0) }} EUR</td>
+      <td>{{ '%.2f'|format(row.margen_estimado or 0) }} EUR<br><span class="muted">{{ row.veredicto }} / {{ row.riesgo }}</span></td>
+      <td>
+        <strong>{{ '%.2f'|format(row.mejora_margen or 0) }} EUR</strong><br>
+        {% if row.accion_refuerzo %}
+          <span class="muted">{{ row.accion_refuerzo }}</span><br>
+          <span class="muted">Margen combinado {{ '%.2f'|format(row.margen_con_refuerzo or 0) }} EUR</span><br>
+          {% if row.brecha_restante %}
+            <span class="badge badge-danger">Brecha {{ '%.2f'|format(row.brecha_restante or 0) }} EUR</span>
+          {% endif %}
+        {% else %}
+          <span class="muted">No necesita refuerzo inicial</span>
+        {% endif %}
+      </td>
+      <td>{{ row.decision }}<br><span class="muted">{{ row.lectura_refuerzo }}</span></td>
+      <td>{{ row.condicion_control }}</td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% endif %}
+  {% if estado.finanzas_acciones %}
+  <table class="control-table">
+    <thead><tr><th>Mes</th><th>Accion</th><th>Veredicto</th><th>Riesgo</th><th>Margen estimado</th><th>Mejora</th><th>Condicion</th></tr></thead>
+    <tbody>
+    {% for row in estado.finanzas_acciones %}
+    <tr>
+      <td>{{ row.mes }}</td>
+      <td><strong>{{ row.accion }}</strong><br><span class="muted">{{ row.descripcion }}</span></td>
+      <td><span class="badge {{ 'badge-success' if row.veredicto == 'probar_controlado' else 'badge-warning' if row.veredicto == 'mejora_pero_no_basta' else 'badge-danger' }}">{{ row.veredicto }}</span></td>
+      <td>{{ row.riesgo }}</td>
+      <td>{{ '%.2f'|format(row.margen_estimado or 0) }} EUR</td>
+      <td>{{ '%.2f'|format(row.mejora_margen or 0) }} EUR</td>
+      <td>{{ row.condicion_control }}</td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p class="muted">Todavia no hay acciones financieras simuladas.</p>
+  {% endif %}
+</div>
+
+<div class="card">
+  <div class="card-header"><h2><i class="fas fa-brain"></i> IA: propuestas comerciales y operativas por mes</h2></div>
+  {% if estado.propuestas_ia_mensuales %}
+  <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(360px, 1fr)); gap:12px;">
+    {% for p in estado.propuestas_ia_mensuales %}
+    <div class="decision-card priority-{{ p.prioridad }}">
+      <div style="display:flex; justify-content:space-between; gap:8px; flex-wrap:wrap;">
+        <div>
+          <span class="badge {{ 'badge-danger' if p.prioridad == 'critica' else 'badge-warning' if p.prioridad == 'alta' else 'badge-info' }}">{{ p.prioridad }}</span>
+          <span class="badge badge-secondary">{{ p.area }}</span>
+        </div>
+        <span class="muted">{{ p.mes }}</span>
+      </div>
+      <h3 style="margin:10px 0 6px;">{{ p.titulo }}</h3>
+      <p><strong>Diagnostico:</strong> {{ p.diagnostico }}</p>
+      <p><strong>Propuesta:</strong> {{ p.propuesta }}</p>
+      <p class="muted"><strong>Impacto:</strong> {{ p.impacto_estimado }}</p>
+      <p class="muted"><strong>Control:</strong> {{ p.condicion_control }}</p>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <p class="muted">Todavia no hay propuestas IA mensuales. Ejecuta el generador de propuestas sobre la corrida actual.</p>
+  {% endif %}
+</div>
+
+<div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(420px, 1fr)); gap:16px; margin-top:16px;">
+  <div class="card" style="margin:0;">
+    <div class="card-header"><h2><i class="fas fa-calendar-day"></i> Peores dias simulados</h2></div>
+    <table class="control-table">
+      <thead><tr><th>Fecha</th><th>Hab.</th><th>Pax</th><th>Margen</th><th>Riesgo</th><th>Lectura</th></tr></thead>
+      <tbody>
+      {% for row in estado.peores_dias %}
+      <tr>
+        <td>{{ row.fecha }}</td>
+        <td>{{ row.habitaciones_ocupadas }}</td>
+        <td>{{ row.pax }}</td>
+        <td>{{ '%.2f'|format(row.margen_estimado or 0) }} EUR</td>
+        <td>{{ '%.1f'|format(row.riesgo_operativo or 0) }}</td>
+        <td>{{ row.lectura }}</td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <div class="card" style="margin:0;">
+    <div class="card-header"><h2><i class="fas fa-satellite-dish"></i> Contexto externo</h2></div>
+    <table class="control-table">
+      <thead><tr><th>Fechas</th><th>Tipo</th><th>Senal</th><th>Impacto</th></tr></thead>
+      <tbody>
+      {% for row in estado.contexto_externo %}
+      <tr>
+        <td>{{ row.fecha_inicio }}<br><span class="muted">{{ row.fecha_fin }}</span></td>
+        <td>{{ row.tipo }}</td>
+        <td>{{ row.titulo }}</td>
+        <td>{{ row.descripcion }}</td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header"><h2><i class="fas fa-stethoscope"></i> Diagnostico de dias con perdida/riesgo</h2></div>
+  {% if estado.diagnosticos_dia %}
+  <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(360px, 1fr)); gap:12px;">
+    {% for d in estado.diagnosticos_dia %}
+    <div class="decision-card priority-{{ d.nivel }}">
+      <div style="display:flex; justify-content:space-between; gap:8px;">
+        <span class="badge {{ 'badge-danger' if d.nivel == 'critica' else 'badge-warning' }}">{{ d.nivel }}</span>
+        <span class="muted">{{ d.fecha }}</span>
+      </div>
+      <h3 style="margin:10px 0 6px;">{{ d.titulo }}</h3>
+      <p>{{ d.diagnostico }}</p>
+      <div style="display:flex; gap:8px; flex-wrap:wrap;">
+        <span class="badge badge-info">Margen {{ '%.2f'|format(d.margen_estimado or 0) }} EUR</span>
+        <span class="badge badge-info">Riesgo {{ '%.1f'|format(d.riesgo_operativo or 0) }}</span>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <p class="muted">Todavia no hay diagnosticos. Ejecuta el diagnosticador sobre la corrida actual.</p>
+  {% endif %}
+</div>
+
+<div class="card">
+  <div class="card-header"><h2><i class="fas fa-list-check"></i> Plan de choque acumulado</h2></div>
+  {% if estado.plan_accion %}
+  <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(360px, 1fr)); gap:12px;">
+    {% for p in estado.plan_accion %}
+    <div class="decision-card priority-{{ p.prioridad }}">
+      <div style="display:flex; justify-content:space-between; gap:8px; flex-wrap:wrap;">
+        <div>
+          <span class="badge {{ 'badge-danger' if p.prioridad == 'critica' else 'badge-warning' if p.prioridad == 'alta' else 'badge-info' }}">{{ p.prioridad }}</span>
+          <span class="badge badge-secondary">{{ p.area }}</span>
+        </div>
+        <span class="muted">{{ p.estado }}</span>
+      </div>
+      <h3 style="margin:10px 0 6px;">{{ p.titulo }}</h3>
+      <p><strong>Problema:</strong> {{ p.problema }}</p>
+      <p><strong>Accion:</strong> {{ p.accion_recomendada }}</p>
+      <p class="muted"><strong>Indicador:</strong> {{ p.indicador_objetivo }}</p>
+      <p class="muted"><strong>Impacto:</strong> {{ p.impacto_estimado }}</p>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <p class="muted">Todavia no hay plan de choque. Ejecuta el diagnosticador sobre la corrida actual.</p>
+  {% endif %}
+</div>
+
+<div class="card">
+  <div class="card-header"><h2><i class="fas fa-shield-halved"></i> Prevencion de overbooking por canal</h2></div>
+  {% if estado.overbooking_prevencion %}
+  <table class="control-table">
+    <thead>
+      <tr>
+        <th>Fecha</th><th>Canal</th><th>Tipo hab.</th><th>Total</th><th>Reservas</th><th>Bloq.</th><th>Colchon</th><th>Venta segura</th><th>Riesgo</th><th>Accion</th>
+      </tr>
+    </thead>
+    <tbody>
+    {% for row in estado.overbooking_prevencion %}
+    <tr>
+      <td>{{ row.fecha }}</td>
+      <td>{{ row.canal_codigo }}<br><span class="muted">{{ row.canal_tipo }}</span></td>
+      <td>{{ row.tipo_habitacion_id }}</td>
+      <td>{{ row.habitaciones_totales }}</td>
+      <td>{{ row.reservas_activas }}<br><span class="muted">canal {{ row.cupo_canal }}</span></td>
+      <td>{{ row.bloqueadas }}</td>
+      <td>{{ row.colchon_habitaciones }}</td>
+      <td>{{ row.venta_maxima_recomendada }}</td>
+      <td><span class="badge {{ 'badge-danger' if row.riesgo == 'critico' else 'badge-warning' }}">{{ row.riesgo }}</span></td>
+      <td>{{ row.accion_recomendada }}</td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p class="muted">No hay riesgos preventivos calculados para canales.</p>
+  {% endif %}
+</div>
+
+<div class="card">
+  <div class="card-header"><h2><i class="fas fa-route"></i> Resolucion propuesta</h2></div>
+  {% if estado.overbooking_resoluciones %}
+  <table class="control-table">
+    <thead>
+      <tr>
+        <th>Entrada</th><th>Tipo</th><th>Estrategia</th><th>Reserva</th><th>Origen</th><th>Destino</th><th>Coste</th><th>Estado</th>
+      </tr>
+    </thead>
+    <tbody>
+    {% for row in estado.overbooking_resoluciones %}
+    <tr>
+      <td>{{ row.fecha_entrada }}<br><span class="muted">{{ row.fecha_salida }}</span></td>
+      <td>{{ row.tipo }}<br><span class="muted">{{ row.severidad }}</span></td>
+      <td><span class="badge {{ 'badge-danger' if row.prioridad == 'critica' else 'badge-warning' }}">{{ row.estrategia }}</span></td>
+      <td>{{ row.reserva_codigo or '-' }}<br><span class="muted">{{ row.conflicto_codigo or '-' }}</span></td>
+      <td>{{ row.habitacion_origen or '-' }}</td>
+      <td>
+        {% if row.habitacion_destino %}
+          Hab. {{ row.habitacion_destino }}<br><span class="muted">{{ row.centro_destino or 'Hotel 1' }}</span>
+        {% elif row.hotel_apoyo %}
+          {{ row.hotel_apoyo }}
+        {% else %}
+          Direccion
+        {% endif %}
+      </td>
+      <td>{{ '%.2f'|format(row.coste_estimado or 0) }} EUR</td>
+      <td>{{ row.estado }}</td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p class="muted">No hay propuestas de resolucion calculadas.</p>
+  {% endif %}
+</div>
+
+<div class="card">
+  <div class="card-header"><h2><i class="fas fa-bed-pulse"></i> Overbooking y conflictos de recepcion</h2></div>
+  {% if estado.overbooking %}
+  <table class="control-table">
+    <thead>
+      <tr>
+        <th>Entrada</th><th>Tipo</th><th>Sev.</th><th>Habitacion</th><th>Reservas</th><th>Gestion recomendada</th><th>Estado</th><th>Coste</th>
+      </tr>
+    </thead>
+    <tbody>
+    {% for ob in estado.overbooking %}
+    <tr>
+      <td>{{ ob.fecha_entrada }}<br><span class="muted">{{ ob.fecha_salida }}</span></td>
+      <td>{{ ob.tipo }}</td>
+      <td><span class="badge {{ 'badge-danger' if ob.severidad == 'critica' else 'badge-warning' }}">{{ ob.severidad }}</span></td>
+      <td>{{ ob.habitacion_numero or '-' }}</td>
+      <td>{{ ob.reserva_codigo or '-' }}<br><span class="muted">{{ ob.conflicto_codigo or '-' }}</span></td>
+      <td>{{ ob.decision_recomendada }}</td>
+      <td>{{ ob.estado_gestion }}<br><span class="muted">{{ ob.resultado_simulado }}</span></td>
+      <td>{{ '%.2f'|format(ob.coste_estimado or 0) }} EUR</td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p class="muted">No hay casos de overbooking inyectados todavia.</p>
+  {% endif %}
+</div>
+
+<div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(360px, 1fr)); gap:16px; margin-top:16px;">
+  <div class="card" style="margin:0;">
+    <div class="card-header"><h2><i class="fas fa-clipboard-check"></i> Inventario con desviacion</h2></div>
+    <table class="control-table">
+      <thead><tr><th>Articulo</th><th>Desviacion</th><th>Conteos</th></tr></thead>
+      <tbody>
+      {% for row in estado.top_inventario %}
+      <tr><td>{{ row.nombre }}</td><td>{{ '%.2f'|format(row.desviacion_total or 0) }}</td><td>{{ row.conteos }}</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <div class="card" style="margin:0;">
+    <div class="card-header"><h2><i class="fas fa-triangle-exclamation"></i> Ultimas alertas altas</h2></div>
+    <table class="control-table">
+      <thead><tr><th>Fecha</th><th>Modulo</th><th>Tipo</th><th>Descripcion</th></tr></thead>
+      <tbody>
+      {% for row in estado.alertas[:25] %}
+      <tr><td>{{ row.fecha_simulada }}</td><td>{{ row.modulo }}</td><td>{{ row.tipo }}</td><td>{{ row.descripcion }}</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

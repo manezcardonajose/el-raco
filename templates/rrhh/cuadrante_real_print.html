@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Cuadrante RRHH - Impresión</title>
+    <style>
+        @page {
+            size: A4 landscape;
+            margin: 12mm;
+        }
+        * { box-sizing: border-box; }
+        body {
+            font-family: Arial, Helvetica, sans-serif;
+            color: #111;
+            background: #fff;
+            font-size: 11px;
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            border-bottom: 2px solid #222;
+            padding-bottom: 8px;
+            margin-bottom: 10px;
+        }
+        .brand h1 {
+            margin: 0;
+            font-size: 20px;
+            letter-spacing: .5px;
+        }
+        .brand .sub {
+            margin-top: 3px;
+            font-size: 12px;
+            color: #444;
+        }
+        .meta {
+            text-align: right;
+            font-size: 10px;
+            line-height: 1.45;
+        }
+        .filters {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 6px;
+            margin: 8px 0 10px 0;
+            border: 1px solid #bbb;
+            padding: 7px;
+            background: #f7f7f7;
+        }
+        .filter strong { display:block; font-size:9px; color:#555; text-transform:uppercase; }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            table-layout: fixed;
+        }
+        th, td {
+            border: 1px solid #999;
+            padding: 4px;
+            vertical-align: top;
+            word-wrap: break-word;
+        }
+        th {
+            background: #e9e9e9;
+            font-size: 10px;
+            text-transform: uppercase;
+        }
+        .worker {
+            width: 18%;
+            font-weight: bold;
+            background: #f4f4f4;
+        }
+        .worker small {
+            display: block;
+            font-weight: normal;
+            color: #444;
+            margin-top: 2px;
+        }
+        .turno {
+            border-left: 4px solid #222;
+            padding-left: 4px;
+            margin-bottom: 3px;
+        }
+        .libre {
+            border-left: 4px solid #777;
+            padding-left: 4px;
+            color: #333;
+            font-style: italic;
+        }
+        .vacaciones {
+            border-left: 4px solid #b36b00;
+            padding-left: 4px;
+            color: #5c3600;
+            font-style: italic;
+        }
+        .empty { color:#aaa; text-align:center; padding-top:10px; }
+        .coverage {
+            margin-top: 12px;
+            page-break-inside: avoid;
+        }
+        .coverage h2 {
+            font-size: 13px;
+            margin: 0 0 5px 0;
+            border-bottom: 1px solid #999;
+            padding-bottom: 3px;
+        }
+        .coverage-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 5px;
+        }
+        .coverage-item {
+            border: 1px solid #bbb;
+            padding: 5px;
+            font-size: 10px;
+        }
+        .ok { color: #006400; font-weight: bold; }
+        .ko { color: #a00000; font-weight: bold; }
+        .warn { color: #8a5a00; font-weight: bold; }
+        .footer {
+            margin-top: 16px;
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 20px;
+            font-size: 10px;
+        }
+        .sign {
+            border-top: 1px solid #333;
+            padding-top: 5px;
+            text-align: center;
+            margin-top: 24px;
+        }
+        .no-data {
+            padding: 20px;
+            text-align: center;
+            border: 1px solid #999;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="brand">
+            <h1>NEXORA KITCHEN · CUADRANTE RRHH</h1>
+            <div class="sub">Planilla semanal de personal por centro, departamento y puesto</div>
+        </div>
+        <div class="meta">
+            <strong>Semana:</strong> {{ inicio.strftime('%d/%m/%Y') }} - {{ fin.strftime('%d/%m/%Y') }}<br>
+            <strong>Generado:</strong> {{ generado_en }}<br>
+            <strong>Usuario:</strong> {{ session.get('user_nombre', 'Usuario') }}
+        </div>
+    </div>
+
+    <div class="filters">
+        <div class="filter"><strong>Centro</strong>{{ filtro_centro or 'Todos' }}</div>
+        <div class="filter"><strong>Departamento</strong>{{ filtro_departamento or 'Todos' }}</div>
+        <div class="filter"><strong>Subdepartamento</strong>{{ filtro_subdepartamento or 'Todos' }}</div>
+        <div class="filter"><strong>Puesto</strong>{{ filtro_puesto or 'Todos' }}</div>
+    </div>
+
+    {% if empleados %}
+    <table>
+        <thead>
+            <tr>
+                <th class="worker">Trabajador</th>
+                {% for dia in dias %}
+                    <th>{{ ['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'][dia.weekday()] }}<br>{{ dia.strftime('%d/%m') }}</th>
+                {% endfor %}
+            </tr>
+        </thead>
+        <tbody>
+            {% for e in empleados %}
+            <tr>
+                <td class="worker">
+                    {{ e.nombre }} {{ e.apellidos or '' }}
+                    <small>{{ e.departamento_nombre or 'Sin departamento' }}{% if e.subdepartamento_nombre %} / {{ e.subdepartamento_nombre }}{% endif %}</small>
+                    {% if e.categoria_nombre %}<small>{{ e.categoria_nombre }}</small>{% endif %}
+                </td>
+                {% for dia in dias %}
+                    {% set clave = (e.id, dia.isoformat()) %}
+                    <td>
+                        {% for v in vacaciones_por_empleado_dia.get(clave, []) %}
+                            <div class="vacaciones">{{ v.tipo }} · {{ v.estado }}</div>
+                        {% endfor %}
+                        {% for t in turnos_por_empleado_dia.get(clave, []) %}
+                            {% if t.tipo == 'libre' or t.estado == 'libre' %}
+                                <div class="libre">LIBRE / DESCANSO</div>
+                            {% else %}
+                                <div class="turno">
+                                    <strong>{{ t.hora_inicio or '--:--' }} - {{ t.hora_fin or '--:--' }}</strong><br>
+                                    {{ t.puesto_nombre or 'Sin puesto' }}
+                                    {% if t.observaciones %}<br><small>{{ t.observaciones }}</small>{% endif %}
+                                </div>
+                            {% endif %}
+                        {% endfor %}
+                        {% if not vacaciones_por_empleado_dia.get(clave, []) and not turnos_por_empleado_dia.get(clave, []) %}
+                            <div class="empty">—</div>
+                        {% endif %}
+                    </td>
+                {% endfor %}
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <div class="no-data">No hay trabajadores para los filtros seleccionados.</div>
+    {% endif %}
+
+    <div class="coverage">
+        <h2>Resumen operativo por categoría</h2>
+        {% if resumen_categorias %}
+        <table class="summary-table">
+            <thead>
+                <tr>
+                    <th>Categoría</th>
+                    {% for dia in dias %}
+                        <th>{{ ['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'][dia.weekday()] }}<br>{{ dia.strftime('%d/%m') }}</th>
+                    {% endfor %}
+                    <th>Total semana</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for categoria in resumen_categorias %}
+                <tr>
+                    <td>{{ categoria.categoria }}</td>
+                    {% for dia in dias %}
+                        <td>{{ categoria.dias[dia.isoformat()] }}</td>
+                    {% endfor %}
+                    <td>{{ categoria.total_semana }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+            <tfoot>
+                <tr>
+                    <td><strong>Total</strong></td>
+                    {% for dia in dias %}
+                        <td><strong>{{ total_por_dia[dia.isoformat()] }}</strong></td>
+                    {% endfor %}
+                    <td><strong>{{ total_semana_operativos }}</strong></td>
+                </tr>
+            </tfoot>
+        </table>
+        {% else %}
+            <div class="coverage-item">No hay datos operativos para los filtros seleccionados.</div>
+        {% endif %}
+    </div>
+
+    <div class="footer">
+        <div class="sign">Responsable departamento</div>
+        <div class="sign">RRHH / Dirección</div>
+        <div class="sign">Observaciones / Validación</div>
+    </div>
+</body>
+</html>

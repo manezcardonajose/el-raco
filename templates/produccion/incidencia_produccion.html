@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="card">
+
+<h2>Incidencias producción</h2>
+
+<form method="POST">
+
+<label>Parte</label>
+<input type="text" value="#{{ parte.id }}" disabled class="form-control">
+
+<label>Descripción</label>
+<textarea name="descripcion" class="form-control"></textarea>
+
+<label>Gravedad</label>
+<select name="gravedad" class="form-control">
+    <option value="leve">Leve</option>
+    <option value="media">Media</option>
+    <option value="grave">Grave</option>
+</select>
+
+<button class="btn btn-warning" style="margin-top:10px;">Registrar incidencia</button>
+
+</form>
+
+<hr>
+
+<h3>Histórico</h3>
+
+<ul>
+{% for i in incidencias %}
+<li>
+    {{ i.fecha }} - {{ i.gravedad }} - {{ i.descripcion }}
+</li>
+{% endfor %}
+</ul>
+
+</div>
+
+{% endblock %}

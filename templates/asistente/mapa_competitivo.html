@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+
+{% block title %}Mapa competitivo{% endblock %}
+{% block breadcrumb %}<a href="{{ url_for('asistente.dashboard') }}">Asistente El Raco</a> / <a href="{{ url_for('asistente.brief_ejecutivo') }}">Brief ejecutivo</a> / Mapa competitivo{% endblock %}
+
+{% block content %}
+<style>
+    .comp-head { margin-bottom:16px; }
+    .comp-head h1 { margin:0 0 6px; color:#ff6b00; font-size:28px; }
+    .comp-head p { margin:0; max-width:980px; color:var(--text-muted,#5f6b7a); line-height:1.45; }
+    .comp-actions { display:flex; gap:10px; flex-wrap:wrap; margin-bottom:16px; }
+    .comp-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(155px,1fr)); gap:10px; margin-bottom:16px; }
+    .comp-kpi, .comp-card {
+        border:1px solid var(--border-color,#d5dde7);
+        border-radius:8px;
+        background:var(--card-bg,#fff);
+        box-shadow:0 1px 2px rgba(0,0,0,.04);
+    }
+    .comp-kpi { padding:13px; }
+    .comp-kpi span { display:block; color:var(--text-muted,#5f6b7a); font-size:12px; margin-bottom:6px; }
+    .comp-kpi strong { display:block; color:var(--text-color,#16202a); font-size:22px; }
+    .comp-layout { display:grid; grid-template-columns:minmax(0,1fr) 360px; gap:14px; align-items:start; }
+    .comp-list { display:grid; gap:12px; }
+    .comp-card { padding:15px; }
+    .comp-card h2 { margin:8px 0; color:var(--text-color,#16202a); font-size:20px; }
+    .comp-card p, .comp-card li { color:var(--text-muted,#5f6b7a); line-height:1.45; }
+    .comp-meta { display:flex; gap:8px; flex-wrap:wrap; }
+    .comp-badge {
+        border:1px solid var(--border-color,#d5dde7);
+        border-radius:999px;
+        padding:4px 9px;
+        font-size:12px;
+        font-weight:700;
+        color:var(--text-muted,#5f6b7a);
+        background:rgba(148,163,184,.08);
+    }
+    .comp-badge.alto { border-color:#f0a199; color:#b42318; }
+    .comp-source { border-top:1px solid var(--border-color,#d5dde7); padding-top:7px; margin-top:7px; font-size:13px; color:var(--text-muted,#5f6b7a); }
+    @media (max-width: 980px) { .comp-layout { grid-template-columns:1fr; } }
+</style>
+
+<div class="comp-head">
+    <h1><i class="fas fa-chess-knight"></i> Mapa competitivo</h1>
+    <p>Lee señales de competencia, intermediarios y mercado para decidir donde diferenciarse, donde proteger precio y que no conviene copiar.</p>
+</div>
+
+<div class="comp-actions">
+    <a class="btn btn-primary" href="{{ url_for('asistente.aprendizaje') }}"><i class="fas fa-link"></i> Fuentes</a>
+    <a class="btn btn-primary" href="{{ url_for('asistente.simulador_decision') }}"><i class="fas fa-chart-line"></i> Simulador</a>
+    <a class="btn btn-secondary" href="{{ url_for('asistente.chat_estrategico', pregunta='Analiza nuestra posicion competitiva sin entrar en guerra de precios') }}"><i class="fas fa-comments"></i> Preguntar al chat</a>
+    <a class="btn btn-secondary" href="{{ url_for('asistente.brief_ejecutivo') }}"><i class="fas fa-clipboard-list"></i> Brief</a>
+</div>
+
+<div class="comp-grid">
+    <div class="comp-kpi"><span>Fuentes competitivas</span><strong>{{ mapa.metricas.fuentes_competitivas }}</strong></div>
+    <div class="comp-kpi"><span>Margen aprox.</span><strong>{{ (mapa.metricas.margen or 0)|euros }}</strong></div>
+    <div class="comp-kpi"><span>Ocupacion</span><strong>{{ mapa.metricas.ocupacion_pct or 0 }}%</strong></div>
+    <div class="comp-kpi"><span>Quejas</span><strong>{{ mapa.metricas.quejas }}</strong></div>
+</div>
+
+<section class="comp-card" style="margin-bottom:14px;">
+    <h2>Lectura competitiva</h2>
+    <p><strong>{{ mapa.recomendacion }}</strong></p>
+</section>
+
+<div class="comp-layout">
+    <main class="comp-list">
+        {% for p in mapa.palancas %}
+        <article class="comp-card">
+            <div class="comp-meta">
+                <span class="comp-badge {% if p.riesgo == 'alto' %}alto{% endif %}">Riesgo {{ p.riesgo }}</span>
+                <span class="comp-badge">{{ p.senales }} señales</span>
+            </div>
+            <h2>{{ p.titulo }}</h2>
+            <p><strong>Lectura:</strong> {{ p.lectura }}</p>
+            <p><strong>Movimiento:</strong> {{ p.accion }}</p>
+            {% for f in p.fuentes %}
+            <div class="comp-source">
+                <strong>{{ f.titulo }}</strong><br>
+                <small>{{ f.autor or f.tipo }} - {{ f.hits|join(', ') }}</small>
+                {% if f.url %}<br><a href="{{ f.url }}" target="_blank" rel="noopener noreferrer">{{ f.url }}</a>{% endif %}
+            </div>
+            {% endfor %}
+        </article>
+        {% else %}
+        <article class="comp-card">
+            <h2>Falta inteligencia competitiva</h2>
+            <p>Guarda fuentes de competencia, agencias, OTA, tour operadores o reseñas para que el mapa detecte palancas.</p>
+        </article>
+        {% endfor %}
+    </main>
+
+    <aside class="comp-list">
+        <section class="comp-card">
+            <h2>Ventajas</h2>
+            <ul>
+                {% for v in mapa.ventajas %}
+                <li>{{ v }}</li>
+                {% else %}
+                <li>Todavia no hay ventajas claras detectadas.</li>
+                {% endfor %}
+            </ul>
+        </section>
+        <section class="comp-card">
+            <h2>Riesgos</h2>
+            <ul>
+                {% for r in mapa.riesgos %}
+                <li>{{ r }}</li>
+                {% else %}
+                <li>Sin riesgos competitivos fuertes con los datos actuales.</li>
+                {% endfor %}
+            </ul>
+        </section>
+    </aside>
+</div>
+{% endblock %}

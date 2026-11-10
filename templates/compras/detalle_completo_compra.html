@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<div class="container mt-4">
+
+    <h3>Documento procesado</h3>
+
+    <div class="mb-3">
+        <strong>Archivo:</strong> {{ documento.nombre_archivo }}
+    </div>
+
+    <div class="mb-3">
+        <strong>Estado IA:</strong>
+        {% if documento.procesado_ia %}
+            <span class="badge bg-success">Procesado</span>
+        {% else %}
+            <span class="badge bg-warning">Pendiente</span>
+        {% endif %}
+    </div>
+
+    <div class="mb-3">
+        <a href="{{ url_for('compras.ver_documento_compra', documento_id=documento.id) }}"
+           target="_blank"
+           class="btn btn-outline-primary">
+            Ver archivo original
+        </a>
+        <form method="post" action="{{ url_for('compras.detectar_lineas_documento', documento_id=documento.id) }}" style="display:inline;">
+            <button type="submit" class="btn btn-warning">
+                Detectar lineas
+            </button>
+        </form>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            Texto extraido (IA)
+        </div>
+        <div class="card-body" style="white-space: pre-wrap; max-height:500px; overflow:auto; background:#111; color:#0f0;">
+            {{ documento.texto_extraido or 'Sin datos extraidos' }}
+        </div>
+    </div>
+
+</div>
+
+{% endblock %}

@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<h2>Editar menú fijo</h2>
+
+<form method="POST">
+
+    <label>Nombre</label>
+    <input type="text" name="nombre" value="{{ menu.nombre }}" required>
+
+    <br><br>
+
+    <label>Tipo</label>
+    <select name="tipo_menu_id">
+        {% for t in tipos %}
+            <option value="{{ t.id }}" {% if t.id == menu.tipo_menu_id %}selected{% endif %}>
+                {{ t.nombre }}
+            </option>
+        {% endfor %}
+    </select>
+
+    <br><br>
+
+    <label>Fecha inicio</label>
+    <input type="date" name="fecha_inicio" value="{{ menu.fecha_inicio }}">
+
+    <br><br>
+
+    <label>Fecha fin</label>
+    <input type="date" name="fecha_fin" value="{{ menu.fecha_fin }}">
+
+    <br><br>
+
+    <label>Observaciones</label>
+    <textarea name="observaciones">{{ menu.observaciones }}</textarea>
+
+    <br><br>
+
+    <button class="btn btn-success">Guardar</button>
+    <a href="{{ url_for('menus.ver_menu_fijo', menu_id=menu.id) }}" class="btn btn-secondary">Cancelar</a>
+
+</form>
+
+{% endblock %}

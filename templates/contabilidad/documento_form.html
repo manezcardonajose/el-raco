@@ -1,0 +1,180 @@
+{% extends "base.html" %}
+{% block breadcrumb %}Contabilidad / Nuevo documento{% endblock %}
+{% block content %}
+
+<div class="card">
+    <div class="card-header">
+        <div>
+            <h2><i class="fas fa-plus-circle"></i> Nuevo documento economico</h2>
+            <div style="font-size:13px;opacity:.8;">Registro rapido para facturas, tickets, gastos, impuestos y comisiones.</div>
+        </div>
+        <a href="{{ url_for('contabilidad.documentos') }}" class="btn btn-secondary">Volver</a>
+    </div>
+
+    <form method="POST">
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;">
+            <div>
+                <label class="form-label">Tipo</label>
+                <select name="tipo" class="form-control">
+                    {% for value, label in tipos %}
+                    <option value="{{ value }}">{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label class="form-label">Numero</label>
+                <input name="numero" class="form-control" placeholder="Factura, ticket, albaran...">
+            </div>
+            <div>
+                <label class="form-label">Fecha documento</label>
+                <input type="date" name="fecha_documento" class="form-control" value="{{ now.strftime('%Y-%m-%d') }}">
+            </div>
+            <div>
+                <label class="form-label">Vencimiento</label>
+                <input type="date" name="fecha_vencimiento" class="form-control">
+            </div>
+        </div>
+
+        <h3 style="color:#ff6b00;margin-top:22px;">Tercero</h3>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;">
+            <div>
+                <label class="form-label">Tercero existente</label>
+                <select name="tercero_id" class="form-control">
+                    <option value="">Crear o usar proveedor</option>
+                    {% for t in opciones.terceros %}
+                    <option value="{{ t.id }}">{{ t.nombre }}{% if t.codigo_contable %} · {{ t.codigo_contable }}{% endif %}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label class="form-label">Proveedor ERP</label>
+                <select name="proveedor_id" class="form-control">
+                    <option value="">No vincular</option>
+                    {% for p in opciones.proveedores %}
+                    <option value="{{ p.id }}">{{ p.nombre }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label class="form-label">Nombre tercero nuevo</label>
+                <input name="tercero_nombre" class="form-control" placeholder="Acreedor, plataforma, cliente...">
+            </div>
+            <div>
+                <label class="form-label">NIF/CIF</label>
+                <input name="tercero_nif" class="form-control">
+            </div>
+            <div>
+                <label class="form-label">Tipo tercero</label>
+                <select name="tercero_tipo" class="form-control">
+                    <option value="proveedor">Proveedor</option>
+                    <option value="acreedor">Acreedor</option>
+                    <option value="cliente">Cliente</option>
+                    <option value="plataforma">Plataforma</option>
+                    <option value="empleado">Empleado</option>
+                    <option value="administracion">Administracion publica</option>
+                </select>
+            </div>
+            <div>
+                <label class="form-label">Codigo contable tercero</label>
+                <input name="codigo_contable" class="form-control" placeholder="4000001, 4100001...">
+            </div>
+        </div>
+
+        <h3 style="color:#ff6b00;margin-top:22px;">Importes y centro de coste</h3>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px;">
+            <div>
+                <label class="form-label">Base imponible</label>
+                <input type="number" step="0.01" name="base_imponible" class="form-control" value="0">
+            </div>
+            <div>
+                <label class="form-label">% impuesto</label>
+                <input type="number" step="0.01" name="impuesto_tipo" class="form-control" value="10">
+            </div>
+            <div>
+                <label class="form-label">Importe impuesto</label>
+                <input type="number" step="0.01" name="impuesto_importe" class="form-control" value="0">
+            </div>
+            <div>
+                <label class="form-label">Total</label>
+                <input type="number" step="0.01" name="total" class="form-control" value="0">
+            </div>
+            <div>
+                <label class="form-label">Pagado inicial</label>
+                <input type="number" step="0.01" name="pagado" class="form-control" value="0">
+            </div>
+            <div>
+                <label class="form-label">Estado</label>
+                <select name="estado" class="form-control">
+                    {% for value, label in estados %}
+                    <option value="{{ value }}" {% if value == 'pendiente_pago' %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label class="form-label">Cuenta contable sugerida</label>
+                <select name="cuenta_contable" class="form-control">
+                    <option value="">Sin cuenta</option>
+                    {% for c in opciones.cuentas %}
+                    <option value="{{ c.codigo }}">{{ c.codigo }} · {{ c.nombre }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label class="form-label">Centro coste</label>
+                <input name="centro_coste" class="form-control" placeholder="Cocina, recepcion, pisos...">
+            </div>
+            <div>
+                <label class="form-label">Departamento</label>
+                <select name="departamento_id" class="form-control">
+                    <option value="">Sin departamento</option>
+                    {% for d in opciones.departamentos %}
+                    <option value="{{ d.id }}">{{ d.nombre }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label class="form-label">Subdepartamento</label>
+                <select name="subdepartamento_id" class="form-control">
+                    <option value="">Sin subdepartamento</option>
+                    {% for s in opciones.subdepartamentos %}
+                    <option value="{{ s.id }}">{{ s.nombre }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label class="form-label">Punto de venta</label>
+                <select name="punto_venta_id" class="form-control">
+                    <option value="">Sin punto</option>
+                    {% for pv in opciones.puntos_venta %}
+                    <option value="{{ pv.id }}">{{ pv.nombre }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label class="form-label">Metodo pago inicial</label>
+                <select name="metodo_pago" class="form-control">
+                    <option value="transferencia">Transferencia</option>
+                    <option value="tarjeta">Tarjeta</option>
+                    <option value="efectivo">Efectivo</option>
+                    <option value="domiciliacion">Domiciliacion</option>
+                </select>
+            </div>
+        </div>
+
+        <div style="margin-top:14px;">
+            <label class="form-label">Concepto principal</label>
+            <input name="concepto" class="form-control" placeholder="Luz, compra alimentacion, comision plataforma...">
+        </div>
+        <div style="margin-top:14px;">
+            <label class="form-label">Observaciones</label>
+            <textarea name="observaciones" class="form-control" rows="3"></textarea>
+        </div>
+
+        <div style="margin-top:18px;display:flex;gap:10px;flex-wrap:wrap;">
+            <button class="btn btn-success"><i class="fas fa-save"></i> Guardar documento</button>
+            <a href="{{ url_for('contabilidad.documentos') }}" class="btn btn-secondary">Cancelar</a>
+        </div>
+    </form>
+</div>
+
+{% endblock %}

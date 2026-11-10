@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="card">
+    <h2> Nuevo Producto para {{ proveedor.nombre }}</h2>
+    
+    <div style="background: #3a3f44; padding: 15px; border-radius: 4px; margin-bottom: 20px;">
+        <p style="margin: 0; color: #e7d6ca;">
+            <strong> El producto se crear y se asignar automticamente a {{ proveedor.nombre }} como principal.</strong>
+        </p>
+    </div>
+    
+    <form method="POST">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+            <div>
+                <label>Nombre del producto:</label>
+                <input type="text" name="nombre" required style="width: 100%; padding: 8px;">
+            </div>
+            
+            <div>
+                <label>Precio ():</label>
+                <input type="number" step="0.01" name="precio" required style="width: 100%; padding: 8px;">
+            </div>
+            
+            <div>
+                <label>Unidad:</label>
+                <select name="unidad" required style="width: 100%; padding: 8px;">
+                    <option value="ud">Unidades (ud)</option>
+                    <option value="kg">Kilogramos (kg)</option>
+                    <option value="g">Gramos (g)</option>
+                    <option value="l">Litros (l)</option>
+                    <option value="ml">Mililitros (ml)</option>
+                </select>
+            </div>
+            
+            <div>
+                <label>Familia:</label>
+                <select name="familia" required style="width: 100%; padding: 8px;">
+                    <option value="lcteos">Lcteos</option>
+                    <option value="carnes">Carnes</option>
+                    <option value="pescados">Pescados</option>
+                    <option value="verduras">Verduras</option>
+                    <option value="frutas">Frutas</option>
+                    <option value="congelados">Congelados</option>
+                    <option value="bebidas">Bebidas</option>
+                    <option value="limpieza">Limpieza</option>
+                    <option value="otros">Otros</option>
+                </select>
+            </div>
+            
+            <div>
+                <label>Tipo conservacin:</label>
+                <select name="tipo_conservacion" required style="width: 100%; padding: 8px;">
+                    <option value="seco">Seco</option>
+                    <option value="refrigerado">Refrigerado</option>
+                    <option value="congelado">Congelado</option>
+                </select>
+            </div>
+            
+            <div>
+                <label>Stock mnimo:</label>
+                <input type="number" step="0.01" name="stock_minimo" value="0" style="width: 100%; padding: 8px;">
+            </div>
+        </div>
+        
+        <div style="margin-top: 20px; display: flex; gap: 10px;">
+            <button type="submit" class="btn btn-success"> Crear producto y asignar</button>
+            <a href="/proveedores/ver/{{ proveedor.id }}" class="btn btn-red"> Cancelar</a>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+
+

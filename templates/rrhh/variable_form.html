@@ -1,0 +1,17 @@
+{% extends 'base.html' %}
+{% block title %}Editar variable pre-nómina{% endblock %}
+{% block breadcrumb %}RRHH / Variables / Editar{% endblock %}
+{% block content %}
+<div class="card"><div class="card-header"><h2><i class="fas fa-plus-minus"></i> Editar variable de pre-nómina</h2></div>
+<form method="post"><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px;">
+<div class="form-group"><label class="form-label">Empleado</label><select name="empleado_id" class="form-control" required>{% for e in empleados %}<option value="{{ e.id }}" {% if variable.empleado_id == e.id %}selected{% endif %}>{{ e.nombre }} {{ e.apellidos or '' }}</option>{% endfor %}</select></div>
+<div class="form-group"><label class="form-label">Fecha</label><input type="date" name="fecha" class="form-control" value="{{ variable.fecha }}" required></div>
+<div class="form-group"><label class="form-label">Concepto</label><input name="concepto" class="form-control" value="{{ variable.concepto }}" required></div>
+<div class="form-group"><label class="form-label">Tipo</label><select name="tipo" class="form-control">{% for t in ['plus','incentivo','descuento','ausencia','anticipo'] %}<option value="{{ t }}" {% if variable.tipo == t %}selected{% endif %}>{{ t }}</option>{% endfor %}</select></div>
+<div class="form-group"><label class="form-label">Unidades</label><input type="number" step="0.01" name="unidades" class="form-control" value="{{ variable.unidades }}"></div>
+<div class="form-group"><label class="form-label">Importe unitario</label><input type="number" step="0.01" name="importe_unitario" class="form-control" value="{{ variable.importe_unitario }}"></div>
+<div class="form-group"><label class="form-label">Importe total</label><input type="number" step="0.01" name="importe_total" class="form-control" value="{{ variable.importe_total }}"></div>
+<div class="form-group"><label class="form-label">Estado</label><select name="estado" class="form-control"><option value="activo" {% if variable.estado != 'anulada' %}selected{% endif %}>activo</option><option value="anulada" {% if variable.estado == 'anulada' %}selected{% endif %}>anulada</option></select></div>
+</div><div class="form-group"><label class="form-label">Observaciones</label><textarea name="observaciones" class="form-control">{{ variable.observaciones or '' }}</textarea></div><div class="form-group"><label class="form-label">Motivo del cambio</label><input name="motivo_cambio" class="form-control" required></div>
+<button class="btn btn-success">Guardar</button> <a class="btn btn-secondary" href="{{ url_for('rrhh.lista_variables_prenomina') }}">Volver</a></form></div>
+{% endblock %}

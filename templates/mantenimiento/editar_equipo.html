@@ -1,0 +1,108 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header">
+        <h2 style="color:#ff6b00;">Editar equipo / activo</h2>
+        <a href="{{ url_for('mantenimiento.ver_equipo', equipo_id=equipo.id) }}" class="btn btn-secondary">Volver</a>
+    </div>
+
+    <form method="POST">
+        <div style="display:grid;grid-template-columns:repeat(2,minmax(240px,1fr));gap:16px;">
+            <div class="form-group">
+                <label class="form-label">Codigo interno</label>
+                <input class="form-control" name="codigo" value="{{ equipo.codigo or '' }}">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Nombre del equipo</label>
+                <input class="form-control" name="nombre" required value="{{ equipo.nombre or '' }}">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Tipo</label>
+                <select class="form-control" name="tipo" required>
+                    {% for value, label in [('habitacion','Habitacion / mobiliario'),('instalacion','Instalacion'),('climatizacion','Climatizacion'),('frio','Frio / camara'),('cocina','Cocina'),('lavanderia','Lavanderia'),('electricidad','Electricidad'),('fontaneria','Fontaneria'),('seguridad','Seguridad'),('otro','Otro')] %}
+                    <option value="{{ value }}" {% if equipo.tipo == value %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Familia</label>
+                <input class="form-control" name="familia" value="{{ equipo.familia or '' }}">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Clase activo</label>
+                <input class="form-control" name="clase_activo" value="{{ equipo.clase_activo or '' }}">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Criticidad</label>
+                <select class="form-control" name="criticidad">
+                    {% for value, label in [('baja','Baja'),('media','Media'),('alta','Alta'),('critica','Critica')] %}
+                    <option value="{{ value }}" {% if (equipo.criticidad or 'media') == value %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group"><label class="form-label">Marca</label><input class="form-control" name="marca" value="{{ equipo.marca or '' }}"></div>
+            <div class="form-group"><label class="form-label">Modelo</label><input class="form-control" name="modelo" value="{{ equipo.modelo or '' }}"></div>
+            <div class="form-group"><label class="form-label">Numero de serie</label><input class="form-control" name="numero_serie" value="{{ equipo.numero_serie or '' }}"></div>
+            <div class="form-group">
+                <label class="form-label">Proveedor</label>
+                <select class="form-control" name="proveedor_id">
+                    <option value="">Sin proveedor</option>
+                    {% for p in proveedores %}<option value="{{ p.id }}" {% if equipo.proveedor_id == p.id %}selected{% endif %}>{{ p.nombre }}</option>{% endfor %}
+                </select>
+            </div>
+            <div class="form-group"><label class="form-label">Fecha compra</label><input class="form-control" type="date" name="fecha_compra" value="{{ equipo.fecha_compra or '' }}"></div>
+            <div class="form-group"><label class="form-label">Fecha instalacion</label><input class="form-control" type="date" name="fecha_instalacion" value="{{ equipo.fecha_instalacion or '' }}"></div>
+            <div class="form-group"><label class="form-label">Garantia meses</label><input class="form-control" type="number" min="0" name="garantia_meses" value="{{ equipo.garantia_meses or '' }}"></div>
+            <div class="form-group"><label class="form-label">Ubicacion</label><input class="form-control" name="ubicacion" value="{{ equipo.ubicacion or '' }}"></div>
+            <div class="form-group">
+                <label class="form-label">Departamento</label>
+                <select class="form-control" name="departamento_id">
+                    <option value="">Sin departamento</option>
+                    {% for d in departamentos %}<option value="{{ d.id }}" {% if equipo.departamento_id == d.id %}selected{% endif %}>{{ d.nombre }}</option>{% endfor %}
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Subdepartamento</label>
+                <select class="form-control" name="subdepartamento_id">
+                    <option value="">Sin subdepartamento</option>
+                    {% for s in subdepartamentos %}<option value="{{ s.id }}" {% if equipo.subdepartamento_id == s.id %}selected{% endif %}>{{ s.nombre }}</option>{% endfor %}
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Punto de venta</label>
+                <select class="form-control" name="punto_venta_id">
+                    <option value="">Sin punto de venta</option>
+                    {% for pv in puntos_venta %}<option value="{{ pv.id }}" {% if equipo.punto_venta_id == pv.id %}selected{% endif %}>{{ pv.nombre }}</option>{% endfor %}
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Control</label>
+                <label style="display:block;margin-top:8px;"><input type="checkbox" name="inventariable" value="1" {% if equipo.inventariable %}checked{% endif %}> Inventariable</label>
+                <label style="display:block;margin-top:8px;"><input type="checkbox" name="requiere_appcc" value="1" {% if equipo.requiere_appcc %}checked{% endif %}> Tiene control APPCC vinculado</label>
+            </div>
+        </div>
+
+        <div class="card" style="margin-top:18px;background:#1d2530;">
+            <h3 style="margin-top:0;color:#fff;">Almacen vinculado</h3>
+            <div style="display:grid;grid-template-columns:repeat(3,minmax(220px,1fr));gap:12px;">
+                <label><input type="checkbox" name="es_almacen" value="1" {% if equipo.almacen_id %}checked{% endif %}> Este equipo tambien es almacen</label>
+                <div class="form-group">
+                    <label class="form-label">Tipo de almacen</label>
+                    <select class="form-control" name="tipo_almacen">
+                        {% for value, label in [('seco','Seco'),('refrigerado','Refrigerado'),('congelado','Congelado'),('botellero','Botellero'),('camara','Camara'),('vitrina','Vitrina refrigerada')] %}
+                        <option value="{{ value }}">{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <label><input type="checkbox" name="controla_temperatura" value="1" {% if equipo.requiere_appcc %}checked{% endif %}> Control temperatura / APPCC</label>
+            </div>
+        </div>
+
+        <div style="margin-top:24px;">
+            <button type="submit" class="btn btn-success">Guardar cambios</button>
+            <a href="{{ url_for('mantenimiento.ver_equipo', equipo_id=equipo.id) }}" class="btn btn-secondary">Cancelar</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

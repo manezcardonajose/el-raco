@@ -1,0 +1,146 @@
+{% extends "base.html" %}
+{% block breadcrumb %}Contabilidad / Recurrentes{% endblock %}
+{% block content %}
+
+<div class="card">
+    <div class="card-header">
+        <div>
+            <h2><i class="fas fa-calendar-check"></i> Gastos recurrentes</h2>
+            <div style="font-size:13px;opacity:.8;">Alquiler, suministros, seguros, asesorias, comisiones y otros cargos periodicos.</div>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <a href="{{ url_for('contabilidad.explotacion') }}" class="btn btn-info">Explotacion</a>
+            <a href="{{ url_for('contabilidad.dashboard') }}" class="btn btn-secondary">Panel</a>
+        </div>
+    </div>
+
+    <form method="POST" style="background:#20252a;border:1px solid #344150;border-radius:8px;padding:14px;margin-bottom:18px;">
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;align-items:end;">
+            <div>
+                <label class="form-label">Nombre</label>
+                <input name="nombre" class="form-control" placeholder="Luz mensual" required>
+            </div>
+            <div>
+                <label class="form-label">Proveedor</label>
+                <select name="proveedor_id" class="form-control">
+                    <option value="">Sin proveedor</option>
+                    {% for p in opciones.proveedores %}
+                    <option value="{{ p.id }}">{{ p.nombre }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label class="form-label">Tercero</label>
+                <select name="tercero_id" class="form-control">
+                    <option value="">Auto / sin tercero</option>
+                    {% for t in opciones.terceros %}
+                    <option value="{{ t.id }}">{{ t.nombre }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label class="form-label">Tipo doc.</label>
+                <select name="tipo_documento" class="form-control">
+                    <option value="gasto">Gasto</option>
+                    <option value="factura_compra">Factura compra</option>
+                    <option value="recibo">Recibo</option>
+                    <option value="comision">Comision</option>
+                    <option value="impuesto">Impuesto</option>
+                </select>
+            </div>
+            <div>
+                <label class="form-label">Cuenta</label>
+                <select name="cuenta_contable" class="form-control">
+                    <option value="628">628 Suministros</option>
+                    <option value="621">621 Alquileres</option>
+                    <option value="625">625 Seguros</option>
+                    <option value="626">626 Comisiones bancarias</option>
+                    <option value="627">627 Publicidad/plataformas</option>
+                    <option value="629">629 Otros servicios</option>
+                    {% for c in opciones.cuentas %}
+                    <option value="{{ c.codigo }}">{{ c.codigo }} {{ c.nombre }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label class="form-label">Base</label>
+                <input type="number" step="0.01" name="base_imponible" class="form-control" value="0">
+            </div>
+            <div>
+                <label class="form-label">% impuesto</label>
+                <input type="number" step="0.01" name="impuesto_pct" class="form-control" value="0">
+            </div>
+            <div>
+                <label class="form-label">Impuesto</label>
+                <input type="number" step="0.01" name="impuesto_importe" class="form-control" value="0">
+            </div>
+            <div>
+                <label class="form-label">Total</label>
+                <input type="number" step="0.01" name="total" class="form-control" value="0">
+            </div>
+            <div>
+                <label class="form-label">Frecuencia</label>
+                <select name="frecuencia" class="form-control">
+                    <option value="mensual">Mensual</option>
+                    <option value="semanal">Semanal</option>
+                    <option value="trimestral">Trimestral</option>
+                    <option value="semestral">Semestral</option>
+                    <option value="anual">Anual</option>
+                </select>
+            </div>
+            <div>
+                <label class="form-label">Siguiente fecha</label>
+                <input type="date" name="siguiente_fecha" class="form-control" value="{{ now.strftime('%Y-%m-%d') }}">
+            </div>
+            <div>
+                <label class="form-label">Centro coste</label>
+                <input name="centro_coste" class="form-control" placeholder="general">
+            </div>
+            <button class="btn btn-success"><i class="fas fa-plus"></i> Crear recurrente</button>
+        </div>
+        <div style="margin-top:10px;">
+            <label class="form-label">Observaciones</label>
+            <textarea name="observaciones" class="form-control" rows="2"></textarea>
+        </div>
+    </form>
+
+    <div class="table-container">
+        <table class="table table-hover">
+            <thead>
+                <tr>
+                    <th>Nombre</th>
+                    <th>Tercero</th>
+                    <th>Cuenta</th>
+                    <th>Frecuencia</th>
+                    <th>Proxima</th>
+                    <th style="text-align:right;">Total</th>
+                    <th>Estado</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for r in recurrentes %}
+                <tr>
+                    <td>{{ r.nombre }}</td>
+                    <td>{{ r.tercero_nombre or r.proveedor_nombre or '-' }}</td>
+                    <td>{{ r.cuenta_contable or '-' }} {{ r.cuenta_nombre or '' }}</td>
+                    <td>{{ r.frecuencia }}</td>
+                    <td>{{ r.siguiente_fecha or '-' }}</td>
+                    <td style="text-align:right;">{{ "%.2f"|format(r.total or 0) }}</td>
+                    <td><span class="badge {% if r.activo %}badge-success{% else %}badge-secondary{% endif %}">{{ 'Activo' if r.activo else 'Inactivo' }}</span></td>
+                    <td>
+                        <form method="POST" action="{{ url_for('contabilidad.generar_recurrente', recurrente_id=r.id) }}" style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+                            <input type="date" name="fecha_documento" class="form-control" value="{{ r.siguiente_fecha or now.strftime('%Y-%m-%d') }}" style="max-width:150px;">
+                            <button class="btn btn-sm btn-warning">Generar</button>
+                        </form>
+                    </td>
+                </tr>
+                {% else %}
+                <tr><td colspan="8" style="text-align:center;padding:24px;">No hay recurrentes creados.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{% endblock %}

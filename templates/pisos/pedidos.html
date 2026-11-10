@@ -1,0 +1,89 @@
+{% extends 'base.html' %}
+{% block title %}Pedidos pisos{% endblock %}
+{% block breadcrumb %}Pisos / Pedidos internos{% endblock %}
+{% block content %}
+<style>
+  .px-actions{display:flex;gap:6px;flex-wrap:wrap;align-items:center;}
+  .px-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;align-items:start;}
+  .px-note{color:#94a3b8;font-size:12px;line-height:1.35;}
+  .px-pill{display:inline-block;border:1px solid #475569;border-radius:4px;padding:2px 6px;font-size:12px;background:#0f172a;}
+  .px-product{border:1px solid #334155;border-radius:6px;background:#111827;padding:8px;display:grid;gap:6px;}
+  .px-product label{display:flex;gap:8px;align-items:start;}
+</style>
+
+<div class="card">
+  <div class="card-header">
+    <h2><i class="fas fa-shopping-cart"></i> Pedidos internos de pisos</h2>
+    <div class="px-actions">
+      <a class="btn btn-secondary" href="{{ url_for('pisos.productos') }}"><i class="fas fa-boxes"></i> Stock</a>
+      <a class="btn btn-secondary" href="{{ url_for('pisos.consumos') }}"><i class="fas fa-clipboard-list"></i> Consumos</a>
+      <a class="btn btn-secondary" href="{{ url_for('compras.lista_pedidos') }}"><i class="fas fa-external-link-alt"></i> Compras</a>
+    </div>
+  </div>
+  <p class="px-note">Estos pedidos quedan como solicitud interna de Pisos. Luego se pueden pasar al circuito de Compras del hotel.</p>
+</div>
+
+<div class="card">
+  <div class="card-header"><h2><i class="fas fa-plus"></i> Crear solicitud</h2></div>
+  <form method="post">
+    <input type="hidden" name="accion" value="crear">
+    <div class="px-actions" style="margin-bottom:10px;">
+      <label class="px-pill"><input type="checkbox" name="desde_minimos" value="1"> Usar productos bajo minimo</label>
+      <select class="form-control" style="max-width:160px;" name="prioridad">
+        <option value="media">Media</option><option value="alta">Alta</option><option value="urgente">Urgente</option><option value="baja">Baja</option>
+      </select>
+      <input class="form-control" style="max-width:320px;" name="observaciones" placeholder="Observaciones">
+      <button class="btn btn-success" type="submit"><i class="fas fa-paper-plane"></i> Crear pedido</button>
+    </div>
+    <div class="px-grid">
+      {% for p in productos %}
+      <div class="px-product">
+        <label>
+          <input type="checkbox" name="producto_id" value="{{ p.id }}" {% if (p.stock_actual or 0) <= (p.stock_minimo or 0) %}checked{% endif %}>
+          <span>
+            <strong>{{ p.nombre }}</strong>
+            <span class="px-note">Stock {{ (p.stock_actual or 0)|round(2) }} {{ p.unidad }} · minimo {{ (p.stock_minimo or 0)|round(2) }}</span>
+          </span>
+        </label>
+        <input class="form-control" type="number" step="0.01" min="0" name="cantidad_{{ p.id }}" placeholder="Cantidad a pedir">
+      </div>
+      {% else %}
+      <p>No hay productos de pisos.</p>
+      {% endfor %}
+    </div>
+  </form>
+</div>
+
+<div class="card">
+  <div class="card-header"><h2><i class="fas fa-history"></i> Solicitudes</h2></div>
+  <div class="table-container">
+    <table>
+      <thead><tr><th>Fecha</th><th>Solicitante</th><th>Lineas</th><th>Estado</th><th>Accion</th></tr></thead>
+      <tbody>
+        {% for p in pedidos %}
+        <tr>
+          <td>{{ p.fecha }}<div class="px-note">{{ p.prioridad }}</div></td>
+          <td>{{ p.solicitante or '-' }}{% if p.observaciones %}<div class="px-note">{{ p.observaciones }}</div>{% endif %}</td>
+          <td>{{ p.lineas or '-' }}</td>
+          <td><span class="px-pill">{{ p.estado }}</span></td>
+          <td>
+            <form method="post" class="px-actions">
+              <input type="hidden" name="accion" value="estado">
+              <input type="hidden" name="pedido_id" value="{{ p.id }}">
+              <select class="form-control" name="estado">
+                {% for e in ['pendiente','solicitado','aprobado','recibido','cerrado','cancelado'] %}
+                <option value="{{ e }}" {% if p.estado == e %}selected{% endif %}>{{ e }}</option>
+                {% endfor %}
+              </select>
+              <button class="btn btn-sm btn-primary" type="submit"><i class="fas fa-save"></i></button>
+            </form>
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="5">Sin solicitudes.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

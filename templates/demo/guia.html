@@ -1,0 +1,59 @@
+{% extends 'base.html' %}
+{% block title %}Recorrido demo{% endblock %}
+{% block breadcrumb %}Demo guiada / Recorrido{% endblock %}
+{% block content %}
+<div class="card">
+  <div class="card-header">
+    <h2><i class="fas fa-play-circle"></i> Recorrido comercial El Raco</h2>
+    <div style="display:flex; gap:8px; flex-wrap:wrap;">
+      <a class="btn btn-secondary" href="{{ url_for('demo.dashboard') }}">Panel demo</a>
+      {% if estado.db.existe %}<a class="btn btn-success" href="{{ estado.demo_url }}" target="_blank">Abrir demo 5002</a>{% endif %}
+    </div>
+  </div>
+  <p style="color:#cbd5e1; max-width:1000px;">
+    Usa este guion para ensenar la ERP sin perderte: primero direccion entiende la foto general,
+    despues se ve la operativa y al final la IA propone mejoras con supervision humana.
+  </p>
+</div>
+
+<div style="display:grid; grid-template-columns: 1fr; gap:14px;">
+  {% for step in steps %}
+  <div class="card" style="margin:0;">
+    <div style="display:grid; grid-template-columns: 170px minmax(260px, 1fr) 180px; gap:16px; align-items:center;">
+      <div>
+        <span class="badge badge-info">{{ step.grupo }}</span>
+        <h3 style="margin:10px 0 0;">{{ step.modulo|upper }}</h3>
+      </div>
+      <div>
+        <h2 style="margin:0 0 8px; color:#ff7a00;">{{ step.titulo }}</h2>
+        <p style="color:#cbd5e1; margin:0;">{{ step.detalle }}</p>
+      </div>
+      <div style="display:flex; gap:8px; flex-wrap:wrap; justify-content:flex-end;">
+        <a class="btn btn-primary" href="{{ step.url }}"><i class="fas fa-eye"></i> Ver real</a>
+        {% if estado.server_running %}
+        <a class="btn btn-success" href="{{ estado.demo_url }}{{ step.url }}" target="_blank"><i class="fas fa-external-link-alt"></i> Demo</a>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+<div class="card">
+  <div class="card-header"><h2><i class="fas fa-comment-dots"></i> Cierre de venta</h2></div>
+  <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap:12px;">
+    <div>
+      <h3>Mensaje corto</h3>
+      <p>El Raco no decide por el equipo: conecta datos, trazabilidad y costes para que direccion y departamentos trabajen con menos ruido.</p>
+    </div>
+    <div>
+      <h3>Valor para el cliente</h3>
+      <p>Reservas, produccion, compras, RRHH, APPCC, contabilidad y experiencia cliente comparten informacion en una sola operativa.</p>
+    </div>
+    <div>
+      <h3>Valor para el trabajador</h3>
+      <p>Menos calculos manuales, menos papeles, avisos claros y datos trazados sin perseguir a nadie.</p>
+    </div>
+  </div>
+</div>
+{% endblock %}

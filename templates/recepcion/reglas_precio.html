@@ -1,0 +1,71 @@
+{% extends 'base.html' %}
+{% block title %}Reglas de precio{% endblock %}
+{% block breadcrumb %}Recepcion / Reglas de precio{% endblock %}
+{% block content %}
+<div class="card">
+  <div class="card-header">
+    <h2><i class="fas fa-chart-line"></i> Reglas de precio</h2>
+    <a class="btn btn-secondary" href="{{ url_for('recepcion.tarifas') }}">Tarifas</a>
+  </div>
+
+  <form method="post" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;align-items:end;margin-bottom:18px;">
+    <div class="form-group"><label class="form-label">Nombre</label><input class="form-control" name="nombre" required placeholder="Subida alta ocupacion"></div>
+    <div class="form-group"><label class="form-label">Tipo</label><select class="form-control" name="tipo_habitacion_id">
+      <option value="">Todos</option>
+      {% for t in tipos %}<option value="{{ t.id }}">{{ t.nombre }} ({{ t.codigo }})</option>{% endfor %}
+    </select></div>
+    <div class="form-group"><label class="form-label">Regimen</label><select class="form-control" name="regimen">
+      <option value="">Todos</option>
+      {% for key,label in regimenes.items() %}<option value="{{ key }}">{{ label }}</option>{% endfor %}
+    </select></div>
+    <div class="form-group"><label class="form-label">Aplicar desde dia</label><input class="form-control" type="date" name="aplicar_desde_fecha"></div>
+    <div class="form-group"><label class="form-label">Aplicar desde hora</label><input class="form-control" type="time" name="aplicar_desde_hora"></div>
+    <div class="form-group"><label class="form-label">Estancia desde</label><input class="form-control" type="date" name="fecha_inicio_estancia"></div>
+    <div class="form-group"><label class="form-label">Estancia hasta</label><input class="form-control" type="date" name="fecha_fin_estancia"></div>
+    <div class="form-group"><label class="form-label">Ocupacion min. %</label><input class="form-control" type="number" step="0.01" min="0" max="100" name="ocupacion_min_pct" placeholder="Ej. 80"></div>
+    <div class="form-group"><label class="form-label">Ocupacion max. %</label><input class="form-control" type="number" step="0.01" min="0" max="100" name="ocupacion_max_pct" placeholder="Ej. 40"></div>
+    <div class="form-group"><label class="form-label">Ajuste</label><select class="form-control" name="ajuste_tipo">
+      <option value="porcentaje">Porcentaje</option>
+      <option value="importe">Importe por noche</option>
+    </select></div>
+    <div class="form-group"><label class="form-label">Valor</label><input class="form-control" type="number" step="0.01" name="ajuste_valor" value="0"></div>
+    <label style="display:flex;gap:6px;align-items:center;"><input type="checkbox" name="activo" checked> Activa</label>
+    <div class="form-group" style="grid-column:1/-1;"><label class="form-label">Motivo</label><input class="form-control" name="motivo" placeholder="Alta ocupacion, oferta, temporada..."></div>
+    <button class="btn btn-success" type="submit">Anadir regla</button>
+  </form>
+
+  <div class="table-container">
+    <table>
+      <thead><tr><th>Nombre</th><th>Tipo</th><th>Regimen</th><th>Aplica desde</th><th>Estancia</th><th>Ocupacion</th><th>Ajuste</th><th>Motivo</th><th>Activa</th><th>Acciones</th></tr></thead>
+      <tbody>
+        {% for r in reglas %}
+        <tr>
+          <td><strong>{{ r.nombre }}</strong></td>
+          <td>{{ r.tipo_nombre or 'Todos' }}</td>
+          <td>{{ regimenes.get(r.regimen, 'Todos') if r.regimen else 'Todos' }}</td>
+          <td>{{ r.aplicar_desde_fecha or '-' }} {{ r.aplicar_desde_hora or '' }}</td>
+          <td>{{ r.fecha_inicio_estancia or '-' }}<br><small>{{ r.fecha_fin_estancia or '-' }}</small></td>
+          <td>
+            {% if r.ocupacion_min_pct is not none or r.ocupacion_max_pct is not none %}
+            {{ r.ocupacion_min_pct if r.ocupacion_min_pct is not none else 0 }}% - {{ r.ocupacion_max_pct if r.ocupacion_max_pct is not none else 100 }}%
+            {% else %}
+            Cualquiera
+            {% endif %}
+          </td>
+          <td>{{ r.ajuste_valor }} {% if r.ajuste_tipo == 'porcentaje' %}%{% else %}&euro;/noche{% endif %}</td>
+          <td>{{ r.motivo or '-' }}</td>
+          <td>{% if r.activo %}Si{% else %}No{% endif %}</td>
+          <td>
+            <form method="post" action="{{ url_for('recepcion.toggle_regla_precio', id=r.id) }}">
+              <button class="btn btn-sm {% if r.activo %}btn-warning{% else %}btn-success{% endif %}" type="submit">{% if r.activo %}Desactivar{% else %}Activar{% endif %}</button>
+            </form>
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="10">No hay reglas de precio.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

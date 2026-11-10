@@ -1,0 +1,158 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="card">
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+        <div>
+            <h2 style="color: #ff6b00;"> INFORME DE VENTAS</h2>
+            <p style="color: #999;">Anlisis de produccin y estimacin de ingresos</p>
+        </div>
+        <div>
+            <a href="/informes" class="btn btn-red"> Volver</a>
+            <button onclick="window.print()" class="btn btn-primary">️ Imprimir</button>
+        </div>
+    </div>
+    
+    <!-- Filtros -->
+    <div style="background: #3a3f44; padding: 20px; border-radius: 4px; margin: 20px 0;">
+        <form method="GET" action="/informes/ventas">
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px;">
+                <div>
+                    <label>Fecha desde:</label>
+                    <input type="date" name="fecha_desde" value="{{ filtros.fecha_desde }}" style="width: 100%; padding: 8px;">
+                </div>
+                <div>
+                    <label>Fecha hasta:</label>
+                    <input type="date" name="fecha_hasta" value="{{ filtros.fecha_hasta }}" style="width: 100%; padding: 8px;">
+                </div>
+                <div style="display: flex; align-items: flex-end;">
+                    <button type="submit" class="btn btn-primary"> Filtrar</button>
+                </div>
+            </div>
+        </form>
+    </div>
+    
+    <!-- Resumen ejecutivo -->
+    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin: 20px 0;">
+        <div style="background: #2b2f33; padding: 15px; border-radius: 4px; text-align: center;">
+            <div style="font-size: 12px; color: #999;">Platos servidos</div>
+            <div style="font-size: 24px; font-weight: bold;">{{ total_platos }}</div>
+        </div>
+        <div style="background: #2b2f33; padding: 15px; border-radius: 4px; text-align: center;">
+            <div style="font-size: 12px; color: #999;">Ingresos estimados</div>
+            <div style="font-size: 24px; font-weight: bold; color: #28a745;">{{ "%.2f"|format(total_ingresos) }} </div>
+        </div>
+        <div style="background: #2b2f33; padding: 15px; border-radius: 4px; text-align: center;">
+            <div style="font-size: 12px; color: #999;">Costes produccin</div>
+            <div style="font-size: 24px; font-weight: bold;">{{ "%.2f"|format(total_costes) }} </div>
+        </div>
+        <div style="background: #2b2f33; padding: 15px; border-radius: 4px; text-align: center;">
+            <div style="font-size: 12px; color: #999;">Margen bruto</div>
+            <div style="font-size: 24px; font-weight: bold; color: {% if margen_bruto > 0 %}#28a745{% else %}#dc3545{% endif %};">
+                {{ "%.2f"|format(margen_bruto) }} 
+            </div>
+        </div>
+    </div>
+    
+    <!-- Grfico de ventas diarias -->
+    <div style="background: #3a3f44; padding: 20px; border-radius: 4px; margin: 20px 0;">
+        <h3 style="margin-top: 0;"> Evolucin diaria</h3>
+        <canvas id="graficoVentas" style="width:100%; height:300px;"></canvas>
+    </div>
+    
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+        <!-- Ventas por tipo -->
+        <div>
+            <h3> Por tipo de servicio</h3>
+            <table style="width: 100%;">
+                <thead>
+                    <tr>
+                        <th>Tipo</th>
+                        <th>Partes</th>
+                        <th>Ingresos</th>
+                        <th>Costes</th>
+                        <th>Margen</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for t in ventas_tipo %}
+                    <tr>
+                        <td><strong>{{ t.turno or 'Sin turno' }}</strong></td>
+                        <td>{{ t.num_partes }}</td>
+                        <td>{{ "%.2f"|format(t.ingreso_estimado) }} </td>
+                        <td>{{ "%.2f"|format(t.coste_total) }} </td>
+                        <td>{{ "%.2f"|format(t.ingreso_estimado - t.coste_total) }} </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- Platos top -->
+        <div>
+            <h3> Platos ms vendidos</h3>
+            <table style="width: 100%;">
+                <thead>
+                    <tr>
+                        <th>Plato</th>
+                        <th>Veces</th>
+                        <th>Raciones</th>
+                        <th>Ingreso est.</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for p in platos_top %}
+                    <tr>
+                        <td><strong>{{ p.nombre }}</strong></td>
+                        <td>{{ p.veces_producido }}</td>
+                        <td>{{ p.total_raciones }}</td>
+                        <td>{{ "%.2f"|format((p.precio_estimado or 2.5 * p.coste_total/p.veces_producido) * p.total_raciones) }} </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    const fechas = [{% for v in ventas_diarias %}'{{ v.fecha }}',{% endfor %}];
+    const ingresos = [{% for v in ventas_diarias %}{{ v.ingreso_estimado }},{% endfor %}];
+    const costes = [{% for v in ventas_diarias %}{{ v.coste_total }},{% endfor %}];
+    
+    new Chart(document.getElementById('graficoVentas'), {
+        type: 'line',
+        data: {
+            labels: fechas,
+            datasets: [
+                {
+                    label: 'Ingresos estimados',
+                    data: ingresos,
+                    borderColor: '#28a745',
+                    backgroundColor: 'rgba(40, 167, 69, 0.1)',
+                },
+                {
+                    label: 'Costes produccin',
+                    data: costes,
+                    borderColor: '#dc3545',
+                    backgroundColor: 'rgba(220, 53, 69, 0.1)',
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: { labels: { color: '#e4e6eb' } }
+            },
+            scales: {
+                y: { grid: { color: '#555' }, ticks: { color: '#e4e6eb' } },
+                x: { grid: { color: '#555' }, ticks: { color: '#e4e6eb' } }
+            }
+        }
+    });
+</script>
+{% endblock %}
+
+
+

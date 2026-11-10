@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header">
+        <div>
+            <h2><i class="fas fa-bookmark"></i> Menús fijos</h2>
+            <div style="display:inline-flex;align-items:center;gap:8px;padding:6px 10px;border:1px solid var(--border,#d5dde8);border-radius:8px;background:var(--card-bg,#fff);color:var(--text-muted,#475569);font-size:.9rem;">
+                <i class="fas fa-building"></i>
+                <span>Centro actual:</span>
+                <strong style="color:var(--text,#0f172a);">{{ centro_activo.nombre if centro_activo else 'Empresa completa' }}</strong>
+            </div>
+        </div>
+        {% if tiene_permiso('produccion_editar') %}
+        <a href="{{ url_for('menus.nuevo_menu_fijo') }}" class="btn btn-success">
+            <i class="fas fa-plus"></i> Nuevo menú fijo
+        </a>
+        {% endif %}
+    </div>
+
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>Nombre</th>
+                    <th>Tipo</th>
+                    <th>Vigencia</th>
+                    <th>Estado</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for m in menus %}
+                <tr>
+                    <td><strong>{{ m.nombre }}</strong></td>
+                    <td>{{ m.tipo_nombre }}</td>
+                    <td>
+                        {% if m.fecha_inicio or m.fecha_fin %}
+                            {{ m.fecha_inicio or '---' }} → {{ m.fecha_fin or '---' }}
+                        {% else %}
+                            Sin fecha
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if m.activo %}
+                            <span style="color: #28a745;">Activo</span>
+                        {% else %}
+                            <span style="color: #dc3545;">Inactivo</span>
+                        {% endif %}
+                    </td>
+                    <td style="text-align: center;">
+                        <a href="{{ url_for('menus.ver_menu_fijo', menu_id=m.id) }}" class="btn btn-sm btn-info" title="Ver">
+                            <i class="fas fa-eye"></i>
+                        </a>
+                        {% if tiene_permiso('produccion_editar') %}
+                        <a href="{{ url_for('menus.editar_menu_fijo', menu_id=m.id) }}" class="btn btn-sm btn-primary" title="Editar">
+                            <i class="fas fa-edit"></i>
+                        </a>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="5" style="text-align: center; padding: 40px;">
+                        No hay menús fijos creados.
+                        {% if tiene_permiso('produccion_editar') %}
+                        <a href="{{ url_for('menus.nuevo_menu_fijo') }}">Crea el primero</a>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

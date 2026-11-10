@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="card">
+    <div class="card-header" style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;">
+        <div>
+            <h3 style="margin:0;"><i class="fas fa-exclamation-triangle"></i> Bandeja de incidencias de compras</h3>
+            <small>Faltantes, APPCC, diferencias de precio, OCR pendiente y documentacion.</small>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <a href="{{ url_for('incidencias.lista', tipo='recepcion') }}" class="btn btn-outline-warning btn-sm">Historial incidencias</a>
+            <a href="{{ url_for('compras.validar_recepciones') }}" class="btn btn-secondary btn-sm">Volver a recepciones</a>
+        </div>
+    </div>
+
+    <div class="card-body">
+        {% if incidencias %}
+        <div class="table-responsive">
+            <table class="table" style="min-width:1100px;">
+                <thead>
+                    <tr>
+                        <th>Prioridad</th>
+                        <th>Tipo</th>
+                        <th>Estado</th>
+                        <th>Referencia</th>
+                        <th>Proveedor</th>
+                        <th>Departamento</th>
+                        <th>Detalle</th>
+                        <th>Accion</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for i in incidencias %}
+                    <tr>
+                        <td>
+                            <span class="badge {{ 'bg-danger' if i.prioridad == 'alta' else ('bg-warning text-dark' if i.prioridad == 'media' else 'bg-secondary') }}">
+                                {{ i.prioridad }}
+                            </span>
+                        </td>
+                        <td>{{ i.tipo }}</td>
+                        <td>{{ i.estado }}</td>
+                        <td>{{ i.referencia }}</td>
+                        <td>{{ i.proveedor }}</td>
+                        <td>{{ i.departamento }}</td>
+                        <td>{{ i.detalle }}</td>
+                        <td>
+                            {% if i.accion_url %}
+                            <a href="{{ i.accion_url }}" class="btn btn-sm btn-primary">{{ i.accion_texto or 'Abrir' }}</a>
+                            {% endif %}
+                            {% if i.accion_secundaria_url %}
+                            <a href="{{ i.accion_secundaria_url }}" class="btn btn-sm btn-secondary">{{ i.accion_secundaria_texto or 'Ver' }}</a>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="alert alert-success">No hay incidencias pendientes de compras.</div>
+        {% endif %}
+    </div>
+</div>
+
+{% endblock %}

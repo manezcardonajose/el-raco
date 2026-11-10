@@ -1,0 +1,270 @@
+{% extends "base.html" %}
+
+{% block content %}
+<style>
+    .libros-page {
+        max-width: 1500px;
+        margin: 0 auto;
+    }
+    .libros-grid {
+        display: grid;
+        grid-template-columns: 420px minmax(0, 1fr);
+        gap: 14px;
+        align-items: start;
+    }
+    .panel-libro {
+        border: 1px solid #2c3e50;
+        background: #1e252b;
+        border-radius: 8px;
+        padding: 14px;
+    }
+    .panel-libro h3 {
+        margin: 0 0 12px;
+        color: #ff6b00;
+    }
+    .lista-libros {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        max-height: 620px;
+        overflow: auto;
+    }
+    .libro-item {
+        border: 1px solid #34495e;
+        border-radius: 8px;
+        background: #111827;
+        color: #e5e7eb;
+        padding: 10px;
+        text-decoration: none;
+    }
+    .libro-item strong {
+        display: block;
+        color: #fff;
+        margin-bottom: 4px;
+        line-height: 1.25;
+    }
+    .libro-item.active {
+        border-color: #ff6b00;
+    }
+    .muted {
+        color: #9ca3af;
+        font-size: 12px;
+    }
+    .form-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 14px;
+    }
+    .panel-libro label {
+        display: block;
+        margin-bottom: 4px;
+    }
+    .panel-libro input,
+    .panel-libro select {
+        display: block;
+        width: 100%;
+        min-height: 44px;
+        box-sizing: border-box;
+        font-size: 15px;
+        padding: 8px 10px;
+    }
+    .panel-libro .btn {
+        min-height: 44px;
+        padding-left: 18px;
+        padding-right: 18px;
+    }
+    .resultado {
+        border: 1px solid #34495e;
+        background: #111827;
+        border-radius: 8px;
+        padding: 12px;
+        margin-top: 12px;
+    }
+    .badge-estado {
+        display: inline-block;
+        border-radius: 999px;
+        padding: 2px 8px;
+        font-size: 11px;
+        margin-left: 6px;
+        background: #334155;
+        color: #e5e7eb;
+    }
+    .badge-nueva {
+        background: #16a34a;
+    }
+    @media (max-width: 1000px) {
+        .libros-grid,
+        .form-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+
+<div class="libros-page">
+    <div class="card">
+        <div class="card-header">
+            <h2><i class="fas fa-book-reader"></i> Analizador de libros grandes</h2>
+            <div>
+                <a href="{{ url_for('recetas.recetas_libros') }}" class="btn btn-info">
+                    <i class="fas fa-list"></i> Ver recetas de libros
+                </a>
+                <a href="{{ url_for('recetas.biblioteca_recetas') }}" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left"></i> Volver
+                </a>
+            </div>
+        </div>
+
+        <div class="libros-grid">
+            <aside class="panel-libro">
+                <h3>Libros detectados</h3>
+                {% if estado_indexacion %}
+                <div class="resultado" style="margin:0 0 12px;">
+                    <strong>{{ estado_indexacion.indexados }}/{{ estado_indexacion.total }}</strong>
+                    <span class="muted">libros grandes indexados</span><br>
+                    <span class="muted">{{ estado_indexacion.pendientes }} pendientes</span>
+                    {% if estado_indexacion.necesita_ocr %}
+                    <br><span class="muted">{{ estado_indexacion.necesita_ocr }} necesitan OCR por tramos</span>
+                    {% endif %}
+                    {% if estado_indexacion.sin_recetas %}
+                    <br><span class="muted">{{ estado_indexacion.sin_recetas }} leidos sin recetas detectadas</span>
+                    {% endif %}
+                </div>
+                <form method="post" style="margin-bottom:12px;">
+                    <input type="hidden" name="accion" value="lote_pendientes">
+                    <label>Indexar pendientes por lotes</label>
+                    <input type="number" name="limite_lote" min="1" max="20" value="5">
+                    <input type="text" name="etiqueta" placeholder="etiqueta opcional">
+                    <input type="text" name="contexto" placeholder="contexto opcional">
+                    <button class="btn btn-warning" type="submit" style="width:100%; margin-top:8px;">
+                        <i class="fas fa-layer-group"></i> Indexar lote pendiente
+                    </button>
+                    <div class="muted" style="margin-top:6px;">Sin OCR. Para PDFs escaneados usa tramos con OCR.</div>
+                </form>
+                {% endif %}
+                <div class="lista-libros">
+                    {% for libro in libros %}
+                    <a class="libro-item {% if libro_actual and libro.id == libro_actual.id %}active{% endif %}"
+                       href="{{ url_for('recetas.analizador_libros', source_id=libro.id) }}">
+                        <strong>{{ libro.nombre }}</strong>
+                        <span class="muted">
+                            {{ (libro.tamano / 1024 / 1024)|round(1) }} MB
+                            {% if libro.zip %} · {{ libro.zip }}{% endif %}
+                            {% if libro.grande %} · grande{% endif %}
+                        </span>
+                    </a>
+                    {% endfor %}
+                </div>
+            </aside>
+
+            <section class="panel-libro">
+                <h3>Indexar por paginas</h3>
+                {% if libro_actual %}
+                <p><strong>{{ libro_actual.nombre }}</strong></p>
+                <p class="muted">
+                    Tamano: {{ (libro_actual.tamano / 1024 / 1024)|round(1) }} MB
+                    {% if paginas_total %} · Paginas: {{ paginas_total }}{% endif %}
+                </p>
+                <form method="post">
+                    <input type="hidden" name="source_id" value="{{ libro_actual.id }}">
+                    <div class="form-grid">
+                        <div>
+                            <label>Pagina inicio</label>
+                            <input type="number" name="pagina_inicio" min="1" value="1">
+                        </div>
+                        <div>
+                            <label>Paginas a leer</label>
+                            <input type="number" name="paginas" min="1" max="40" value="10">
+                        </div>
+                        <div>
+                            <label>Etiqueta</label>
+                            <input type="text" name="etiqueta" placeholder="monacal, termal, pasteleria, asiatico...">
+                        </div>
+                        <div>
+                            <label>Contexto</label>
+                            <input type="text" name="contexto" placeholder="hotel monasterio, buffet saludable...">
+                        </div>
+                        <div>
+                            <label>OCR</label>
+                            <label style="display:flex; align-items:center; gap:8px; min-height:44px;">
+                                <input type="checkbox" name="usar_ocr" value="1" style="width:auto; min-height:auto;" {% if not ocr_disponible %}disabled{% endif %}>
+                                Leer imagen escaneada
+                            </label>
+                            {% if not ocr_disponible %}
+                            <div class="muted">OCR no disponible en este entorno.</div>
+                            {% else %}
+                            <div class="muted">Con OCR se limita a 8 paginas por tramo.</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <button class="btn btn-success" type="submit" style="margin-top:12px;">
+                        <i class="fas fa-brain"></i> Indexar este tramo
+                    </button>
+                    <button class="btn btn-primary" type="submit" name="accion" value="completo" style="margin-top:12px;">
+                        <i class="fas fa-book"></i> Indexar libro completo
+                    </button>
+                </form>
+                {% else %}
+                <div class="resultado muted">Selecciona un libro de la izquierda.</div>
+                {% endif %}
+
+                {% if resultado %}
+                <div class="resultado">
+                    <h3>Resultado</h3>
+                    <p>
+                        Paginas {{ resultado.inicio }}-{{ resultado.fin }}.
+                        Texto leido: {{ resultado.caracteres or 0 }} caracteres.
+                        Detectadas: {{ resultado.detectadas or 0 }}.
+                        Nuevas: {{ resultado.nuevas }}.
+                        Ya estaban: {{ resultado.existentes or 0 }}.
+                        {% if resultado.ocr %} OCR activado.{% endif %}
+                    </p>
+                    {% if resultado.detectadas and not resultado.nuevas %}
+                    <p class="muted">Ese tramo ya estaba indexado. No se duplica en la memoria privada.</p>
+                    {% endif %}
+                    {% if resultado.aviso %}
+                    <p class="muted">{{ resultado.aviso }}</p>
+                    {% endif %}
+                    {% if resultado.propuestas %}
+                    <ul>
+                        {% for propuesta in resultado.propuestas[:20] %}
+                        <li>
+                            {{ propuesta.nombre }}
+                            <span class="muted">({{ propuesta.confianza }}%)</span>
+                            {% if propuesta.paginas %}<span class="muted">pag. {{ propuesta.paginas }}</span>{% endif %}
+                            {% if propuesta.ya_existia %}
+                            <span class="badge-estado">ya estaba</span>
+                            {% else %}
+                            <span class="badge-estado badge-nueva">nueva</span>
+                            {% endif %}
+                        </li>
+                        {% endfor %}
+                    </ul>
+                    {% endif %}
+                </div>
+                {% endif %}
+                {% if resultado_lote %}
+                <div class="resultado">
+                    <h3>Resultado del lote</h3>
+                    <p>
+                        Libros procesados: {{ resultado_lote.procesados }}.
+                        Detectadas: {{ resultado_lote.detectadas }}.
+                        Nuevas: {{ resultado_lote.nuevas }}.
+                    </p>
+                    <ul>
+                        {% for item in resultado_lote.resultados %}
+                        <li>
+                            <strong>{{ item.libro }}</strong>
+                            <span class="muted">{{ item.paginas }} paginas · {{ item.detectadas }} detectadas · {{ item.nuevas }} nuevas</span>
+                            {% if not item.ok or item.aviso %}
+                            <br><span class="muted">{{ item.aviso }}</span>
+                            {% endif %}
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+                {% endif %}
+            </section>
+        </div>
+    </div>
+</div>
+{% endblock %}

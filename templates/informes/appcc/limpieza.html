@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="card">
+    <div class="card-header">
+        <h2><i class="fas fa-broom"></i> INFORME DE LIMPIEZA</h2>
+        <div>
+            <button onclick="window.print()" class="btn btn-info">
+                <i class="fas fa-print"></i> Imprimir
+            </button>
+            <a href="{{ url_for('appcc.exportar_informe_appcc', tipo='limpieza', desde=fecha_desde, hasta=fecha_hasta) }}" class="btn btn-success">
+                <i class="fas fa-file-excel"></i> Exportar Excel
+            </a>
+            <a href="{{ url_for('appcc.appcc_dashboard') }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Volver
+            </a>
+        </div>
+    </div>
+    <!-- Filtros -->
+    <div style="background: #1e252b; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+        <form method="GET" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; align-items: end;">
+            <div>
+                <label class="form-label">Desde:</label>
+                <input type="date" name="desde" value="{{ fecha_desde }}" class="form-control">
+            </div>
+            <div>
+                <label class="form-label">Hasta:</label>
+                <input type="date" name="hasta" value="{{ fecha_hasta }}" class="form-control">
+            </div>
+            <div>
+                <button type="submit" class="btn btn-primary">Filtrar</button>
+            </div>
+        </form>
+    </div>
+    <!-- Tabla de registros -->
+    {% if registros %}
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>Fecha</th>
+                    <th>Área</th>
+                    <th>Tarea</th>
+                    <th>Frecuencia</th>
+                    <th>Realizado por</th>
+                    <th>Observaciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for r in registros %}
+                <tr>
+                    <td>{{ r.fecha[:16] if r.fecha else '---' }}</td>
+                    <td><strong>{{ r.area or '---' }}</strong></td>
+                    <td>{{ r.tarea or '---' }}</td>
+                    <td>{{ r.frecuencia or '---' }}</td>
+                    <td>{{ r.realizada_por or '---' }}</td>
+                    <td>{{ r.observaciones or '---' }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div style="text-align: center; padding: 40px; background: #1e252b; border-radius: 8px;">
+        <p style="color: #999;">No hay registros de limpieza para los filtros seleccionados</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,143 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header" style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;">
+        <div>
+            <h3 style="margin:0;"><i class="fas fa-edit"></i> Editar recepción</h3>
+            <small>
+                Corrige cantidades, almacén, lote o estado. La ERP ajusta el stock por diferencia y no crea otra recepción.
+            </small>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <a href="{{ url_for('compras.validar_recepciones') }}" class="btn btn-secondary btn-sm">Volver</a>
+            {% if recepcion.pedido_id %}
+            <a href="{{ url_for('compras.ver_pedido', pedido_id=recepcion.pedido_id) }}" class="btn btn-info btn-sm">Ver pedido</a>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="card-body">
+        <div class="alert alert-warning">
+            <strong>Atención:</strong> esta pantalla no crea una recepción nueva. Si cambias cantidades o almacén,
+            se genera un movimiento de ajuste por la diferencia.
+        </div>
+
+        <form method="POST">
+            <div class="row" style="display:grid;grid-template-columns:repeat(4,minmax(180px,1fr));gap:12px;margin-bottom:16px;">
+                <div>
+                    <label>Recepción</label>
+                    <input class="form-control" value="#{{ recepcion.id }}" readonly>
+                </div>
+                <div>
+                    <label>Pedido</label>
+                    <input class="form-control" value="{{ recepcion.numero_pedido or 'Recepción directa' }}" readonly>
+                </div>
+                <div>
+                    <label>Proveedor</label>
+                    <input class="form-control" value="{{ recepcion.proveedor_nombre or '-' }}" readonly>
+                </div>
+                <div>
+                    <label>Departamento</label>
+                    <input class="form-control" value="{{ recepcion.departamento_nombre or '-' }}" readonly>
+                </div>
+                <div>
+                    <label>Fecha recepción</label>
+                    <input type="date" name="fecha_recepcion" class="form-control" value="{{ recepcion.fecha_recepcion or now.strftime('%Y-%m-%d') }}">
+                </div>
+                <div>
+                    <label>Nº albarán</label>
+                    <input type="text" name="numero_albaran" class="form-control" value="{{ recepcion.numero_albaran or '' }}">
+                </div>
+                <div>
+                    <label>Stock</label>
+                    <input class="form-control" value="{{ 'Aplicado' if recepcion.stock_aplicado else 'Pendiente' }}" readonly>
+                </div>
+                <div>
+                    <label>Validación económica</label>
+                    <input class="form-control" value="{{ 'OK' if recepcion.validada_economicamente else 'Pendiente' }}" readonly>
+                </div>
+            </div>
+
+            <div style="margin-bottom:16px;">
+                <label>Observaciones</label>
+                <textarea name="observaciones" class="form-control" rows="3">{{ recepcion.observaciones or '' }}</textarea>
+            </div>
+
+            <div class="table-responsive">
+                <table class="table" style="min-width:1350px;">
+                    <thead>
+                        <tr>
+                            <th style="width:70px;">ID</th>
+                            <th>Producto</th>
+                            <th style="width:140px;">Cantidad</th>
+                            <th style="width:220px;">Almacén</th>
+                            <th style="width:170px;">Lote</th>
+                            <th style="width:170px;">Caducidad</th>
+                            <th style="width:140px;">Temp.</th>
+                            <th style="width:190px;">Estado</th>
+                            <th style="width:260px;">Incidencia / motivo</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for l in lineas %}
+                        <tr>
+                            <td>{{ l.id }}</td>
+                            <td>
+                                <strong>{{ l.producto_nombre }}</strong><br>
+                                <small>{{ l.producto_codigo or 'SIN COD' }} · {{ l.unidad or '' }}</small>
+                            </td>
+                            <td>
+                                <input type="number" step="0.001" min="0" name="cantidad_{{ l.id }}" class="form-control" value="{{ l.cantidad_recibida or 0 }}">
+                            </td>
+                            <td>
+                                <select name="almacen_{{ l.id }}" class="form-control">
+                                    <option value="">Seleccionar almacén</option>
+                                    {% for a in almacenes %}
+                                    <option value="{{ a.id }}" {% if l.almacen_id == a.id %}selected{% endif %}>{{ a.nombre }}</option>
+                                    {% endfor %}
+                                </select>
+                            </td>
+                            <td>
+                                <input type="text" name="lote_{{ l.id }}" class="form-control" value="{{ l.lote or '' }}">
+                            </td>
+                            <td>
+                                <input type="date" name="caducidad_{{ l.id }}" class="form-control" value="{{ l.fecha_caducidad or '' }}">
+                            </td>
+                            <td>
+                                <input type="number" step="0.1" name="temperatura_{{ l.id }}" class="form-control" value="{{ l.temperatura if l.temperatura is not none else '' }}">
+                            </td>
+                            <td>
+                                <select name="estado_{{ l.id }}" class="form-control">
+                                    <option value="ok" {% if l.aceptado != 0 and not l.incidencia_id %}selected{% endif %}>OK</option>
+                                    <option value="falta_unidades">Falta unidades</option>
+                                    <option value="falta_peso">Falta peso</option>
+                                    <option value="rotura" {% if l.aceptado == 0 and l.motivo_rechazo and 'rotura' in l.motivo_rechazo|lower %}selected{% endif %}>Rotura</option>
+                                    <option value="mal_estado" {% if l.aceptado == 0 and l.motivo_rechazo and 'estado' in l.motivo_rechazo|lower %}selected{% endif %}>Mal estado</option>
+                                    <option value="temperatura_incorrecta" {% if l.aceptado == 0 and l.motivo_rechazo and 'temperatura' in l.motivo_rechazo|lower %}selected{% endif %}>Temperatura incorrecta</option>
+                                    <option value="rechazado" {% if l.aceptado == 0 %}selected{% endif %}>Rechazado</option>
+                                </select>
+                            </td>
+                            <td>
+                                <input type="text" name="incidencia_texto_{{ l.id }}" class="form-control" value="{{ l.motivo_rechazo or '' }}" placeholder="Motivo si hay incidencia">
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="9" style="text-align:center;">Esta recepción no tiene líneas.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:16px;">
+                <a href="{{ url_for('compras.validar_recepciones') }}" class="btn btn-secondary">Cancelar</a>
+                <button type="submit" class="btn btn-success">
+                    <i class="fas fa-save"></i> Guardar cambios y ajustar stock
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

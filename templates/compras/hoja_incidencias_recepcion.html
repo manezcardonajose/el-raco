@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;">
+        <div>
+            <h2 style="margin:0;color:#dc3545;"><i class="fas fa-exclamation-triangle"></i> Hoja de incidencias de recepción</h2>
+            <div style="margin-top:6px;color:#6b7280;">
+                {% if recepcion %}
+                    <strong>Recepción:</strong> {{ recepcion.id }} ·
+                    <strong>Pedido:</strong> {{ recepcion.numero_pedido or 'Directa' }} ·
+                    <strong>Proveedor:</strong> {{ recepcion.proveedor_nombre or '-' }}
+                {% elif pedido %}
+                    <strong>Pedido:</strong> {{ pedido.numero_pedido }} ·
+                    <strong>Proveedor:</strong> {{ pedido.proveedor_nombre }}
+                {% endif %}
+            </div>
+        </div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;">
+            <button onclick="window.print()" class="btn btn-primary"><i class="fas fa-print"></i> Imprimir incidencias</button>
+            {% if recepcion %}
+            <a href="{{ url_for('compras.hoja_conformidad_recepcion_id', recepcion_id=recepcion.id) }}" class="btn btn-secondary">Volver conformidad</a>
+            {% elif pedido %}
+            <a href="{{ url_for('compras.recibir_pedido', numero_pedido=pedido.numero_pedido) }}" class="btn btn-secondary">Volver</a>
+            {% endif %}
+        </div>
+    </div>
+
+    {% if incidencias %}
+    <div style="margin-top:18px;display:flex;flex-direction:column;gap:14px;">
+        {% for i in incidencias %}
+        <div style="border:1px solid #fecaca;background:#fff7f7;color:#111;border-radius:8px;padding:14px;">
+            <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;">
+                <div>
+                    <div style="font-weight:700;">{{ i.producto_nombre or 'Sin producto' }}</div>
+                    <div style="color:#6b7280;font-size:14px;">
+                        Fecha: {{ i.fecha_recepcion or i.fecha }} · Albarán: {{ i.numero_albaran or '-' }}
+                    </div>
+                </div>
+                <div>
+                    <span class="badge bg-danger">{{ i.gravedad or 'media' }}</span>
+                    <span class="badge bg-warning text-dark">{{ i.estado or 'abierta' }}</span>
+                </div>
+            </div>
+            <div style="margin-top:10px;">
+                <div><strong>Tipo:</strong> {{ i.tipo or '-' }}</div>
+                <div><strong>Descripción / decisión APPCC:</strong> {{ i.descripcion or '-' }}</div>
+                {% if i.observaciones %}
+                <div><strong>Observaciones:</strong> {{ i.observaciones }}</div>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="alert alert-success" style="margin-top:18px;">
+        No hay incidencias registradas para esta recepción.
+    </div>
+    {% endif %}
+
+    <div style="margin-top:28px;display:grid;grid-template-columns:1fr 1fr;gap:40px;">
+        <div style="border-top:1px solid #999;padding-top:8px;text-align:center;">Firma recepción</div>
+        <div style="border-top:1px solid #999;padding-top:8px;text-align:center;">Firma responsable APPCC</div>
+    </div>
+</div>
+{% endblock %}

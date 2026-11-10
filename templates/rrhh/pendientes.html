@@ -1,0 +1,173 @@
+{% extends 'base.html' %}
+{% block title %}Pendientes RRHH{% endblock %}
+{% block breadcrumb %}RRHH / Pendientes{% endblock %}
+{% block content %}
+<style>
+  .pending-head{display:flex;justify-content:space-between;gap:14px;align-items:flex-start;margin-bottom:18px;}
+  .pending-head h2{margin:0;color:#ff6b00;display:flex;align-items:center;gap:10px;}
+  .pending-actions{display:flex;gap:8px;flex-wrap:wrap;}
+  .pending-metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin-bottom:18px;}
+  .pending-metric{background:#252b33;border:1px solid #34485d;border-radius:8px;padding:14px;}
+  .pending-metric strong{display:block;font-size:28px;color:#fff;line-height:1;}
+  .pending-metric span{display:block;color:#b8c2cc;margin-top:6px;font-size:13px;}
+  .pending-section{background:#252b33;border:1px solid #34485d;border-radius:8px;margin-bottom:18px;overflow:hidden;}
+  .pending-section header{display:flex;justify-content:space-between;gap:12px;align-items:center;padding:14px 16px;border-bottom:1px solid #34485d;background:#202832;}
+  .pending-section h3{margin:0;color:#ff6b00;font-size:17px;display:flex;gap:8px;align-items:center;}
+  .pending-table{width:100%;border-collapse:collapse;min-width:980px;}
+  .pending-table th{background:#151a20;color:#ff6b00;border-bottom:1px solid #34485d;padding:9px;text-align:left;font-size:12px;text-transform:uppercase;}
+  .pending-table td{border-bottom:1px solid #34485d;padding:10px;vertical-align:top;font-size:13px;}
+  .pending-table tr:last-child td{border-bottom:0;}
+  .pending-actions-cell{display:flex;gap:6px;flex-wrap:wrap;align-items:center;}
+  .pending-form{display:inline-flex;gap:6px;align-items:center;margin:0;}
+  .pending-form input[type=text]{min-width:170px;background:#17212b;color:#fff;border:1px solid #34485d;border-radius:5px;padding:7px 9px;}
+  .muted{color:#9ca3af;}
+  .table-scroll{overflow-x:auto;}
+  @media(max-width:760px){.pending-head{display:block;}.pending-actions{margin-top:12px;}.pending-table{min-width:760px;}}
+</style>
+
+<div class="pending-head">
+  <h2><i class="fas fa-inbox"></i> Pendientes RRHH</h2>
+  <div class="pending-actions">
+    <a class="btn btn-primary" href="{{ url_for('rrhh.lista_fichajes') }}"><i class="fas fa-clock"></i> Fichajes</a>
+    <a class="btn btn-primary" href="{{ url_for('rrhh.vacaciones') }}"><i class="fas fa-user-clock"></i> Ausencias</a>
+    <a class="btn btn-primary" href="{{ url_for('rrhh.lista_documentos') }}"><i class="fas fa-folder-open"></i> Documentos</a>
+    <a class="btn btn-primary" href="{{ url_for('rrhh.lista_contratos') }}"><i class="fas fa-file-contract"></i> Contratos</a>
+  </div>
+</div>
+
+<div class="pending-metrics">
+  <div class="pending-metric"><strong>{{ resumen.total }}</strong><span>Total pendiente</span></div>
+  <div class="pending-metric"><strong>{{ resumen.correcciones }}</strong><span>Correcciones fichaje</span></div>
+  <div class="pending-metric"><strong>{{ resumen.solicitudes }}</strong><span>Solicitudes ausencia</span></div>
+  <div class="pending-metric"><strong>{{ resumen.documentos }}</strong><span>Documentos revision</span></div>
+  <div class="pending-metric"><strong>{{ resumen.contratos }}</strong><span>Contratos sin firma</span></div>
+</div>
+
+<section class="pending-section">
+  <header><h3><i class="fas fa-clipboard-check"></i> Correcciones de fichaje</h3><span class="badge badge-info">{{ correcciones|length }}</span></header>
+  <div class="table-scroll">
+    <table class="pending-table">
+      <thead><tr><th>Empleado</th><th>Fecha/hora</th><th>Tipo</th><th>Motivo</th><th>Resolver</th></tr></thead>
+      <tbody>
+      {% for s in correcciones %}
+      <tr>
+        <td><strong>{{ s.empleado_nombre }}</strong><br><span class="muted">{{ s.departamento_nombre or '-' }}</span></td>
+        <td>{{ s.fecha_hora_solicitada }}<br><span class="muted">Solicitada: {{ s.fecha_solicitud or '-' }}</span></td>
+        <td><span class="badge badge-info">{{ s.tipo }}</span></td>
+        <td>{{ s.motivo or '-' }}</td>
+        <td class="pending-actions-cell">
+          <form method="post" action="{{ url_for('rrhh.aprobar_correccion_fichaje', id=s.id) }}" class="pending-form">
+            <input type="hidden" name="next" value="pendientes">
+            <input type="text" name="respuesta_rrhh" placeholder="Respuesta RRHH">
+            <button class="btn btn-sm btn-success" title="Aprobar"><i class="fas fa-check"></i></button>
+          </form>
+          <form method="post" action="{{ url_for('rrhh.rechazar_correccion_fichaje', id=s.id) }}" class="pending-form">
+            <input type="hidden" name="next" value="pendientes">
+            <input type="text" name="respuesta_rrhh" placeholder="Motivo rechazo">
+            <button class="btn btn-sm btn-danger" title="Rechazar"><i class="fas fa-times"></i></button>
+          </form>
+        </td>
+      </tr>
+      {% else %}
+      <tr><td colspan="5" class="muted">No hay correcciones pendientes.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section class="pending-section">
+  <header><h3><i class="fas fa-user-clock"></i> Solicitudes de ausencia</h3><span class="badge badge-info">{{ solicitudes|length }}</span></header>
+  <div class="table-scroll">
+    <table class="pending-table">
+      <thead><tr><th>Empleado</th><th>Tipo</th><th>Fechas</th><th>Documento</th><th>Observaciones</th><th>Resolver</th></tr></thead>
+      <tbody>
+      {% for s in solicitudes %}
+      <tr>
+        <td><strong>{{ s.empleado_nombre }}</strong><br><span class="muted">{{ s.departamento_nombre or '-' }}</span></td>
+        <td>{{ (s.tipo or 'vacaciones')|replace('_',' ')|capitalize }}</td>
+        <td>{{ s.fecha_inicio }}<br>{{ s.fecha_fin }}<br><span class="muted">{{ s.dias or 0 }} dia(s)</span></td>
+        <td>{% if s.documento_archivo %}<a class="btn btn-sm btn-info" href="{{ url_for('rrhh.descargar_documento_rrhh', id=s.documento_id) }}"><i class="fas fa-download"></i></a> {{ s.documento_nombre or 'Documento' }}{% elif s.requiere_documento %}<span class="badge badge-warning">Pendiente</span>{% else %}<span class="muted">No obligatorio</span>{% endif %}</td>
+        <td>{{ s.observaciones or '-' }}</td>
+        <td class="pending-actions-cell">
+          <a class="btn btn-sm btn-warning" href="{{ url_for('rrhh.editar_vacacion', id=s.id) }}" title="Editar"><i class="fas fa-edit"></i></a>
+          <form method="post" action="{{ url_for('rrhh.cambiar_estado_vacaciones', id=s.id) }}" class="pending-form">
+            <input type="hidden" name="next" value="pendientes">
+            <input type="hidden" name="estado" value="aprobada">
+            <button class="btn btn-sm btn-success" title="Aprobar"><i class="fas fa-check"></i></button>
+          </form>
+          <form method="post" action="{{ url_for('rrhh.cambiar_estado_vacaciones', id=s.id) }}" class="pending-form">
+            <input type="hidden" name="next" value="pendientes">
+            <input type="hidden" name="estado" value="rechazada">
+            <button class="btn btn-sm btn-danger" title="Rechazar"><i class="fas fa-times"></i></button>
+          </form>
+        </td>
+      </tr>
+      {% else %}
+      <tr><td colspan="6" class="muted">No hay solicitudes pendientes.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section class="pending-section">
+  <header><h3><i class="fas fa-folder-open"></i> Documentos en revision</h3><span class="badge badge-info">{{ documentos|length }}</span></header>
+  <div class="table-scroll">
+    <table class="pending-table">
+      <thead><tr><th>Empleado</th><th>Documento</th><th>Fecha</th><th>Origen</th><th>Observaciones</th><th>Resolver</th></tr></thead>
+      <tbody>
+      {% for d in documentos %}
+      <tr>
+        <td><strong>{{ d.empleado_nombre }}</strong><br><span class="muted">{{ d.departamento_nombre or '-' }}</span></td>
+        <td>{{ d.nombre or d.tipo_documento }}<br><span class="muted">{{ d.tipo_documento }}</span></td>
+        <td>{{ d.fecha_documento or d.fecha_creacion or '-' }}</td>
+        <td>{{ d.origen or '-' }}</td>
+        <td>{{ d.observaciones or '-' }}</td>
+        <td class="pending-actions-cell">
+          {% if d.archivo %}<a class="btn btn-sm btn-info" href="{{ url_for('rrhh.descargar_documento_rrhh', id=d.id) }}" title="Descargar"><i class="fas fa-download"></i></a>{% endif %}
+          <a class="btn btn-sm btn-warning" href="{{ url_for('rrhh.editar_documento', id=d.id) }}" title="Editar"><i class="fas fa-edit"></i></a>
+          <form method="post" action="{{ url_for('rrhh.aprobar_documento_rrhh', id=d.id) }}" class="pending-form">
+            <input type="hidden" name="next" value="pendientes">
+            <button class="btn btn-sm btn-success" title="Aprobar"><i class="fas fa-check"></i></button>
+          </form>
+          <form method="post" action="{{ url_for('rrhh.rechazar_documento_rrhh', id=d.id) }}" class="pending-form">
+            <input type="hidden" name="next" value="pendientes">
+            <button class="btn btn-sm btn-danger" title="Rechazar"><i class="fas fa-times"></i></button>
+          </form>
+        </td>
+      </tr>
+      {% else %}
+      <tr><td colspan="6" class="muted">No hay documentos pendientes de revision.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section class="pending-section">
+  <header><h3><i class="fas fa-file-contract"></i> Contratos sin firma</h3><span class="badge badge-info">{{ contratos|length }}</span></header>
+  <div class="table-scroll">
+    <table class="pending-table">
+      <thead><tr><th>Empleado</th><th>Contrato</th><th>Inicio</th><th>Jornada</th><th>Estado</th><th>Acciones</th></tr></thead>
+      <tbody>
+      {% for c in contratos %}
+      <tr>
+        <td><strong>{{ c.empleado_nombre }}</strong><br><span class="muted">{{ c.departamento_nombre or '-' }}</span></td>
+        <td>{{ c.tipo_contrato or 'Contrato' }}</td>
+        <td>{{ c.fecha_inicio or '-' }}</td>
+        <td>{{ c.jornada or '-' }}{% if c.horas_semanales %} / {{ c.horas_semanales }}h{% endif %}</td>
+        <td><span class="badge badge-warning">Sin firma</span></td>
+        <td class="pending-actions-cell">
+          {% if c.archivo %}<a class="btn btn-sm btn-info" href="{{ url_for('rrhh.descargar_contrato_rrhh', id=c.id) }}" title="Descargar"><i class="fas fa-download"></i></a>{% endif %}
+          <a class="btn btn-sm btn-warning" href="{{ url_for('rrhh.editar_contrato', id=c.id) }}" title="Editar"><i class="fas fa-edit"></i></a>
+        </td>
+      </tr>
+      {% else %}
+      <tr><td colspan="6" class="muted">No hay contratos pendientes de firma.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endblock %}

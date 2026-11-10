@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="card">
+
+    <div class="card-header">
+        <h2><i class="fas fa-sitemap"></i> Subdepartamentos</h2>
+
+        <a href="{{ url_for('departamentos.nuevo_subdepartamento') }}" class="btn btn-success">
+            <i class="fas fa-plus"></i> Nuevo
+        </a>
+    </div>
+
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>Nombre</th>
+                    <th>Departamento</th>
+                    <th>Activo</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+
+            <tbody>
+                {% for s in subdepartamentos %}
+                <tr>
+                    <td>{{ s.nombre }}</td>
+                    <td>{{ s.departamento_nombre }}</td>
+                    <td>
+                        {% if s.activo %}
+                            <span class="badge badge-success">Activo</span>
+                        {% else %}
+                            <span class="badge badge-danger">Inactivo</span>
+                        {% endif %}
+                    </td>
+
+                    <td>
+                        <a href="{{ url_for('departamentos.editar_subdepartamento', id=s.id) }}"
+                           class="btn-icon">
+                            <i class="fas fa-edit"></i>
+                        </a>
+
+                        <form method="POST"
+                              action="{{ url_for('departamentos.eliminar_subdepartamento', id=s.id) }}"
+                              style="display:inline;">
+                            <button class="btn-icon" onclick="return confirm('¿Eliminar?')">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </form>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="4">No hay subdepartamentos</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+</div>
+{% endblock %}

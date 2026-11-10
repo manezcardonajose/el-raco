@@ -1,0 +1,77 @@
+{% extends 'base.html' %}
+{% block title %}TPV{% endblock %}
+{% block breadcrumb %}TPV / Panel{% endblock %}
+{% block content %}
+<style>
+  .tpv-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
+  .tpv-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;}
+  .tpv-card{border:1px solid #334155;border-radius:8px;background:#111827;padding:14px;}
+  .tpv-card strong{font-size:20px;}
+  .tpv-note{color:#94a3b8;font-size:12px;line-height:1.35;}
+  .tpv-pill{display:inline-block;border:1px solid #475569;border-radius:4px;background:#0f172a;padding:2px 6px;font-size:12px;margin-top:4px;}
+</style>
+
+<div class="card">
+  <div class="card-header">
+    <h2><i class="fas fa-cash-register"></i> TPV hotelero</h2>
+    <div class="tpv-actions">
+      <a class="btn btn-primary" href="{{ url_for('tpv.arranque') }}"><i class="fas fa-power-off"></i> Arranque terminal</a>
+      <a class="btn btn-secondary" href="{{ url_for('tpv.terminales') }}"><i class="fas fa-desktop"></i> Terminales</a>
+      <a class="btn btn-secondary" href="{{ url_for('tpv.catalogo') }}"><i class="fas fa-th-large"></i> Catalogo</a>
+      <a class="btn btn-primary" href="{{ url_for('tpv.acceso') }}"><i class="fas fa-door-open"></i> Acceso rapido</a>
+      <a class="btn btn-secondary" href="{{ url_for('tpv.buffet') }}"><i class="fas fa-utensils"></i> Control buffet</a>
+      <a class="btn btn-secondary" href="{{ url_for('tpv.cuentas') }}"><i class="fas fa-receipt"></i> Cuentas</a>
+      <a class="btn btn-secondary" href="{{ url_for('tpv.pantalla') }}"><i class="fas fa-tv"></i> Pantalla cocina</a>
+      <a class="btn btn-secondary" href="{{ url_for('puntos_venta.listar_puntos_venta') }}"><i class="fas fa-store"></i> Puntos venta</a>
+    </div>
+  </div>
+  <div class="tpv-grid">
+    {% for p in puntos %}
+    <div class="tpv-card">
+      <strong>{{ p.nombre }}</strong>
+      <div class="tpv-note">{{ tipos_punto.get(p.tpv_tipo, p.tpv_tipo or p.tipo or 'bar') }}</div>
+      <span class="tpv-pill">{{ p.terminales or 0 }} terminales</span>
+      <span class="tpv-pill">{{ p.articulos or 0 }} articulos</span>
+      <span class="tpv-pill">{{ p.servicios_buffet or 0 }} servicios buffet</span>
+      <div class="tpv-actions" style="margin-top:10px;">
+        <a class="btn btn-sm btn-primary" href="{{ url_for('tpv.catalogo', punto_venta_id=p.id) }}">Carta</a>
+        <a class="btn btn-sm btn-secondary" href="{{ url_for('tpv.arranque', punto_venta_id=p.id) }}">Abrir</a>
+        <a class="btn btn-sm btn-secondary" href="{{ url_for('tpv.punto_config', punto_venta_id=p.id) }}">Config</a>
+        <a class="btn btn-sm btn-secondary" href="{{ url_for('tpv.mesas', punto_venta_id=p.id) }}">Mesas</a>
+        <a class="btn btn-sm btn-secondary" href="{{ url_for('tpv.cuentas', punto_venta_id=p.id) }}">Cuentas</a>
+        <a class="btn btn-sm btn-secondary" href="{{ url_for('tpv.acceso', punto_venta_id=p.id) }}">Acceso</a>
+        <a class="btn btn-sm btn-secondary" href="{{ url_for('tpv.pantalla', punto_venta_id=p.id) }}">Pantalla</a>
+        {% if p.tpv_control_buffet or p.tpv_tipo == 'buffet' %}
+        <a class="btn btn-sm btn-secondary" href="{{ url_for('tpv.buffet', punto_venta_id=p.id) }}">Buffet</a>
+        {% endif %}
+      </div>
+    </div>
+    {% else %}
+    <div class="tpv-card">No hay puntos de venta. Crea primero la estructura del establecimiento.</div>
+    {% endfor %}
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header"><h2><i class="fas fa-plug"></i> Ultimos terminales</h2></div>
+  <div class="table-container">
+    <table>
+      <thead><tr><th>Terminal</th><th>Tipo</th><th>Punto venta</th><th>Identificador</th><th>Ultimo inicio</th><th>Estado</th></tr></thead>
+      <tbody>
+        {% for t in terminales %}
+        <tr>
+          <td><strong>{{ t.nombre }}</strong></td>
+          <td>{{ tipos_terminal.get(t.tipo, t.tipo) }}</td>
+          <td>{{ t.punto_nombre or '-' }}</td>
+          <td>{{ t.codigo }}{% if t.mac %}<div class="tpv-note">{{ t.mac }}</div>{% endif %}</td>
+          <td>{{ t.ultimo_inicio or '-' }}</td>
+          <td>{% if t.activo %}Activo{% else %}Inactivo{% endif %}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="6">Sin terminales registrados.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

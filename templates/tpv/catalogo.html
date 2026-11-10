@@ -1,0 +1,217 @@
+{% extends 'base.html' %}
+{% block title %}Catalogo TPV{% endblock %}
+{% block breadcrumb %}TPV / Catalogo{% endblock %}
+{% block content %}
+<style>
+  .tpv-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
+  .tpv-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:10px;align-items:end;}
+  .tpv-note{color:#94a3b8;font-size:12px;line-height:1.35;}
+  .tpv-pill{display:inline-block;border:1px solid #475569;border-radius:4px;background:#0f172a;padding:2px 6px;font-size:12px;}
+  .tpv-muted{opacity:.55;}
+  .tpv-price-actions{display:flex;gap:6px;align-items:center;}
+  .tpv-price-actions input{max-width:110px;}
+  .tpv-mini-btn{border:1px solid #475569;background:#0f172a;color:#e5e7eb;border-radius:4px;padding:6px 8px;cursor:pointer;white-space:nowrap;}
+  .tpv-checks{display:grid;gap:5px;font-size:12px;}
+  .tpv-checks label{display:flex;gap:6px;align-items:center;color:#cbd5e1;}
+  .familia-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:8px;margin-bottom:12px;}
+  .familia-card{border:1px solid #334155;border-radius:8px;background:#111827;padding:10px;}
+  .familia-card strong{display:block;margin-bottom:4px;}
+</style>
+
+<div class="card">
+  <div class="card-header">
+    <h2><i class="fas fa-th-large"></i> Catalogo por punto de venta</h2>
+    <div class="tpv-actions">
+      <a class="btn btn-secondary" href="{{ url_for('tpv.dashboard') }}"><i class="fas fa-cash-register"></i> TPV</a>
+      <a class="btn btn-secondary" href="{{ url_for('tpv.terminales') }}"><i class="fas fa-desktop"></i> Terminales</a>
+      <a class="btn btn-secondary" href="{{ url_for('productos.productos') }}"><i class="fas fa-box"></i> Productos</a>
+      {% if punto_venta_id %}
+      <a class="btn btn-secondary" href="{{ url_for('tpv.punto_config', punto_venta_id=punto_venta_id) }}"><i class="fas fa-cog"></i> Config</a>
+      {% endif %}
+    </div>
+  </div>
+
+  <form method="get" class="tpv-grid" style="margin-bottom:14px;">
+    <div class="form-group"><label class="form-label">Punto de venta</label><select class="form-control" name="punto_venta_id">
+      <option value="">Solo productos generales</option>
+      {% for p in puntos %}<option value="{{ p.id }}" {% if punto_venta_id|string == p.id|string %}selected{% endif %}>{{ p.nombre }}</option>{% endfor %}
+    </select></div>
+    <button class="btn btn-primary" type="submit"><i class="fas fa-search"></i> Ver</button>
+  </form>
+
+  <form method="post" class="tpv-actions">
+    <input type="hidden" name="accion" value="lote">
+    <input type="hidden" name="punto_venta_id" value="{{ punto_venta_id }}">
+    <button class="btn btn-success" type="submit"><i class="fas fa-magic"></i> Crear lote bar/snack</button>
+    <span class="tpv-note">Crea refrescos, aguas, cerveza, vinos, cava, licores, snacks, helados y entradas buffet. Si eliges punto de venta, tambien los vincula a su carta.</span>
+  </form>
+</div>
+
+{% if punto_venta_id %}
+<div class="card">
+  <div class="card-header">
+    <h2><i class="fas fa-layer-group"></i> Familias del terminal</h2>
+  </div>
+  <div class="familia-list">
+    {% for c in categorias %}
+    <div class="familia-card {% if not c.activo %}tpv-muted{% endif %}">
+      <strong>{{ c.nombre }}</strong>
+      <span class="tpv-pill">{% if c.activo %}Visible{% else %}Oculta{% endif %}</span>
+      <form method="post" style="margin-top:8px;">
+        <input type="hidden" name="accion" value="toggle_categoria">
+        <input type="hidden" name="punto_venta_id" value="{{ punto_venta_id }}">
+        <input type="hidden" name="categoria_id" value="{{ c.id }}">
+        <button class="btn btn-sm btn-secondary" type="submit">{% if c.activo %}Ocultar familia{% else %}Activar familia{% endif %}</button>
+      </form>
+    </div>
+    {% else %}
+    <div class="familia-card">No hay familias para este punto.</div>
+    {% endfor %}
+  </div>
+  <form method="post" class="tpv-grid">
+    <input type="hidden" name="accion" value="crear_familia">
+    <input type="hidden" name="punto_venta_id" value="{{ punto_venta_id }}">
+    <div class="form-group">
+      <label class="form-label">Nueva familia</label>
+      <input class="form-control" name="nombre_familia" placeholder="Entrantes, Pastas, Carnes, Postres...">
+    </div>
+    <button class="btn btn-primary" type="submit"><i class="fas fa-plus"></i> Crear familia</button>
+    <span class="tpv-note">Despues puedes mover cada plato a esa familia desde la tabla de precios.</span>
+  </form>
+</div>
+
+<div class="card">
+  <div class="card-header">
+    <div>
+      <h2><i class="fas fa-euro-sign"></i> Precios del terminal</h2>
+      <div class="tpv-note">Cambia los precios aqui y guarda una sola vez. Estos son los botones que ve el terminal.</div>
+    </div>
+  </div>
+  <form method="post">
+    <input type="hidden" name="accion" value="guardar_precios">
+    <input type="hidden" name="punto_venta_id" value="{{ punto_venta_id }}">
+    <div class="tpv-grid" style="margin-bottom:12px;">
+      <div class="form-group">
+        <label class="form-label">Mismo precio para todos</label>
+        <input class="form-control" name="precio_todos" type="number" min="0" step="0.01" placeholder="Dejar vacio para respetar cada linea">
+      </div>
+      <button class="btn btn-success" type="submit"><i class="fas fa-save"></i> Guardar precios</button>
+      <span class="tpv-note">Si rellenas este campo, se aplica a todos los articulos de este punto. Si lo dejas vacio, guarda los precios de cada fila.</span>
+    </div>
+    <div class="table-container">
+      <table>
+        <thead><tr><th>Familia</th><th>Articulo</th><th>Coste</th><th>Sugerido</th><th style="width:190px;">Precio venta</th><th>Tipo hotel</th><th>Destino</th><th>Visible</th></tr></thead>
+      <tbody>
+        {% for a in articulos %}
+        <tr class="{% if not a.activo %}tpv-muted{% endif %}">
+          <td>
+            <select class="form-control" name="categoria_{{ a.id }}">
+              {% for c in categorias %}
+              <option value="{{ c.id }}" {% if a.categoria_id == c.id %}selected{% endif %}>{{ c.nombre }}{% if not c.activo %} (oculta){% endif %}</option>
+              {% endfor %}
+            </select>
+          </td>
+          <td><strong>{{ a.nombre }}</strong><div class="tpv-note">{{ a.producto_codigo or '' }}</div></td>
+          <td>{{ '%.2f'|format(a.coste_unitario or 0) }} EUR</td>
+          <td><strong>{{ '%.2f'|format(a.precio_sugerido or 0) }} EUR</strong></td>
+          <td>
+            <div class="tpv-price-actions">
+              <input class="form-control" id="precio_{{ a.id }}" name="precio_{{ a.id }}" type="number" min="0" step="0.01" value="{{ '%.2f'|format(a.precio or 0) }}">
+              <button class="tpv-mini-btn" type="button" data-suggest="{{ '%.2f'|format(a.precio_sugerido or 0) }}" data-target="precio_{{ a.id }}">Usar</button>
+            </div>
+          </td>
+          <td>
+            <select class="form-control" name="tipo_cobro_{{ a.id }}">
+              {% for key,label in tipos_cobro.items() %}
+              <option value="{{ key }}" {% if (a.tipo_cobro or 'cobro') == key %}selected{% endif %}>{{ label }}</option>
+              {% endfor %}
+            </select>
+          </td>
+          <td>{{ destinos.get(a.destino_preparacion, a.destino_preparacion) }}</td>
+          <td>
+            <div class="tpv-checks">
+              <label><input type="checkbox" name="activo_{{ a.id }}" value="1" {% if a.activo %}checked{% endif %}> Activo</label>
+              <label><input type="checkbox" name="visible_tpv_{{ a.id }}" value="1" {% if a.visible_tpv %}checked{% endif %}> TPV fijo</label>
+              <label><input type="checkbox" name="visible_comandero_{{ a.id }}" value="1" {% if a.visible_comandero %}checked{% endif %}> Comandero</label>
+            </div>
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="8">Este punto aun no tiene articulos TPV.</td></tr>
+        {% endfor %}
+      </tbody>
+      </table>
+    </div>
+    <div class="tpv-actions" style="margin-top:12px;">
+      <button class="btn btn-success" type="submit"><i class="fas fa-save"></i> Guardar precios</button>
+      <a class="btn btn-primary" href="{{ url_for('tpv.arranque', punto_venta_id=punto_venta_id) }}"><i class="fas fa-cash-register"></i> Abrir terminal</a>
+    </div>
+  </form>
+</div>
+{% endif %}
+
+<script>
+  document.querySelectorAll('[data-suggest]').forEach((button) => {
+    button.addEventListener('click', () => {
+      const input = document.getElementById(button.dataset.target);
+      if (input) input.value = button.dataset.suggest || '0.00';
+    });
+  });
+</script>
+
+<div class="card">
+  <div class="card-header"><h2><i class="fas fa-box"></i> Productos disponibles para venta</h2></div>
+  <div class="table-container">
+    <table>
+      <thead><tr><th>Codigo</th><th>Producto</th><th>Familia</th><th>Formato</th><th>Coste</th><th>Venta</th><th>Estado venta</th><th>Accion</th></tr></thead>
+      <tbody>
+        {% for p in productos %}
+        <tr class="{% if not p.visible_en_venta %}tpv-muted{% endif %}">
+          <td>{{ p.codigo or '-' }}</td>
+          <td><strong>{{ p.nombre }}</strong></td>
+          <td>{{ p.familia or '-' }}</td>
+          <td>{{ p.formato_venta or p.unidad or '-' }}</td>
+          <td>{{ '%.2f'|format(p.precio or 0) }} EUR</td>
+          <td>{{ '%.2f'|format(p.precio_venta or 0) }} EUR</td>
+          <td>{% if p.visible_en_venta %}Visible{% else %}Oculto venta{% endif %}</td>
+          <td>
+            <form method="post">
+              <input type="hidden" name="accion" value="toggle_producto_venta">
+              <input type="hidden" name="punto_venta_id" value="{{ punto_venta_id }}">
+              <input type="hidden" name="producto_id" value="{{ p.id }}">
+              <button class="btn btn-sm btn-secondary" type="submit">{% if p.visible_en_venta %}Ocultar venta{% else %}Activar venta{% endif %}</button>
+            </form>
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="8">No hay productos de venta. Usa el lote inicial.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{% if punto_venta_id %}
+<div class="card">
+  <div class="card-header"><h2><i class="fas fa-clipboard-check"></i> Auditoria catalogo TPV</h2></div>
+  <div class="table-container">
+    <table>
+      <thead><tr><th>Fecha</th><th>Usuario</th><th>Entidad</th><th>Accion</th><th>Motivo</th></tr></thead>
+      <tbody>
+        {% for row in auditoria %}
+        <tr>
+          <td>{{ row.fecha }}</td>
+          <td>{{ row.usuario or row.usuario_id or '-' }}</td>
+          <td>{{ row.entidad }} #{{ row.entidad_id or '-' }}</td>
+          <td>{{ row.accion }}</td>
+          <td>{{ row.motivo or '-' }}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="5">Sin cambios registrados todavia.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
+{% endblock %}

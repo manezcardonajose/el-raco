@@ -1,0 +1,69 @@
+{% extends 'base.html' %}
+{% block title %}Regimenes{% endblock %}
+{% block breadcrumb %}Recepcion / Regimenes{% endblock %}
+{% block content %}
+<div class="card">
+  <div class="card-header">
+    <h2><i class="fas fa-clipboard-list"></i> Regimenes e inclusiones</h2>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+      <a class="btn btn-info" href="{{ url_for('recepcion.prevision_servicios') }}"><i class="fas fa-utensils"></i> Prevision cocina</a>
+      <a class="btn btn-secondary" href="{{ url_for('recepcion.exportar_regimenes_csv') }}">Exportar CSV</a>
+    </div>
+  </div>
+
+  <form method="post" enctype="multipart/form-data" action="{{ url_for('recepcion.importar_regimenes_csv') }}" style="display:flex;gap:8px;align-items:end;flex-wrap:wrap;margin-bottom:18px;">
+    <div class="form-group" style="margin:0;min-width:260px;"><label class="form-label">Importar regimenes CSV</label><input class="form-control" type="file" name="archivo_csv" accept=".csv,text/csv" required></div>
+    <button class="btn btn-primary" type="submit">Importar</button>
+    <small>Cabeceras: regimen, servicio, tipo, concepto, incluido, limite, condiciones, activo.</small>
+  </form>
+
+  <form method="post" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px;align-items:end;margin-bottom:18px;">
+    <div class="form-group"><label class="form-label">Regimen</label><select class="form-control" name="regimen" required>
+      {% for key,label in regimenes.items() %}
+      <option value="{{ key }}">{{ label }}</option>
+      {% endfor %}
+    </select></div>
+    <div class="form-group"><label class="form-label">Servicio</label><select class="form-control" name="servicio" required>
+      {% for key,label in servicios.items() %}
+      <option value="{{ key }}">{{ label }}</option>
+      {% endfor %}
+    </select></div>
+    <div class="form-group"><label class="form-label">Tipo</label><select class="form-control" name="tipo">
+      <option value="alimento">Alimento</option>
+      <option value="bebida">Bebida</option>
+      <option value="servicio">Servicio</option>
+      <option value="restriccion">Restriccion</option>
+    </select></div>
+    <div class="form-group"><label class="form-label">Concepto</label><input class="form-control" name="concepto" required></div>
+    <div class="form-group"><label class="form-label">Limite</label><input class="form-control" name="limite"></div>
+    <div class="form-group"><label class="form-label">Condiciones</label><input class="form-control" name="condiciones"></div>
+    <button class="btn btn-success" type="submit">Anadir</button>
+  </form>
+
+  <div class="table-container">
+    <table>
+      <thead><tr><th>Regimen</th><th>Servicio</th><th>Tipo</th><th>Concepto</th><th>Limite</th><th>Condiciones</th><th>Activo</th><th>Acciones</th></tr></thead>
+      <tbody>
+        {% for i in inclusiones %}
+        <tr>
+          <td>{{ regimenes.get(i.regimen, i.regimen) }}</td>
+          <td>{{ servicios.get(i.servicio, i.servicio) }}</td>
+          <td>{{ i.tipo }}</td>
+          <td>{{ i.concepto }}</td>
+          <td>{{ i.limite or '-' }}</td>
+          <td>{{ i.condiciones or '-' }}</td>
+          <td>{% if i.activo %}Si{% else %}No{% endif %}</td>
+          <td>
+            <form method="post" action="{{ url_for('recepcion.toggle_inclusion_regimen', id=i.id) }}">
+              <button class="btn btn-sm {% if i.activo %}btn-warning{% else %}btn-success{% endif %}" type="submit">{% if i.activo %}Desactivar{% else %}Activar{% endif %}</button>
+            </form>
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="8">No hay inclusiones configuradas.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

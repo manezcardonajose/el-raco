@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;">
+        <h2 style="margin:0;">Recepción de Mercancía</h2>
+        <a href="{{ url_for('compras.recepcion_directa') }}" class="btn btn-warning">
+            <i class="fas fa-file-upload"></i> Recepción directa
+        </a>
+    </div>
+
+    <div class="alert alert-info" style="margin-top:15px;">
+        Busca un pedido para recepcionar contra pedido, o usa recepción directa para albaranes/tickets sin pedido.
+    </div>
+
+    <form method="POST" style="max-width: 560px; margin: 20px auto 0 auto;">
+        <div style="margin-bottom: 20px;">
+            <label>Número de pedido:</label>
+            <input type="text" name="numero_pedido" placeholder="Ej: PED-20250221-001" required class="form-control">
+        </div>
+
+        <div style="display: flex; gap: 10px; flex-wrap:wrap;">
+            <button type="submit" class="btn btn-success">
+                <i class="fas fa-search"></i> Buscar pedido
+            </button>
+            <a href="{{ url_for('compras.lista_pedidos') }}" class="btn btn-secondary">Cancelar</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

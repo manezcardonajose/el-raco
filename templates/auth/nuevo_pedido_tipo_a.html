@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="card">
+    <div class="card-header">
+        <h2><i class="fas fa-list"></i> Nuevo pedido por lista de productos</h2>
+        <a href="{{ url_for('compras.lista_pedidos') }}" class="btn btn-secondary">Volver</a>
+    </div>
+    <form method="POST">
+        <div class="form-group">
+            <label class="form-label">Fecha de entrega</label>
+            <input type="date" name="fecha_entrega" class="form-control">
+        </div>
+        <div class="form-group">
+            <label class="form-label">Observaciones</label>
+            <textarea name="observaciones" rows="3" class="form-control"></textarea>
+        </div>
+
+        <h3>Productos a pedir</h3>
+        <div id="productos-container">
+            <div class="producto-fila" style="display: flex; gap: 10px; margin-bottom: 10px;">
+                <select name="producto_id[]" class="form-control" style="flex: 3;" required>
+                    <option value="">Seleccionar producto...</option>
+                    {% for p in productos %}
+                    <option value="{{ p.id }}">{{ p.nombre }} ({{ p.codigo or 'sin código' }})</option>
+                    {% endfor %}
+                </select>
+                <input type="number" step="0.001" name="cantidad[]" class="form-control" style="flex: 1;" placeholder="Cantidad" required>
+                <button type="button" class="btn btn-danger btn-sm" onclick="this.closest('.producto-fila').remove()"><i class="fas fa-trash"></i></button>
+            </div>
+        </div>
+        <button type="button" class="btn btn-primary btn-sm" onclick="anadirProducto()"><i class="fas fa-plus"></i> Añadir producto</button>
+
+        <div style="margin-top: 30px;">
+            <button type="submit" class="btn btn-success"><i class="fas fa-save"></i> Crear pedido(s)</button>
+        </div>
+    </form>
+</div>
+
+<script>
+function anadirProducto() {
+    const container = document.getElementById('productos-container');
+    const div = document.createElement('div');
+    div.className = 'producto-fila';
+    div.style.display = 'flex';
+    div.style.gap = '10px';
+    div.style.marginBottom = '10px';
+    div.innerHTML = `
+        <select name="producto_id[]" class="form-control" style="flex: 3;" required>
+            <option value="">Seleccionar producto...</option>
+            {% for p in productos %}
+            <option value="{{ p.id }}">{{ p.nombre }} ({{ p.codigo or 'sin código' }})</option>
+            {% endfor %}
+        </select>
+        <input type="number" step="0.001" name="cantidad[]" class="form-control" style="flex: 1;" placeholder="Cantidad" required>
+        <button type="button" class="btn btn-danger btn-sm" onclick="this.closest('.producto-fila').remove()"><i class="fas fa-trash"></i></button>
+    `;
+    container.appendChild(div);
+}
+</script>
+{% endblock %}

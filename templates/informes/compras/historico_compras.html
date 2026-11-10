@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="card">
+    <div class="card-header">
+        <h2><i class="fas fa-calendar-alt"></i> HISTÓRICO DE COMPRAS</h2>
+        <div>
+            <button onclick="window.print()" class="btn btn-info">
+                <i class="fas fa-print"></i> Imprimir
+            </button>
+            <a href="{{ url_for('informes.compras_historico', exportar='excel', año=año) }}" class="btn btn-success">
+                <i class="fas fa-file-excel"></i> Excel
+            </a>
+            <a href="{{ url_for('informes.compras') }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Volver
+            </a>
+        </div>
+    </div>
+    <!-- Filtro por año -->
+    <div style="background: #1e252b; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+        <form method="GET" style="display: grid; grid-template-columns: 1fr auto; gap: 15px; align-items: end;">
+            <div>
+                <label class="form-label">Año:</label>
+                <select name="año" class="form-control">
+                    {% for a in años %}
+                    <option value="{{ a }}" {% if a == año %}selected{% endif %}>{{ a }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <button type="submit" class="btn btn-primary">Filtrar</button>
+            </div>
+        </form>
+    </div>
+    <!-- Resumen -->
+    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 20px;">
+        <div style="background: #1e252b; padding: 15px; border-radius: 8px;">
+            <div style="font-size: 12px; color: #999;">Total pedidos</div>
+            <div style="font-size: 24px; font-weight: bold;">{{ datos|sum(attribute='num_pedidos') }}</div>
+        </div>
+        <div style="background: #1e252b; padding: 15px; border-radius: 8px;">
+            <div style="font-size: 12px; color: #999;">Total líneas</div>
+            <div style="font-size: 24px; font-weight: bold;">{{ datos|sum(attribute='num_lineas') }}</div>
+        </div>
+        <div style="background: #1e252b; padding: 15px; border-radius: 8px;">
+            <div style="font-size: 12px; color: #999;">Gasto total</div>
+            <div style="font-size: 24px; font-weight: bold; color: #28a745;">
+                {{ "%.2f"|format(datos|sum(attribute='total_mes')) }} €
+            </div>
+        </div>
+    </div>
+    <!-- Tabla de resultados -->
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>Mes</th>
+                    <th>Pedidos</th>
+                    <th>Líneas</th>
+                    <th>Gasto mensual</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for d in datos %}
+                <tr>
+                    <td>
+                        <strong>
+                            {% if d.mes == '01' %}Enero
+                            {% elif d.mes == '02' %}Febrero
+                            {% elif d.mes == '03' %}Marzo
+                            {% elif d.mes == '04' %}Abril
+                            {% elif d.mes == '05' %}Mayo
+                            {% elif d.mes == '06' %}Junio
+                            {% elif d.mes == '07' %}Julio
+                            {% elif d.mes == '08' %}Agosto
+                            {% elif d.mes == '09' %}Septiembre
+                            {% elif d.mes == '10' %}Octubre
+                            {% elif d.mes == '11' %}Noviembre
+                            {% elif d.mes == '12' %}Diciembre
+                            {% endif %}
+                        </strong>
+                    </td>
+                    <td style="text-align: center;">{{ d.num_pedidos }}</td>
+                    <td style="text-align: center;">{{ d.num_lineas }}</td>
+                    <td style="text-align: right;">{{ "%.2f"|format(d.total_mes) }} €</td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="4" style="text-align: center; padding: 40px;">
+                        No hay datos para el año {{ año }}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

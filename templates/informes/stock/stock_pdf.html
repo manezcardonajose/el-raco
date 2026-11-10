@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Informe de Stock</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 40px; }
+        h1 { color: #ff6b00; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th { background: #1e252b; color: white; padding: 10px; text-align: left; }
+        td { padding: 8px; border-bottom: 1px solid #ddd; }
+        .total { font-weight: bold; font-size: 18px; margin-top: 20px; }
+        .fecha { color: #666; margin-bottom: 20px; }
+    </style>
+</head>
+<body>
+    <h1> INFORME DE STOCK</h1>
+    <div class="fecha">Generado el: {{ fecha }}</div>
+    
+    <table>
+        <thead>
+            <tr>
+                <th>Cdigo</th>
+                <th>Producto</th>
+                <th>Familia</th>
+                <th>Stock</th>
+                <th>Unidad</th>
+                <th>Precio</th>
+                <th>Valor</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in data %}
+            <tr>
+                <td>{{ item.codigo or '---' }}</td>
+                <td>{{ item.nombre }}</td>
+                <td>{{ item.familia }}</td>
+                <td>{{ "%.2f"|format(item.stock_total) }}</td>
+                <td>{{ item.unidad }}</td>
+                <td>{{ "%.2f"|format(item.precio) }} </td>
+                <td>{{ "%.2f"|format(item.valor_total) }} </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    
+    <div class="total">
+        VALOR TOTAL DEL STOCK: {{ "%.2f"|format(total_valor) }} 
+    </div>
+</body>
+</html>
+
+
+

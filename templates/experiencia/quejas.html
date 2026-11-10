@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+
+{% block title %}Quejas y RRPP{% endblock %}
+{% block breadcrumb %}Experiencia cliente / Quejas{% endblock %}
+
+{% block content %}
+<style>
+    .xp-head { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:16px; align-items:end; margin-bottom:18px; }
+    .xp-head h1 { margin:0 0 6px; color:#ff6b00; font-size:28px; }
+    .xp-head p, .xp-mini { color:var(--text-muted,#6b7280); }
+    .xp-filter { display:grid; grid-template-columns:repeat(auto-fit,minmax(170px,1fr)); gap:10px; margin-bottom:16px; }
+    .xp-filter input, .xp-filter select { min-height:38px; border:1px solid var(--border-color,#d5dde7); border-radius:7px; padding:8px 10px; background:var(--input-bg,#fff); color:var(--text-color,#16202a); }
+    .xp-panel { border:1px solid var(--border-color,#d5dde7); background:var(--card-bg,#fff); border-radius:8px; overflow:hidden; }
+    .xp-table { width:100%; border-collapse:collapse; }
+    .xp-table th, .xp-table td { padding:10px 12px; border-bottom:1px solid var(--border-color,#d5dde7); text-align:left; vertical-align:top; }
+    .xp-table th { color:#ff6b00; font-size:12px; text-transform:uppercase; }
+    .xp-badge { display:inline-flex; padding:3px 8px; border-radius:999px; color:#fff; background:#2563eb; font-size:12px; font-weight:700; }
+    .xp-badge.alta, .xp-badge.critica { background:#dc2626; }
+    .xp-badge.media { background:#ea580c; }
+    .xp-badge.baja { background:#16a34a; }
+    .xp-mini { display:block; margin-top:4px; font-size:12px; }
+</style>
+
+<div class="xp-head">
+    <div>
+        <h1><i class="fas fa-comments"></i> Quejas, sugerencias y RRPP</h1>
+        <p>Listado operativo para abrir, investigar, hacer seguimiento y cerrar expedientes de cliente.</p>
+    </div>
+    {% if puede_gestionar %}
+    <a class="btn btn-success" href="{{ url_for('experiencia.nueva_queja') }}"><i class="fas fa-plus"></i> Nueva queja</a>
+    {% endif %}
+</div>
+
+<form class="xp-filter" method="get" action="{{ url_for('experiencia.quejas') }}">
+    <input type="text" name="q" value="{{ filtros.q }}" placeholder="Buscar cliente, habitacion o texto">
+    <select name="estado">
+        <option value="">Todos los estados</option>
+        {% for value, label in estados %}
+        <option value="{{ value }}" {% if filtros.estado == value %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+    </select>
+    <select name="gravedad">
+        <option value="">Todas las gravedades</option>
+        {% for value, label in gravedades %}
+        <option value="{{ value }}" {% if filtros.gravedad == value %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+    </select>
+    <select name="categoria">
+        <option value="">Todas las categorias</option>
+        {% for value, label in categorias %}
+        <option value="{{ value }}" {% if filtros.categoria == value %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+    </select>
+    <button class="btn btn-primary" type="submit"><i class="fas fa-search"></i> Filtrar</button>
+    <a class="btn btn-secondary" href="{{ url_for('experiencia.quejas') }}">Limpiar</a>
+</form>
+
+<section class="xp-panel">
+    <div style="overflow-x:auto;">
+        <table class="xp-table">
+            <thead>
+                <tr>
+                    <th>Fecha</th>
+                    <th>Cliente</th>
+                    <th>Categoria</th>
+                    <th>Estado</th>
+                    <th>Responsable</th>
+                    <th>Detalle</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for q in quejas %}
+                <tr>
+                    <td>{{ q.fecha|fecha_es }}<span class="xp-mini">{{ q.canal }}</span></td>
+                    <td><strong>{{ q.titular_nombre or '-' }}</strong><span class="xp-mini">Hab. {{ q.habitacion or '-' }}</span></td>
+                    <td>{{ q.categoria }}<span class="xp-mini">{{ q.tipo }}</span></td>
+                    <td><span class="xp-badge {{ q.gravedad }}">{{ q.gravedad }}</span><span class="xp-mini">{{ q.estado }}</span></td>
+                    <td>{{ q.responsable or '-' }}<span class="xp-mini">Limite {{ q.fecha_limite|fecha_es if q.fecha_limite else '-' }}</span></td>
+                    <td>{{ q.descripcion[:220] }}{% if q.descripcion|length > 220 %}...{% endif %}</td>
+                    <td><a class="btn btn-secondary" href="{{ url_for('experiencia.detalle_queja', queja_id=q.id) }}">Ver</a></td>
+                </tr>
+                {% else %}
+                <tr><td colspan="7">No hay expedientes con esos filtros.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</section>
+{% endblock %}

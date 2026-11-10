@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+
+{% block breadcrumb %}Registro de Actividad{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header">
+        <h2><i class="fas fa-history"></i> Registro de Actividad</h2>
+        <a href="{{ url_for('home') }}" class="btn btn-danger">
+            <i class="fas fa-arrow-left"></i> Volver
+        </a>
+    </div>
+    
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>Fecha</th>
+                    <th>Usuario</th>
+                    <th>Acción</th>
+                    <th>Tabla</th>
+                    <th>Registro ID</th>
+                    <th>IP</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for log in logs %}
+                <tr>
+                    <td>{{ log.fecha }}</td>
+                    <td>{{ log.usuario_nombre or 'Sistema' }}</td>
+                    <td>{{ log.accion }}</td>
+                    <td>{{ log.tabla or '---' }}</td>
+                    <td>{{ log.registro_id or '---' }}</td>
+                    <td>{{ log.ip or '---' }}</td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="6" style="text-align: center; padding: 40px;">
+                        No hay registros de actividad
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
+
+
+

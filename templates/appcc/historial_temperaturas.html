@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="card">
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+        <div>
+            <h2 style="color: #ff6b00;"> HISTORIAL DE TEMPERATURAS</h2>
+            <h3>{{ equipo.nombre }}</h3>
+        </div>
+        <div>
+            <a href="/appcc/equipos/{{ equipo.id }}/registrar" class="btn btn-success">️ Nuevo registro</a>
+            <a href="/appcc/equipos" class="btn btn-red"> Volver</a>
+        </div>
+    </div>
+    
+    <div style="background: #3a3f44; padding: 15px; border-radius: 4px; margin: 20px 0;">
+        <p><strong>Ubicacin:</strong> {{ equipo.ubicacion or 'No especificada' }}</p>
+        <p><strong>Rango ptimo:</strong> {{ equipo.rango_min or '?' }}°C - {{ equipo.rango_max or '?' }}°C</p>
+    </div>
+    
+    <table style="width: 100%;">
+        <thead>
+            <tr>
+                <th>Fecha</th>
+                <th>Temperatura</th>
+                <th>Usuario</th>
+                <th>Observaciones</th>
+                <th>Incidencia</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for r in registros %}
+            <tr>
+                <td>{{ r.fecha }}</td>
+                <td>
+                    <span {% if r.fuera_rango %}style="color: #dc3545; font-weight: bold;"{% endif %}>
+                        {{ r.temperatura }}°C
+                        {% if r.fuera_rango %} ️{% endif %}
+                    </span>
+                </td>
+                <td>{{ r.usuario }}</td>
+                <td>{{ r.observaciones or '---' }}</td>
+                <td>
+                    {% if r.incidencia_id %}
+                    <a href="/incidencias/{{ r.incidencia_id }}" class="btn-small btn-warning">Ver incidencia</a>
+                    {% endif %}
+                </td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="5" style="text-align: center; padding: 40px;">
+                    No hay registros de temperatura para este equipo.
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<style>
+    .btn-small {
+        padding: 3px 8px;
+        border-radius: 3px;
+        text-decoration: none;
+        font-size: 11px;
+    }
+    .btn-warning { background: #ffc107; color: black; }
+</style>
+{% endblock %}
+
+
+

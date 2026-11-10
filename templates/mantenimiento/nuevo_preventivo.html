@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="card">
+    <h2 style="color: #ff6b00;"> NUEVA TAREA PREVENTIVA</h2>
+    
+    <form method="POST">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+            <div>
+                <label>Equipo:</label>
+                <select name="equipo_id" required style="width: 100%; padding: 8px;">
+                    <option value="">-- Seleccionar --</option>
+                    {% for e in equipos %}
+                    <option value="{{ e.id }}">{{ e.nombre }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div>
+                <label>Tarea:</label>
+                <input type="text" name="tarea" required style="width: 100%; padding: 8px;" placeholder="Ej: Limpiar filtros">
+            </div>
+            
+            <div>
+                <label>Frecuencia:</label>
+                <select name="frecuencia" required style="width: 100%; padding: 8px;">
+                    <option value="diario"> Diario</option>
+                    <option value="semanal"> Semanal</option>
+                    <option value="mensual"> Mensual</option>
+                    <option value="trimestral"> Trimestral</option>
+                    <option value="anual"> Anual</option>
+                </select>
+            </div>
+            
+            <div>
+                <label>Intervalo en das (opcional):</label>
+                <input type="number" name="intervalo_dias" style="width: 100%; padding: 8px;" placeholder="Ej: 90">
+            </div>
+            
+            <div>
+                <label>Responsable:</label>
+                <input type="text" name="responsable" style="width: 100%; padding: 8px;" placeholder="Ej: Equipo mantenimiento">
+            </div>
+            
+            <div>
+                <label>Prxima ejecucin:</label>
+                <input type="date" name="proxima_ejecucion" style="width: 100%; padding: 8px;">
+            </div>
+        </div>
+        
+        <div style="margin-top: 20px;">
+            <label>Instrucciones:</label>
+            <textarea name="instrucciones" rows="4" style="width: 100%; padding: 8px;"></textarea>
+        </div>
+        
+        <div style="margin-top: 30px;">
+            <button type="submit" class="btn btn-success"> Guardar tarea</button>
+            <a href="/mantenimiento/preventivo" class="btn btn-red">Cancelar</a>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+
+

@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="card">
+    <div class="card-header">
+        <div>
+            <h2><i class="fas fa-calendar-day"></i> Menú del {{ menu.fecha }} - {{ menu.tipo_nombre }}</h2>
+            <div style="display:inline-flex;align-items:center;gap:8px;padding:6px 10px;border:1px solid var(--border,#d5dde8);border-radius:8px;background:var(--card-bg,#fff);color:var(--text-muted,#475569);font-size:.9rem;">
+                <i class="fas fa-building"></i>
+                <span>Centro actual:</span>
+                <strong style="color:var(--text,#0f172a);">{{ centro_activo.nombre if centro_activo else 'Empresa completa' }}</strong>
+            </div>
+        </div>
+        <div>
+            {% if tiene_permiso('produccion_editar') %}
+            <a href="{{ url_for('menus.editar_menu_diario', menu_id=menu.id) }}" class="btn btn-primary"><i class="fas fa-edit"></i> Editar</a>
+            {% endif %}
+            <a href="{{ url_for('menus.imprimir_menu_diario', menu_id=menu.id) }}" class="btn btn-secondary" target="_blank"><i class="fas fa-print"></i> Imprimir</a>
+            <a href="{{ url_for('menus.lista_menus_principal') }}" class="btn btn-secondary">Volver</a>
+        </div>
+    </div>
+
+    {% if menu.observaciones %}
+    <div style="background: #3a3f44; padding: 15px; border-radius: 4px; margin-bottom: 20px;">
+        <strong>Observaciones:</strong> {{ menu.observaciones }}
+    </div>
+    {% endif %}
+
+    {% if secciones %}
+        {% for seccion in secciones %}
+        <div style="margin-bottom: 30px;">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <h3 style="color: #ff6b00;">
+                    {{ seccion.seccion or 'Sin sección' }}
+                    <small style="color: #999;">({{ seccion.subdepartamento_nombre }})</small>
+                </h3>
+                {% if tiene_permiso('produccion_editar') %}
+                <div>
+                    <a href="{{ url_for('menus.editar_seccion_menu', seccion_id=seccion.id) }}" class="btn btn-sm btn-primary">Editar sección</a>
+                    <form method="POST" action="{{ url_for('menus.eliminar_seccion_menu', seccion_id=seccion.id) }}" style="display:inline;" onsubmit="return confirm('¿Eliminar esta sección?');">
+                        <button type="submit" class="btn btn-sm btn-danger">Eliminar sección</button>
+                    </form>
+                </div>
+                {% endif %}
+            </div>
+
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Plato</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for plato in seccion.platos %}
+                        <tr>
+                            <td><strong>{{ plato.receta_nombre }}</strong></td>
+                            <td>
+                                {% if tiene_permiso('produccion_editar') %}
+                                <form method="POST" action="{{ url_for('menus.eliminar_plato_menu', plato_id=plato.id) }}" style="display: inline;">
+                                    <button type="submit" class="btn-icon" onclick="return confirm('¿Eliminar este plato?');"><i class="fas fa-trash"></i></button>
+                                </form>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="2">No hay platos en esta sección.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            {% if tiene_permiso('produccion_editar') %}
+            <form method="POST" action="{{ url_for('menus.nuevo_plato_menu', seccion_id=seccion.id) }}" style="display: flex; gap: 10px; margin-top: 10px;">
+                <select name="receta_id" class="form-control" style="flex: 2;" required>
+                    <option value="">Añadir plato...</option>
+                    {% for r in recetas %}
+                    <option value="{{ r.id }}">{{ r.nombre }}</option>
+                    {% endfor %}
+                </select>
+                <button type="submit" class="btn btn-success"><i class="fas fa-plus"></i> Añadir</button>
+            </form>
+            {% endif %}
+        </div>
+        {% endfor %}
+    {% else %}
+    <div style="text-align: center; padding: 40px;">
+        <p>Este menú no tiene secciones.</p>
+        <a href="{{ url_for('menus.nueva_seccion_menu', menu_id=menu.id) }}" class="btn btn-primary">Añadir sección</a>
+    </div>
+    {% endif %}
+
+    <div style="margin-top: 30px;">
+        <a href="{{ url_for('menus.nueva_seccion_menu', menu_id=menu.id) }}" class="btn btn-primary"><i class="fas fa-plus"></i> Añadir sección</a>
+    </div>
+</div>
+{% endblock %}

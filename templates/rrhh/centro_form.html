@@ -1,0 +1,20 @@
+{% extends 'base.html' %}
+{% block title %}Editar centro{% endblock %}
+{% block breadcrumb %}RRHH / Centros / Editar{% endblock %}
+{% block content %}
+<div class="card">
+  <div class="card-header"><h2><i class="fas fa-building"></i> Editar centro de trabajo</h2></div>
+  <form method="post">
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;">
+      <div class="form-group"><label class="form-label">Nombre</label><input name="nombre" class="form-control" value="{{ centro.nombre }}" required></div>
+      <div class="form-group"><label class="form-label">Codigo</label><input name="codigo" class="form-control" value="{{ centro.codigo or '' }}"></div>
+      <div class="form-group"><label class="form-label">Direccion</label><input name="direccion" class="form-control" value="{{ centro.direccion or '' }}"></div>
+      <div class="form-group"><label class="form-label">Activo</label><label><input type="checkbox" name="activo" {% if centro.activo %}checked{% endif %}> Si</label></div>
+    </div>
+    <div class="form-group"><label class="form-label">Descripcion</label><textarea name="descripcion" class="form-control">{{ centro.descripcion or '' }}</textarea></div>
+    <div class="form-group"><label class="form-label">Motivo del cambio</label><input name="motivo_cambio" class="form-control" placeholder="Opcional, se guarda trazabilidad igualmente"></div>
+    <button class="btn btn-success">Guardar</button>
+    <a class="btn btn-secondary" href="{{ url_for('rrhh.centros_trabajo') }}">Volver</a>
+  </form>
+</div>
+{% endblock %}

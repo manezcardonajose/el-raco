@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="card">
+    <div class="card-header">
+        <h2><i class="fas fa-truck"></i> Proveedores de {{ producto.nombre }}</h2>
+        <a href="{{ url_for('productos.ver_producto', producto_id=producto.id) }}" class="btn btn-secondary">Volver</a>
+    </div>
+
+    <div class="alert alert-info">
+        El precio de compra se guarda aqui por proveedor. El proveedor principal sera el que use pedido por lista.
+    </div>
+
+    <form method="POST" action="{{ url_for('productos.agregar_proveedor', producto_id=producto.id) }}" class="card" style="margin-bottom:20px;">
+        <div style="display:grid;grid-template-columns:2fr 1fr 1fr auto;gap:12px;align-items:end;">
+            <div>
+                <label class="form-label">Proveedor</label>
+                <select name="proveedor_id" class="form-control" required>
+                    <option value="">Seleccionar proveedor...</option>
+                    {% for p in proveedores %}
+                    <option value="{{ p.id }}">{{ p.nombre }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label class="form-label">Codigo proveedor</label>
+                <input type="text" name="codigo_proveedor" class="form-control" placeholder="Ref. proveedor">
+            </div>
+            <div>
+                <label class="form-label">Precio compra</label>
+                <input type="number" step="0.0001" name="precio" class="form-control" placeholder="0.00">
+            </div>
+            <div>
+                <label class="form-label" style="white-space:nowrap;">
+                    <input type="checkbox" name="es_principal" value="1"> Principal
+                </label>
+                <button type="submit" class="btn btn-success"><i class="fas fa-plus"></i> Anadir / actualizar</button>
+            </div>
+        </div>
+    </form>
+
+    {% if relaciones %}
+    <div class="table-container">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Proveedor</th>
+                    <th>Codigo proveedor</th>
+                    <th>Precio</th>
+                    <th>Principal</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for r in relaciones %}
+                <tr>
+                    <td>{{ r.nombre_proveedor }}</td>
+                    <td>{{ r.codigo_proveedor or r.referencia_proveedor or '-' }}</td>
+                    <td>{{ (r.precio_vigente or r.precio_ultimo or r.precio_compra or r.precio or 0)|euros(4) }}</td>
+                    <td>{% if r.es_principal or r.preferente %}<span class="badge badge-success">Principal</span>{% else %}-{% endif %}</td>
+                    <td>
+                        <form method="POST" action="{{ url_for('productos.eliminar_proveedor', producto_id=producto.id, relacion_id=r.id) }}" style="display:inline;">
+                            <button class="btn btn-danger btn-sm" type="submit"><i class="fas fa-trash"></i> Quitar</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <p>No hay proveedores asignados.</p>
+    {% endif %}
+</div>
+{% endblock %}

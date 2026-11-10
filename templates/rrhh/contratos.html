@@ -1,0 +1,10 @@
+{% extends 'base.html' %}
+{% block title %}Contratos{% endblock %}
+{% block breadcrumb %}RRHH / Contratos{% endblock %}
+{% block content %}
+<div class="card"><div class="card-header"><h2><i class="fas fa-file-contract"></i> Contratos</h2>{% if puede_editar %}<a class="btn btn-success" href="{{ url_for('rrhh.nuevo_contrato') }}">Nuevo contrato</a>{% endif %}</div>
+{% include 'rrhh/_herramientas_tabla.html' %}
+<div class="table-container"><table><thead><tr><th>Empleado</th><th>Tipo</th><th>Inicio</th><th>Fin</th><th>Jornada</th><th>Salario bruto</th><th>Estado</th><th>Acciones</th></tr></thead><tbody>
+{% for c in contratos %}<tr><td>{{ c.empleado_nombre }}</td><td>{{ c.tipo_contrato or '-' }}</td><td>{{ c.fecha_inicio or '-' }}</td><td>{{ c.fecha_fin or '-' }}</td><td>{{ c.jornada or '-' }} / {{ c.horas_semanales or 0 }}h</td><td>{{ '%.2f'|format(c.salario_bruto or 0) }} €</td><td><span class="badge badge-info">{{ c.estado or 'activo' }}</span></td><td>{% if puede_editar %}<a class="btn btn-sm btn-primary" href="{{ url_for('rrhh.editar_contrato', id=c.id) }}">Editar</a> <form method="post" action="{{ url_for('rrhh.anular_contrato', id=c.id) }}" style="display:inline" onsubmit="return confirm('¿Anular contrato?')"><button class="btn btn-sm btn-warning">Anular</button></form>{% endif %}</td></tr>{% else %}<tr><td colspan="8">No hay contratos registrados.</td></tr>{% endfor %}
+</tbody></table></div></div>
+{% endblock %}

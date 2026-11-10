@@ -1,0 +1,274 @@
+{% extends "base.html" %}
+{% block title %}Recogida de Sobrantes - {{ parte.fecha }}{% endblock %}
+{% block content %}
+
+<div class="card">
+    <div class="card-header" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;">
+        <div>
+            <h2 style="margin:0;color:#ff6b00;">🔴 CIERRE: Recogida de Sobrantes</h2>
+            <div class="text-muted" style="margin-top:5px;">
+                {{ parte.fecha }} · {{ parte.tipo_nombre or parte.turno }} ·
+                {{ parte.subdepartamento_nombre or 'Producción General' }}
+            </div>
+        </div>
+        <div>
+            <a href="{{ url_for('produccion.produccion_subdepartamento', subdepto_id=parte.subdepartamento_id, fecha=parte.fecha) }}" 
+               class="btn btn-secondary">
+                Volver a subdepartamento
+            </a>
+        </div>
+    </div>
+
+    <div style="background:#fff3cd;padding:15px;border-radius:4px;margin:15px;border-left:4px solid #ff9800;">
+        <strong>⚠️ IMPORTANTE:</strong> 
+        Esta recogida se realiza al cierre del buffet. Registra aquí todo lo que ha sobrado y su justificación.
+        Los datos ingresados se enviarán automáticamente a APPCC como control MERMA-01.
+    </div>
+
+    <form method="POST" style="padding:15px;">
+        <div style="background:#1e252b;padding:15px;border-radius:8px;margin-bottom:20px;">
+            <h3 style="margin-top:0;color:#00d9ff;">📋 Líneas de Producción</h3>
+            <p class="text-muted">Selecciona aquellas que tuvieron sobrante o residuo.</p>
+
+            {% if lineas %}
+            <div style="display:grid;gap:15px;">
+                {% for linea in lineas %}
+                {% set control = controles.get(linea.id) %}
+                {% set lote = lotes.get(linea.id) %}
+                {% set tiene_sobrante = control and control.cantidad_sobrante and control.destino_sobrante != 'sin_sobrante' %}
+                <div style="background:#16202a;padding:12px;border:1px solid #334155;border-radius:6px;">
+                    <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:12px;align-items:end;margin-bottom:12px;">
+                        <!-- Línea info -->
+                        <div>
+                            <strong>{{ linea.receta_nombre }}</strong>
+                            {% if linea.estacion_buffet %}
+                            <div class="text-muted" style="font-size:12px;">{{ linea.estacion_buffet }}</div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Cantidad planificada vs real -->
+                        <div>
+                            <small class="text-muted">Plan/Real</small><br>
+                            <span style="font-size:12px;">
+                                {{ linea.cantidad_planificada or 0 }} / {{ linea.cantidad_real or 0 }}
+                                {{ linea.unidad or 'raciones' }}
+                            </span>
+                        </div>
+
+                        <!-- Checkbox: hay sobrante -->
+                        <div>
+                            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+                                <input type="checkbox" name="hay_sobrante_{{ linea.id }}" value="1" 
+                                       class="toggle-sobrante" 
+                                       onchange="toggleSobrante({{ linea.id }})"
+                                       {% if tiene_sobrante %}checked{% endif %}>
+                                <span>Registrar sobrante</span>
+                            </label>
+                        </div>
+
+                        <!-- Cantidad si existe control anterior -->
+                        {% if control %}
+                        <div style="background:#0d1117;padding:8px;border-radius:4px;font-size:12px;">
+                            <strong>Anterior:</strong> {{ control.cantidad_sobrante or 0 }} 
+                            {{ control.unidad_sobrante or 'raciones' }}
+                            {% if lote and control.destino_sobrante == 'reaprovechamiento' %}
+                            <br><a href="{{ url_for('produccion.etiqueta_lote_elaborado', lote_id=lote.id) }}" class="btn-sm btn-info" style="margin-top:6px;display:inline-block;">
+                                Etiqueta sobrante
+                            </a>
+                            {% endif %}
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Campos de sobrante (inicialmente ocultos) -->
+                    <div id="sobrante-{{ linea.id }}" class="sobrante-fields" style="display:{% if tiene_sobrante %}block{% else %}none{% endif %};background:#0d1117;padding:12px;border-radius:4px;border-left:3px solid #ff6b00;">
+                        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:10px;">
+                            <div>
+                                <label class="form-label">Cantidad sobrante</label>
+                                <input type="number" step="0.001" class="form-control" 
+                                       name="cantidad_sobrante_{{ linea.id }}" 
+                                       placeholder="0.000"
+                                       value="{{ control.cantidad_sobrante if tiene_sobrante else '' }}">
+                            </div>
+                            <div>
+                                <label class="form-label">Unidad</label>
+                                <select class="form-control" name="unidad_sobrante_{{ linea.id }}">
+                                    {% set unidad_actual = control.unidad_sobrante if control else 'raciones' %}
+                                    <option value="raciones" {% if unidad_actual == 'raciones' %}selected{% endif %}>Raciones</option>
+                                    <option value="kg" {% if unidad_actual == 'kg' %}selected{% endif %}>Kilogramos</option>
+                                    <option value="l" {% if unidad_actual == 'l' %}selected{% endif %}>Litros</option>
+                                    <option value="unidades" {% if unidad_actual == 'unidades' %}selected{% endif %}>Unidades</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="form-label">Destino</label>
+                                <select class="form-control" name="destino_sobrante_{{ linea.id }}">
+                                    {% set destino_actual = control.destino_sobrante if control else 'merma_buffet' %}
+                                    <option value="merma_buffet" {% if destino_actual == 'merma_buffet' %}selected{% endif %}>Merma de buffet</option>
+                                    <option value="desecho" {% if destino_actual == 'desecho' %}selected{% endif %}>Desecho justificado</option>
+                                    <option value="reaprovechamiento" {% if destino_actual == 'reaprovechamiento' %}selected{% endif %}>Reaprovechamiento</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;margin-bottom:10px;">
+                            <div><label class="form-label">Ubicacion de guardado</label><input class="form-control" name="ubicacion_conservacion_{{ linea.id }}" value="{{ control.ubicacion_conservacion or '' if control else '' }}"></div>
+                            <div><label class="form-label">Conservacion</label><select class="form-control" name="metodo_conservacion_{{ linea.id }}">
+                                <option value="">Seleccionar</option>
+                                {% for valor, nombre in [('refrigerado','Refrigerado'),('abatido','Abatido'),('congelado','Congelado')] %}
+                                <option value="{{ valor }}" {% if control and control.metodo_conservacion == valor %}selected{% endif %}>{{ nombre }}</option>
+                                {% endfor %}
+                            </select></div>
+                            <div><label class="form-label">Envase</label><input class="form-control" name="tipo_envase_{{ linea.id }}" value="{{ control.tipo_envase or '' if control else '' }}"></div>
+                            <div><label class="form-label">Fecha de envasado</label><input type="datetime-local" class="form-control" name="fecha_envasado_{{ linea.id }}" value="{{ (control.fecha_envasado or '')[:16] if control else '' }}"></div>
+                            <div><label class="form-label">Limite de uso</label><input type="datetime-local" class="form-control" name="fecha_limite_uso_{{ linea.id }}" value="{{ (control.fecha_limite_uso or '')[:16] if control else '' }}"></div>
+                        </div>
+                        <div style="margin-bottom:10px;">
+                            <label class="form-label">Justificación / Motivo</label>
+                            <textarea class="form-control" name="motivo_merma_{{ linea.id }}" 
+                                      rows="2" placeholder="Ej: Sobrante de buffet, temperatura inadecuada, rechazo de cliente, etc.">{{ control.motivo_merma if tiene_sobrante else '' }}</textarea>
+                        </div>
+
+                        <div>
+                            <label class="form-label">Observaciones adicionales</label>
+                            <textarea class="form-control" name="obs_sobrante_{{ linea.id }}" 
+                                      rows="1" placeholder="Información adicional sobre el sobrante...">{{ control.observaciones if tiene_sobrante else '' }}</textarea>
+                        </div>
+
+                        {% if lote and control.destino_sobrante == 'reaprovechamiento' %}
+                        <div style="margin-top:10px;padding:10px;background:#111827;border:1px solid #334155;border-radius:4px;display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap;">
+                            <span style="font-size:13px;color:#c7d2de;">Lote de sobrante {{ lote.codigo_lote }} listo para conservar.</span>
+                            <a href="{{ url_for('produccion.etiqueta_lote_elaborado', lote_id=lote.id) }}" class="btn btn-info">
+                                Imprimir etiqueta
+                            </a>
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <input type="hidden" name="linea_id[]" value="{{ linea.id }}">
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div style="background:#0d1117;padding:15px;border-radius:4px;text-align:center;color:#888;">
+                <strong>No hay líneas de producción registradas para este parte.</strong>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Resumen antes de guardar -->
+        <div id="resumen-sobrantes" style="background:#1e252b;padding:15px;border-radius:8px;margin-bottom:20px;display:none;">
+            <h4 style="margin-top:0;color:#00d9ff;">📊 Resumen de Sobrantes</h4>
+            <div id="resumen-content" style="font-size:13px;color:#c7d2de;">
+            </div>
+        </div>
+
+        <!-- Botones -->
+        <div style="display:flex;gap:10px;justify-content:flex-end;padding:15px;border-top:1px solid #334155;">
+            <a href="{{ url_for('produccion.produccion_subdepartamento', subdepto_id=parte.subdepartamento_id, fecha=parte.fecha) }}" 
+               class="btn btn-secondary">
+                Cancelar
+            </a>
+            <button type="submit" name="accion" value="guardar" class="btn btn-success">
+                💾 Guardar Recogida y Enviar a APPCC
+            </button>
+        </div>
+    </form>
+    {% for linea in lineas %}
+    {% set lote = lotes.get(linea.id) %}
+    {% if lote %}
+    <section style="padding:15px;border-top:1px solid #64748b;">
+        <h3>{{ linea.receta_nombre }} · {{ lote.codigo_lote }}</h3>
+        <p>Disponible: {{ lote.cantidad }} {{ lote.unidad }} · {{ lote.ubicacion }} · {{ lote.fecha_limite_uso }}</p>
+        {% if lote.estado == 'disponible' and lote.cantidad > 0 %}
+        <form method="post" action="{{ url_for('produccion.destinar_lote_sobrante', lote_id=lote.id) }}" style="display:flex;gap:12px;flex-wrap:wrap;align-items:end;">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div><label for="salida-cantidad-{{ lote.id }}">Cantidad ({{ lote.unidad }})</label><input id="salida-cantidad-{{ lote.id }}" class="form-control" name="cantidad" type="number" min="0.001" max="{{ lote.cantidad }}" step="0.001" required></div>
+            <div><label for="salida-destino-{{ lote.id }}">Destino</label><select id="salida-destino-{{ lote.id }}" class="form-control" name="destino" required><option value="comedor_personal">Comedor de personal</option><option value="buffet">Otro servicio de buffet</option><option value="otra_elaboracion">Otra elaboracion</option></select></div>
+            <div><label for="salida-referencia-{{ lote.id }}">Servicio o elaboracion de destino</label><input id="salida-referencia-{{ lote.id }}" class="form-control" name="referencia" required></div>
+            <button class="btn btn-primary" type="submit">Registrar salida</button>
+        </form>
+        {% endif %}
+    </section>
+    {% endif %}
+    {% endfor %}
+</div>
+
+<style>
+.sobrante-fields {
+    animation: slideDown 0.3s ease-out;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.form-label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: 500;
+    color: #c7d2de;
+    font-size: 13px;
+}
+</style>
+
+<script>
+function toggleSobrante(lineaId) {
+    const checkbox = document.querySelector(`input[name="hay_sobrante_${lineaId}"]`);
+    const sobrante = document.getElementById(`sobrante-${lineaId}`);
+    const input = document.querySelector(`input[name="cantidad_sobrante_${lineaId}"]`);
+    
+    if (checkbox.checked) {
+        sobrante.style.display = 'block';
+        if (input && input.value === '') input.focus();
+    } else {
+        sobrante.style.display = 'none';
+        // Limpiar valores si se desmarca
+        document.querySelector(`input[name="cantidad_sobrante_${lineaId}"]`).value = '';
+        document.querySelector(`textarea[name="motivo_merma_${lineaId}"]`).value = '';
+    }
+    
+    actualizarResumen();
+}
+
+function actualizarResumen() {
+    const checks = document.querySelectorAll('.toggle-sobrante:checked');
+    const resumen = document.getElementById('resumen-sobrantes');
+    const content = document.getElementById('resumen-content');
+    
+    if (checks.length === 0) {
+        resumen.style.display = 'none';
+        return;
+    }
+    
+    let html = '<ul style="margin:0;padding-left:20px;">';
+    checks.forEach(check => {
+        const lineaId = check.name.replace('hay_sobrante_', '');
+        const cantidad = document.querySelector(`input[name="cantidad_sobrante_${lineaId}"]`).value;
+        const unidad = document.querySelector(`select[name="unidad_sobrante_${lineaId}"]`).value;
+        const destino = document.querySelector(`select[name="destino_sobrante_${lineaId}"]`).value;
+        
+        if (cantidad) {
+            html += `<li>${cantidad} ${unidad} - ${destino.replace('_', ' ').toUpperCase()}</li>`;
+        }
+    });
+    html += '</ul>';
+    
+    content.innerHTML = html;
+    resumen.style.display = 'block';
+}
+
+// Auto-actualizar resumen cuando cambien valores
+document.querySelectorAll('input, select, textarea').forEach(elem => {
+    elem.addEventListener('change', actualizarResumen);
+});
+</script>
+
+{% endblock %}

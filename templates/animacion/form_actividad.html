@@ -1,0 +1,174 @@
+{% extends "base.html" %}
+
+{% block title %}Actividad de animacion{% endblock %}
+{% block breadcrumb %}<a href="{{ url_for('animacion.dashboard') }}">Animacion</a> / Actividad{% endblock %}
+
+{% block content %}
+<style>
+    .ani-form {
+        max-width: 980px;
+        border: 1px solid var(--border-color, #d5dde7);
+        background: var(--card-bg, #fff);
+        border-radius: 8px;
+        padding: 18px;
+    }
+    .ani-form h1 {
+        margin: 0 0 16px;
+        color: #ff6b00;
+        font-size: 26px;
+    }
+    .ani-grid-form {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(220px, 1fr));
+        gap: 12px;
+    }
+    .ani-field label {
+        display: block;
+        color: var(--text-muted, #5f6b7a);
+        font-size: 12px;
+        margin-bottom: 4px;
+    }
+    .ani-field input, .ani-field select, .ani-field textarea {
+        width: 100%;
+        min-height: 38px;
+        border: 1px solid var(--border-color, #d5dde7);
+        border-radius: 7px;
+        padding: 8px 10px;
+        background: var(--input-bg, #fff);
+        color: var(--text-color, #16202a);
+    }
+    .ani-field textarea {
+        min-height: 90px;
+        resize: vertical;
+    }
+    .span-2 { grid-column: 1 / -1; }
+    .ani-actions {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        margin-top: 14px;
+    }
+    @media (max-width: 800px) {
+        .ani-grid-form { grid-template-columns: 1fr; }
+    }
+</style>
+
+<form class="ani-form" method="post">
+    <h1><i class="fas fa-star"></i> Actividad de animacion</h1>
+    <div class="ani-grid-form">
+        <div class="ani-field span-2">
+            <label>Titulo</label>
+            <input name="titulo" value="{{ actividad.titulo if actividad else '' }}" required>
+        </div>
+        <div class="ani-field">
+            <label>Fecha</label>
+            <input type="date" name="fecha" value="{{ actividad.fecha if actividad else '' }}" required>
+        </div>
+        <div class="ani-field">
+            <label>Responsable</label>
+            <input name="responsable" value="{{ actividad.responsable if actividad else '' }}">
+        </div>
+        <div class="ani-field">
+            <label>Modelo</label>
+            <select name="modelo_prestacion">
+                {% for key, label in modelos_prestacion %}
+                <option value="{{ key }}" {% if actividad and (actividad.modelo_prestacion or 'propia') == key %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="ani-field">
+            <label>Proveedor externo</label>
+            <select name="proveedor_id">
+                <option value="">Sin proveedor</option>
+                {% for p in proveedores|default([]) %}
+                <option value="{{ p.id }}" {% if actividad and actividad.proveedor_id == p.id %}selected{% endif %}>{{ p.nombre }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="ani-field">
+            <label>Hora inicio</label>
+            <input type="time" name="hora_inicio" value="{{ actividad.hora_inicio if actividad else '' }}">
+        </div>
+        <div class="ani-field">
+            <label>Hora fin</label>
+            <input type="time" name="hora_fin" value="{{ actividad.hora_fin if actividad else '' }}">
+        </div>
+        <div class="ani-field">
+            <label>Tipo</label>
+            <select name="tipo">
+                {% for key, label in tipos %}
+                <option value="{{ key }}" {% if actividad and actividad.tipo == key %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="ani-field">
+            <label>Publico</label>
+            <select name="publico">
+                {% for key, label in publicos %}
+                <option value="{{ key }}" {% if actividad and actividad.publico == key %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="ani-field">
+            <label>Idioma</label>
+            <input name="idioma" value="{{ actividad.idioma if actividad else 'multi' }}">
+        </div>
+        <div class="ani-field">
+            <label>Ubicacion</label>
+            <input name="ubicacion" value="{{ actividad.ubicacion if actividad else '' }}">
+        </div>
+        <div class="ani-field">
+            <label>Capacidad</label>
+            <input type="number" name="capacidad" value="{{ actividad.capacidad if actividad else 0 }}">
+        </div>
+        <div class="ani-field">
+            <label>Estado</label>
+            <select name="estado">
+                {% for estado in ['planificada', 'en_curso', 'realizada', 'cancelada'] %}
+                <option value="{{ estado }}" {% if actividad and actividad.estado == estado %}selected{% endif %}>{{ estado }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="ani-field">
+            <label>Coste estimado</label>
+            <input name="coste_estimado" value="{{ actividad.coste_estimado if actividad else 0 }}">
+        </div>
+        <div class="ani-field">
+            <label>Coste real</label>
+            <input name="coste_real" value="{{ actividad.coste_real if actividad else 0 }}">
+        </div>
+        <div class="ani-field">
+            <label>Coste personal interno</label>
+            <input name="coste_personal_interno" value="{{ actividad.coste_personal_interno if actividad else 0 }}">
+        </div>
+        <div class="ani-field">
+            <label>Coste proveedor</label>
+            <input name="coste_proveedor" value="{{ actividad.coste_proveedor if actividad else 0 }}">
+        </div>
+        <div class="ani-field">
+            <label>Coste materiales</label>
+            <input name="coste_materiales" value="{{ actividad.coste_materiales if actividad else 0 }}">
+        </div>
+        <div class="ani-field">
+            <label>Ingreso directo</label>
+            <input name="ingreso_directo" value="{{ actividad.ingreso_directo if actividad else 0 }}">
+        </div>
+        <div class="ani-field">
+            <label>Venta indirecta estimada</label>
+            <input name="venta_indirecta_estimada" value="{{ actividad.venta_indirecta_estimada if actividad else 0 }}">
+        </div>
+        <div class="ani-field">
+            <label>Contrato / referencia</label>
+            <input name="contrato_referencia" value="{{ actividad.contrato_referencia if actividad else '' }}">
+        </div>
+        <div class="ani-field span-2">
+            <label>Observaciones</label>
+            <textarea name="observaciones">{{ actividad.observaciones if actividad else '' }}</textarea>
+        </div>
+    </div>
+    <div class="ani-actions">
+        <button class="btn btn-success" type="submit"><i class="fas fa-save"></i> Guardar</button>
+        <a class="btn btn-secondary" href="{{ url_for('animacion.dashboard') }}">Volver</a>
+    </div>
+</form>
+{% endblock %}

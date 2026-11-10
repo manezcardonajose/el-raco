@@ -1,0 +1,55 @@
+{% extends 'base.html' %}
+{% block title %}Textos check-in{% endblock %}
+{% block breadcrumb %}Recepcion / Textos check-in{% endblock %}
+{% block content %}
+<div class="card">
+  <div class="card-header">
+    <h2><i class="fas fa-language"></i> Textos legales de check-in</h2>
+  </div>
+
+  <form method="post" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;align-items:end;margin-bottom:16px;">
+    <div class="form-group"><label class="form-label">Idioma</label><select class="form-control" name="idioma">
+      {% for codigo,nombre in idiomas_documento.items() %}
+      <option value="{{ codigo }}">{{ nombre }}</option>
+      {% endfor %}
+    </select></div>
+    <div class="form-group"><label class="form-label">Version</label><input class="form-control" name="version" value="{{ version_default }}"></div>
+    <div class="form-group" style="grid-column:1/-1;"><label class="form-label">Titulo</label><input class="form-control" name="titulo" required></div>
+    <div class="form-group" style="grid-column:1/-1;"><label class="form-label">Contenido legal</label><textarea class="form-control" name="contenido" rows="8" required></textarea></div>
+    <label style="display:flex;gap:6px;align-items:center;"><input type="checkbox" name="activo" checked> Activo</label>
+    <button class="btn btn-success" type="submit">Crear version</button>
+  </form>
+
+  <div class="alert alert-info">
+    Cuando cambie la normativa o el asesor revise el texto, crea una version nueva o actualiza la existente. Los partes ya firmados conservan su version.
+  </div>
+
+  <div class="table-container">
+    <table>
+      <thead><tr><th>Idioma</th><th>Version</th><th>Titulo</th><th>Contenido</th><th>Activo</th><th>Guardar</th></tr></thead>
+      <tbody>
+        {% for t in textos %}
+        <tr>
+          <td>
+            <form id="texto-{{ t.id }}" method="post"></form>
+            <input form="texto-{{ t.id }}" type="hidden" name="texto_id" value="{{ t.id }}">
+            <select form="texto-{{ t.id }}" class="form-control" name="idioma">
+              {% for codigo,nombre in idiomas_documento.items() %}
+              <option value="{{ codigo }}" {% if t.idioma == codigo %}selected{% endif %}>{{ nombre }}</option>
+              {% endfor %}
+            </select>
+          </td>
+          <td><input form="texto-{{ t.id }}" class="form-control" name="version" value="{{ t.version }}"></td>
+          <td><input form="texto-{{ t.id }}" class="form-control" name="titulo" value="{{ t.titulo }}"></td>
+          <td><textarea form="texto-{{ t.id }}" class="form-control" name="contenido" rows="5">{{ t.contenido }}</textarea></td>
+          <td style="text-align:center;"><input form="texto-{{ t.id }}" type="checkbox" name="activo" {% if t.activo %}checked{% endif %}></td>
+          <td><button form="texto-{{ t.id }}" class="btn btn-sm btn-success" type="submit">Guardar</button></td>
+        </tr>
+        {% else %}
+        <tr><td colspan="6">No hay textos configurados.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

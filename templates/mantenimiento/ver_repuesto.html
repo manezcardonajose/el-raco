@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="card">
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+        <h2 style="color: #ff6b00;"> {{ repuesto.nombre }}</h2>
+        <div>
+            <a href="/mantenimiento/repuestos/{{ repuesto.id }}/editar" class="btn btn-primary">️ Editar</a>
+            <a href="/mantenimiento/repuestos" class="btn btn-red"> Volver</a>
+        </div>
+    </div>
+    
+    <div style="background: #3a3f44; padding: 20px; border-radius: 8px; margin: 20px 0;">
+        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px;">
+            <div><strong>Cdigo:</strong> {{ repuesto.codigo }}</div>
+            <div><strong>Proveedor:</strong> {{ repuesto.proveedor_nombre or '---' }}</div>
+            <div><strong>Ref. proveedor:</strong> {{ repuesto.referencia_proveedor or '---' }}</div>
+            <div><strong>Stock actual:</strong> 
+                <span class="{% if repuesto.stock_actual <= repuesto.stock_minimo %}stock-bajo{% endif %}">
+                    {{ repuesto.stock_actual }} {{ repuesto.unidad }}
+                </span>
+            </div>
+            <div><strong>Stock mnimo:</strong> {{ repuesto.stock_minimo }} {{ repuesto.unidad }}</div>
+            <div><strong>Precio compra:</strong> {{ "%.2f"|format(repuesto.precio_compra) }} </div>
+            <div><strong>Ubicacin:</strong> {{ repuesto.ubicacion_almacen or '---' }}</div>
+        </div>
+        
+        {% if repuesto.descripcion %}
+        <div style="margin-top: 20px;">
+            <strong>Descripcin:</strong>
+            <p>{{ repuesto.descripcion }}</p>
+        </div>
+        {% endif %}
+        
+        {% if repuesto.compatible_con %}
+        <div style="margin-top: 20px;">
+            <strong>Equipos compatibles:</strong>
+            <p>{{ repuesto.compatible_con }}</p>
+        </div>
+        {% endif %}
+    </div>
+    
+    <!-- Historial de uso en rdenes -->
+    <h3> Historial de uso</h3>
+    <table style="width: 100%;">
+        <thead>
+            <tr>
+                <th>Fecha</th>
+                <th>Nº Orden</th>
+                <th>Equipo</th>
+                <th>Cantidad</th>
+                <th>Precio</th>
+                <th>Total</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for uso in historial %}
+            <tr>
+                <td>{{ uso.fecha[:10] }}</td>
+                <td><a href="/mantenimiento/ordenes/{{ uso.orden_id }}">{{ uso.numero_orden }}</a></td>
+                <td>{{ uso.equipo_nombre }}</td>
+                <td>{{ uso.cantidad }}</td>
+                <td>{{ "%.2f"|format(uso.precio_unitario) }} </td>
+                <td>{{ "%.2f"|format(uso.cantidad * uso.precio_unitario) }} </td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="6" style="text-align: center;">Este repuesto no se ha utilizado an</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<style>
+    .stock-bajo { color: #dc3545; font-weight: bold; }
+</style>
+{% endblock %}
+
+
+

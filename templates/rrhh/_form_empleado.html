@@ -1,0 +1,21 @@
+<form method="post" class="card card-body shadow-sm">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <div class="row g-3">
+    <div class="col-md-4"><label class="form-label">Nombre *</label><input name="nombre" class="form-control" required value="{{ empleado.nombre if empleado else '' }}"></div>
+    <div class="col-md-4"><label class="form-label">Apellidos</label><input name="apellidos" class="form-control" value="{{ empleado.apellidos if empleado else '' }}"></div>
+    <div class="col-md-4"><label class="form-label">NIF</label><input name="nif" class="form-control" value="{{ empleado.nif if empleado else '' }}"></div>
+    <div class="col-md-4"><label class="form-label">Email</label><input name="email" type="email" class="form-control" value="{{ empleado.email if empleado else '' }}"></div>
+    <div class="col-md-4"><label class="form-label">Teléfono</label><input name="telefono" class="form-control" value="{{ empleado.telefono if empleado else '' }}"></div>
+    <div class="col-md-4"><label class="form-label">Rol operativo</label><input name="rol" class="form-control" placeholder="cocina, recepción, mantenimiento..." value="{{ empleado.rol if empleado else '' }}"></div>
+    <div class="col-md-4"><label class="form-label">Categoría laboral</label><select name="categoria_id" class="form-select"><option value="">Sin categoría</option>{% for c in categorias %}<option value="{{ c.id }}" {% if empleado and empleado.categoria_id==c.id %}selected{% endif %}>{{ c.nombre }}</option>{% endfor %}</select></div>
+    <div class="col-md-4"><label class="form-label">Departamento</label><select name="departamento_id" class="form-select"><option value="">Sin departamento</option>{% for d in departamentos %}<option value="{{ d.id }}" {% if empleado and empleado.departamento_id==d.id %}selected{% endif %}>{{ d.nombre }}</option>{% endfor %}</select></div>
+    <div class="col-md-4"><label class="form-label">Subdepartamento</label><select name="subdepartamento_id" class="form-select"><option value="">Sin subdepartamento</option>{% for sd in subdepartamentos %}<option value="{{ sd.id }}" {% if empleado and empleado.subdepartamento_id==sd.id %}selected{% endif %}>{{ sd.nombre }}</option>{% endfor %}</select></div>
+    <div class="col-md-4"><label class="form-label">Punto de venta</label><select name="punto_venta_id" class="form-select"><option value="">Sin punto venta</option>{% for pv in puntos_venta %}<option value="{{ pv.id }}" {% if empleado and empleado.punto_venta_id==pv.id %}selected{% endif %}>{{ pv.nombre }}</option>{% endfor %}</select></div>
+    <div class="col-md-4"><label class="form-label">Usuario vinculado</label><select name="usuario_id" class="form-select"><option value="">Sin usuario</option>{% for u in usuarios %}<option value="{{ u.id }}" {% if empleado and empleado.usuario_id==u.id %}selected{% endif %}>{{ u.nombre }}{% if u.codigo_acceso %} - {{ u.codigo_acceso }}{% endif %} - {{ u.rol_nombre or '' }}</option>{% endfor %}</select></div>
+    <div class="col-md-2"><label class="form-label">Fecha alta</label><input type="date" name="fecha_alta" class="form-control" value="{{ empleado.fecha_alta if empleado else '' }}"></div>
+    <div class="col-md-2"><label class="form-label">Fecha baja</label><input type="date" name="fecha_baja" class="form-control" value="{{ empleado.fecha_baja if empleado else '' }}"></div>
+    <div class="col-12"><label class="form-label">Observaciones</label><textarea name="observaciones" class="form-control" rows="3">{{ empleado.observaciones if empleado else '' }}</textarea></div>
+    {% if empleado %}<div class="col-12"><label><input type="checkbox" name="activo" value="1" {% if empleado.activo %}checked{% endif %}> Empleado activo</label></div>{% endif %}
+  </div>
+  <div class="mt-4 d-flex gap-2"><button class="btn btn-primary">Guardar</button><a href="{{ url_for('rrhh.lista_empleados') }}" class="btn btn-outline-secondary">Cancelar</a></div>
+</form>

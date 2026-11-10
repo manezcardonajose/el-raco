@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="card">
+    <h2><i class="fas fa-file-alt"></i> Nuevo Pedido</h2>
+
+    <form method="POST">
+        <div style="margin-bottom: 15px;">
+            <label>Proveedor:</label>
+            <select name="proveedor_id" required style="width: 100%; padding: 8px;">
+                <option value="">-- Seleccionar proveedor --</option>
+                {% for p in proveedores %}
+                <option value="{{ p.id }}">{{ p.nombre }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div style="margin-bottom: 15px;">
+            <label>Departamento:</label>
+            <select name="departamento_id" required style="width: 100%; padding: 8px;">
+                <option value="">-- Seleccionar departamento --</option>
+                {% for d in departamentos %}
+                <option value="{{ d.id }}">{{ d.nombre }}</option>
+                {% endfor %}
+            </select>
+            {% if not departamentos %}
+            <small style="color:#ff9900;">No hay departamentos disponibles. Revisa la tabla departamentos.</small>
+            {% endif %}
+        </div>
+
+        <div style="margin-bottom: 15px;">
+            <label>Fecha de entrega prevista:</label>
+            <input type="date" name="fecha_entrega" style="width: 100%; padding: 8px;">
+        </div>
+
+        <div style="margin-bottom: 15px;">
+            <label>Observaciones:</label>
+            <textarea name="observaciones" rows="3" style="width: 100%; padding: 8px;"></textarea>
+        </div>
+
+        <div style="margin-top: 20px; display: flex; gap: 10px;">
+            <button type="submit" class="btn btn-success"><i class="fas fa-save"></i> Crear Pedido</button>
+            <a href="{{ url_for('compras.lista_pedidos') }}" class="btn btn-red">Cancelar</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

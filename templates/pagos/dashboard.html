@@ -1,0 +1,129 @@
+{% extends "base.html" %}
+{% block title %}Pagos marca blanca{% endblock %}
+{% block breadcrumb %}Pagos marca blanca{% endblock %}
+
+{% block content %}
+<div class="card">
+  <div class="card-header" style="display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap;">
+    <div>
+      <h2><i class="fas fa-credit-card"></i> Pagos marca blanca</h2>
+      <p style="margin:4px 0 0;opacity:.78;">Pasarelas por cliente, sin guardar tarjetas en la ERP.</p>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+      <a class="btn btn-primary" href="{{ url_for('pagos.prueba') }}"><i class="fas fa-vial"></i> Probar cobro</a>
+      <a class="btn btn-secondary" href="{{ url_for('pagos.operaciones') }}"><i class="fas fa-list"></i> Operaciones</a>
+      {% if puede_configurar %}
+      <a class="btn btn-secondary" href="{{ url_for('pagos.plantillas') }}"><i class="fas fa-envelope-open-text"></i> Plantillas</a>
+      <a class="btn btn-success" href="{{ url_for('pagos.config_form') }}"><i class="fas fa-plus"></i> Nueva pasarela</a>
+      {% endif %}
+    </div>
+  </div>
+
+  {% if not crypto_ok %}
+  <div class="alert alert-warning">
+    <strong>Seguridad:</strong> para guardar claves cifradas define <code>PAYMENT_MASTER_KEY</code>.
+    Mientras tanto usa valores tipo <code>env:STRIPE_SECRET_KEY</code> o <code>env:REDSYS_SECRET_KEY</code>.
+    <br><small>Clave sugerida para entorno: <code>{{ master_key_sugerida }}</code></small>
+  </div>
+  {% endif %}
+
+  {% set url_diag = public_url_diagnostics %}
+  <div class="alert {% if url_diag.status == 'ok' %}alert-info{% elif url_diag.status == 'revisar' %}alert-warning{% else %}alert-danger{% endif %}">
+    <strong>URL publica de pagos:</strong> <code>{{ url_diag.base_url }}</code>
+    <br><small>Ejemplo de enlace: <a href="{{ url_diag.sample_url }}" target="_blank">{{ url_diag.sample_url }}</a></small>
+    {% for issue in url_diag.issues %}
+      <br><small><strong>Bloqueante:</strong> {{ issue }}</small>
+    {% endfor %}
+    {% for warning in url_diag.warnings %}
+      <br><small><strong>Revisar:</strong> {{ warning }}</small>
+    {% endfor %}
+  </div>
+
+  <h3 style="color:#ff6b00;">Pasarelas configuradas</h3>
+  <div class="table-responsive">
+    <table class="table">
+      <thead><tr><th>Nombre</th><th>Proveedor</th><th>Modo</th><th>Centro</th><th>Metodos</th><th>Salud</th><th>Estado</th><th>Acciones</th></tr></thead>
+      <tbody>
+        {% for c in configs %}
+        <tr>
+          <td><strong>{{ c.nombre }}</strong><br><small>{{ c.marca_nombre or 'Marca del cliente' }}</small></td>
+          <td>{{ c.proveedor }}</td>
+          <td>{{ c.modo }}</td>
+          <td>{{ c.centro_id or 'Empresa' }}</td>
+          <td>
+            {% for k,v in c.metodos.items() if v %}
+              <span class="badge badge-info">{{ k }}</span>
+            {% endfor %}
+          </td>
+          <td>
+            {% set diag = c.diagnostico %}
+            <span class="badge {% if diag.estado == 'ok' %}badge-success{% elif diag.estado == 'revisar' %}badge-warning{% else %}badge-danger{% endif %}">
+              {{ diag.estado }}
+            </span>
+            {% for i in diag.issues[:1] %}<br><small>{{ i.texto }}</small>{% endfor %}
+            {% if not diag.issues %}{% for w in diag.warnings[:1] %}<br><small>{{ w.texto }}</small>{% endfor %}{% endif %}
+          </td>
+          <td><span class="badge {{ 'badge-success' if c.activo else 'badge-secondary' }}">{{ 'Activa' if c.activo else 'Inactiva' }}</span></td>
+          <td>
+            {% if puede_configurar %}
+            <a class="btn btn-sm btn-primary" href="{{ url_for('pagos.config_form', config_id=c.id) }}">Editar</a>
+            {% endif %}
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="8" style="text-align:center;padding:24px;">Sin pasarelas configuradas.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <h3 style="color:#ff6b00;margin-top:22px;">Terminales</h3>
+  <div style="display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:10px;">
+    <p style="margin:0;opacity:.78;">Equipos fisicos, NFC o Tap to Pay por centro.</p>
+    {% if puede_configurar %}
+    <a class="btn btn-secondary" href="{{ url_for('pagos.terminales') }}"><i class="fas fa-mobile-alt"></i> Gestionar terminales</a>
+    {% endif %}
+  </div>
+  <div class="table-responsive">
+    <table class="table">
+      <thead><tr><th>Terminal</th><th>Pasarela</th><th>Ubicacion</th><th>NFC</th><th>Tap to Pay</th><th>Estado</th></tr></thead>
+      <tbody>
+        {% for t in terminales %}
+        <tr>
+          <td><strong>{{ t.nombre }}</strong><br><small>{{ t.proveedor_terminal_id or '-' }}</small></td>
+          <td>{{ t.config_nombre }} / {{ t.proveedor }}</td>
+          <td>{{ t.ubicacion or '-' }}</td>
+          <td>{{ 'SI' if t.nfc else 'NO' }}</td>
+          <td>{{ 'SI' if t.tap_to_pay else 'NO' }}</td>
+          <td><span class="badge {{ 'badge-success' if t.activo else 'badge-secondary' }}">{{ 'Activo' if t.activo else 'Inactivo' }}</span></td>
+        </tr>
+        {% else %}
+        <tr><td colspan="6" style="text-align:center;padding:18px;">Sin terminales.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <h3 style="color:#ff6b00;margin-top:22px;">Ultimas operaciones</h3>
+  <div class="table-responsive">
+    <table class="table">
+      <thead><tr><th>Referencia</th><th>Proveedor</th><th>Importe</th><th>Estado</th><th>Origen</th><th>Fecha</th><th></th></tr></thead>
+      <tbody>
+        {% for op in operaciones %}
+        <tr>
+          <td>{{ op.referencia_interna }}</td>
+          <td>{{ op.proveedor }}</td>
+          <td>{{ op.importe|euros }}</td>
+          <td><span class="badge badge-info">{{ op.estado }}</span></td>
+          <td>{{ op.origen_modulo or '-' }} / {{ op.origen_tipo or '-' }}</td>
+          <td>{{ op.fecha_creacion }}</td>
+          <td><a class="btn btn-sm btn-secondary" href="{{ url_for('pagos.operacion_detalle', operation_id=op.id) }}">Ver</a></td>
+        </tr>
+        {% else %}
+        <tr><td colspan="7" style="text-align:center;padding:24px;">Sin operaciones.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,95 @@
+{% extends 'base.html' %}
+{% block title %}Objetos perdidos{% endblock %}
+{% block breadcrumb %}Pisos / Objetos perdidos{% endblock %}
+{% block content %}
+<style>
+  .px-actions{display:flex;gap:6px;flex-wrap:wrap;align-items:center;}
+  .px-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;align-items:end;}
+  .px-note{color:#94a3b8;font-size:12px;line-height:1.35;}
+  .px-pill{display:inline-block;border:1px solid #475569;border-radius:4px;padding:2px 6px;font-size:12px;background:#0f172a;}
+  .px-row-form{display:flex;gap:6px;flex-wrap:wrap;align-items:center;}
+</style>
+
+<div class="card">
+  <div class="card-header">
+    <h2><i class="fas fa-key"></i> Objetos perdidos</h2>
+    <div class="px-actions">
+      <a class="btn btn-secondary" href="{{ url_for('pisos.tablet') }}"><i class="fas fa-tablet-alt"></i> Tablet</a>
+      {% if puede_gestionar %}
+      <a class="btn btn-secondary" href="{{ url_for('pisos.panel') }}"><i class="fas fa-chart-line"></i> Panel</a>
+      <a class="btn btn-secondary" href="{{ url_for('pisos.dashboard') }}"><i class="fas fa-list"></i> Parte</a>
+      <a class="btn btn-secondary" target="_blank" href="{{ url_for('pisos.objetos_perdidos', desde=filtros.desde, hasta=filtros.hasta, estado=filtros.estado, imprimir=1) }}"><i class="fas fa-print"></i> Imprimir</a>
+      {% endif %}
+    </div>
+  </div>
+
+  <form method="post" class="px-grid" style="margin-bottom:18px;">
+    <input type="hidden" name="accion" value="crear">
+    <div class="form-group"><label class="form-label">Fecha</label><input class="form-control" type="date" name="fecha" value="{{ filtros.hasta }}"></div>
+    <div class="form-group"><label class="form-label">Habitacion</label><select class="form-control" name="habitacion_id">
+      <option value="">Sin habitacion</option>
+      {% for h in habitaciones %}<option value="{{ h.id }}">{{ h.numero or h.nombre }}</option>{% endfor %}
+    </select></div>
+    <div class="form-group"><label class="form-label">Descripcion</label><input class="form-control" name="descripcion" required></div>
+    <div class="form-group"><label class="form-label">Categoria</label><input class="form-control" name="categoria" placeholder="ropa, electronica..."></div>
+    <div class="form-group"><label class="form-label">Encontrado por</label><input class="form-control" name="encontrado_por"></div>
+    <div class="form-group"><label class="form-label">Guardado en</label><input class="form-control" name="ubicacion_guardado" value="Office pisos"></div>
+    <div class="form-group"><label class="form-label">Observaciones</label><input class="form-control" name="observaciones"></div>
+    <button class="btn btn-success" type="submit"><i class="fas fa-save"></i> Registrar</button>
+  </form>
+</div>
+
+<div class="card">
+  <div class="card-header"><h2><i class="fas fa-search"></i> Busqueda</h2></div>
+  <form method="get" class="px-grid">
+    <div class="form-group"><label class="form-label">Desde</label><input class="form-control" type="date" name="desde" value="{{ filtros.desde }}"></div>
+    <div class="form-group"><label class="form-label">Hasta</label><input class="form-control" type="date" name="hasta" value="{{ filtros.hasta }}"></div>
+    <div class="form-group"><label class="form-label">Estado</label><select class="form-control" name="estado">
+      <option value="">Todos</option>
+      {% for key,label in estados.items() %}<option value="{{ key }}" {% if filtros.estado == key %}selected{% endif %}>{{ label }}</option>{% endfor %}
+    </select></div>
+    <button class="btn btn-primary" type="submit"><i class="fas fa-search"></i> Ver</button>
+  </form>
+</div>
+
+<div class="card">
+  <div class="card-header"><h2><i class="fas fa-list"></i> Registro</h2></div>
+  <div class="table-container">
+    <table>
+      <thead><tr><th>Fecha</th><th>Habitacion / reserva</th><th>Objeto</th><th>Custodia</th><th>Estado</th><th>Accion</th></tr></thead>
+      <tbody>
+        {% for o in objetos %}
+        <tr>
+          <td>{{ o.fecha }}</td>
+          <td>
+            {{ o.habitacion_numero or o.habitacion_nombre or '-' }}
+            {% if o.reserva_codigo %}<div class="px-note">{{ o.reserva_codigo }} · {{ o.titular_nombre }}</div>{% endif %}
+          </td>
+          <td><strong>{{ o.descripcion }}</strong><div class="px-note">{{ o.categoria or '-' }}{% if o.observaciones %} · {{ o.observaciones }}{% endif %}</div></td>
+          <td>{{ o.ubicacion_guardado or '-' }}<div class="px-note">Encontrado por: {{ o.encontrado_por or '-' }}</div></td>
+          <td><span class="px-pill">{{ estados.get(o.estado, o.estado) }}</span>{% if o.fecha_entrega %}<div class="px-note">{{ o.fecha_entrega }}</div>{% endif %}</td>
+          <td>
+            {% if puede_gestionar %}
+            <form method="post" class="px-row-form">
+              <input type="hidden" name="accion" value="estado">
+              <input type="hidden" name="objeto_id" value="{{ o.id }}">
+              <select class="form-control" name="estado">
+                {% for key,label in estados.items() %}<option value="{{ key }}" {% if o.estado == key %}selected{% endif %}>{{ label }}</option>{% endfor %}
+              </select>
+              <input class="form-control" name="entregado_a" value="{{ o.entregado_a or '' }}" placeholder="Entregado a">
+              <input class="form-control" name="documento_entrega" value="{{ o.documento_entrega or '' }}" placeholder="Doc. entrega">
+              <button class="btn btn-sm btn-primary" type="submit"><i class="fas fa-save"></i></button>
+            </form>
+            {% else %}
+            <span class="px-note">Solo registro</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="6">No hay objetos con estos filtros.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

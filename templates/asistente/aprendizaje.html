@@ -1,0 +1,558 @@
+{% extends "base.html" %}
+
+{% block title %}Aprendizaje IA{% endblock %}
+{% block breadcrumb %}<a href="{{ url_for('asistente.dashboard') }}">Asistente El Raco</a> / Aprendizaje{% endblock %}
+
+{% block content %}
+<style>
+    .learn-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 16px;
+        margin-bottom: 18px;
+    }
+    .learn-header h1 {
+        margin: 0 0 6px;
+        color: #ff6b00;
+        font-size: 28px;
+    }
+    .learn-header p {
+        margin: 0;
+        color: var(--text-muted, #5f6b7a);
+        max-width: 880px;
+        line-height: 1.45;
+    }
+    .learn-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+        gap: 12px;
+        margin-bottom: 16px;
+    }
+    .learn-card, .learn-panel {
+        border: 1px solid var(--border-color, #d5dde7);
+        background: var(--card-bg, #fff);
+        border-radius: 8px;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, .04);
+    }
+    .learn-card {
+        padding: 14px;
+    }
+    .learn-card span {
+        display: block;
+        color: var(--text-muted, #5f6b7a);
+        font-size: 12px;
+        margin-bottom: 7px;
+    }
+    .learn-card strong {
+        font-size: 25px;
+    }
+    .coverage-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 10px;
+        margin-bottom: 16px;
+    }
+    .coverage-card {
+        border: 1px solid var(--border-color, #d5dde7);
+        background: var(--card-bg, #fff);
+        border-radius: 8px;
+        padding: 12px;
+    }
+    .coverage-card strong {
+        display: block;
+        color: #ff6b00;
+        margin-bottom: 8px;
+    }
+    .coverage-card span {
+        display: inline-flex;
+        margin-right: 8px;
+        color: var(--text-muted, #5f6b7a);
+        font-size: 12px;
+    }
+    .learn-panel {
+        margin-bottom: 16px;
+        overflow: hidden;
+    }
+    .learn-panel h2 {
+        margin: 0;
+        padding: 14px 16px;
+        border-bottom: 1px solid var(--border-color, #d5dde7);
+        color: #ff6b00;
+        font-size: 18px;
+        background: rgba(255, 107, 0, .07);
+    }
+    .learn-body {
+        padding: 14px;
+    }
+    .learn-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    .learn-table th, .learn-table td {
+        padding: 10px 8px;
+        border-bottom: 1px solid var(--border-color, #d5dde7);
+        text-align: left;
+        vertical-align: top;
+    }
+    .learn-table th {
+        color: #ff6b00;
+        font-size: 12px;
+        text-transform: uppercase;
+    }
+    .learn-badge {
+        display: inline-flex;
+        padding: 3px 8px;
+        border-radius: 999px;
+        color: #fff;
+        background: #2563eb;
+        font-size: 12px;
+        font-weight: 700;
+    }
+    .learn-badge.reforzar { background: #16a34a; }
+    .learn-badge.ajustar { background: #ea580c; }
+    .learn-badge.observar { background: #64748b; }
+    .learn-badge.evitar { background: #b42318; }
+    .learn-badge.revisar { background: #b36b00; }
+    .learn-form {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(180px, 1fr));
+        gap: 10px;
+    }
+    .learn-form label {
+        display: block;
+        font-size: 12px;
+        color: var(--text-muted, #5f6b7a);
+        margin-bottom: 4px;
+    }
+    .learn-form input, .learn-form select, .learn-form textarea {
+        width: 100%;
+        min-height: 38px;
+        border: 1px solid var(--border-color, #d5dde7);
+        border-radius: 7px;
+        padding: 8px 10px;
+        background: var(--input-bg, #fff);
+        color: var(--text-color, #16202a);
+    }
+    .learn-form textarea {
+        min-height: 86px;
+        resize: vertical;
+    }
+    .learn-span {
+        grid-column: 1 / -1;
+    }
+    @media (max-width: 760px) {
+        .learn-header, .learn-form {
+            grid-template-columns: 1fr;
+            display: grid;
+        }
+    }
+</style>
+
+<div class="learn-header">
+    <div>
+        <h1><i class="fas fa-seedling"></i> Aprendizaje IA</h1>
+        <p>Esta pantalla es la memoria operativa. Cada decision humana enseña al asistente que avisos son utiles, cuales sobran y que conocimiento propio tiene el establecimiento.</p>
+    </div>
+    <a class="btn btn-secondary" href="{{ url_for('asistente.dashboard') }}"><i class="fas fa-arrow-left"></i> Volver al asistente</a>
+</div>
+
+<div class="learn-grid">
+    <div class="learn-card"><span>Total guardadas</span><strong>{{ resumen.total }}</strong></div>
+    <div class="learn-card"><span>Aceptadas</span><strong>{{ resumen.aceptadas }}</strong></div>
+    <div class="learn-card"><span>Descartadas</span><strong>{{ resumen.descartadas }}</strong></div>
+    <div class="learn-card"><span>Pendientes</span><strong>{{ resumen.pendientes }}</strong></div>
+    <div class="learn-card"><span>Revisadas</span><strong>{{ resumen.revisadas }}</strong></div>
+</div>
+
+{% if resumen_fuentes_conocimiento %}
+<section class="learn-panel">
+    <h2>Cobertura de conocimiento externo</h2>
+    <div class="learn-body">
+        <div class="coverage-grid">
+            {% for item in resumen_fuentes_conocimiento %}
+            <div class="coverage-card">
+                <strong>{{ item.etiqueta }}</strong>
+                <span>Total: {{ item.total }}</span>
+                <span>Procesadas: {{ item.procesadas }}</span>
+                <span>Pendientes: {{ item.pendientes }}</span>
+            </div>
+            {% endfor %}
+        </div>
+        <small>Estas fuentes son senales de mercado. La IA debe cruzarlas con datos internos antes de proponer decisiones fuertes.</small>
+    </div>
+</section>
+{% endif %}
+
+<section class="learn-panel">
+    <h2>Guardar memoria operativa</h2>
+    <div class="learn-body">
+        <form class="learn-form" method="post" action="{{ url_for('asistente.guardar_memoria_manual') }}">
+            <div>
+                <label>Tipo</label>
+                <select name="tipo">
+                    <option value="preferencia_cliente">Preferencia cliente</option>
+                    <option value="regla_operativa">Regla operativa</option>
+                    <option value="know_how">Know how</option>
+                    <option value="nota_operativa">Nota operativa</option>
+                    <option value="objetivo_empresa">Objetivo empresa</option>
+                </select>
+            </div>
+            <div>
+                <label>Modulo</label>
+                <input name="modulo" placeholder="Cocina, RRHH, Recepcion, Mantenimiento...">
+            </div>
+            <div>
+                <label>Clave</label>
+                <input name="clave" placeholder="Ej. clientes escandinavos verano">
+            </div>
+            <div>
+                <label>Valor</label>
+                <input name="valor" placeholder="Ej. mas pescado, parrilla y platos frescos">
+            </div>
+            <div class="learn-span">
+                <label>Detalle</label>
+                <textarea name="detalle" placeholder="Explica el criterio para que la IA lo use como conocimiento del establecimiento."></textarea>
+            </div>
+            <div class="learn-span">
+                <button class="btn btn-success" type="submit"><i class="fas fa-save"></i> Guardar memoria</button>
+            </div>
+        </form>
+    </div>
+</section>
+
+<section class="learn-panel">
+    <h2>Fuente sectorial para IA estrategica</h2>
+    <div class="learn-body">
+        <form class="learn-form" method="post" action="{{ url_for('asistente.guardar_fuente_desde_url') }}" style="margin-bottom:14px;">
+            <div class="learn-span">
+                <label>Capturar desde enlace</label>
+                <input name="url" placeholder="Pega aqui un articulo, post, informe, proveedor o noticia https://..." required>
+            </div>
+            <div class="learn-span">
+                <button class="btn btn-primary" type="submit"><i class="fas fa-link"></i> Leer enlace y guardar fuente</button>
+            </div>
+        </form>
+        <form class="learn-form" method="post" action="{{ url_for('asistente.guardar_fuente_conocimiento') }}">
+            <div class="learn-span"><hr></div>
+            <div>
+                <label>Tipo fuente</label>
+                <select name="tipo">
+                    {% for valor, texto in tipos_fuente_conocimiento %}
+                    <option value="{{ valor }}">{{ texto }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label>Ambito</label>
+                <select name="ambito">
+                    {% for valor, texto in ambitos_hosteleria %}
+                    <option value="{{ valor }}">{{ texto }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label>Area</label>
+                <select name="area">
+                    {% for valor, texto in areas_conocimiento %}
+                    <option value="{{ valor }}">{{ texto }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label>Titulo</label>
+                <input name="titulo" placeholder="Articulo, post, informe, comentario o dato interno" required>
+            </div>
+            <div>
+                <label>URL</label>
+                <input name="url" placeholder="https://...">
+            </div>
+            <div>
+                <label>Autor / origen</label>
+                <input name="autor" placeholder="Contacto, medio, proveedor, equipo...">
+            </div>
+            <div class="learn-span">
+                <label>Resumen</label>
+                <textarea name="resumen" placeholder="Que dice la fuente, sin copiar textos largos."></textarea>
+            </div>
+            <div class="learn-span">
+                <label>Lectura para el negocio</label>
+                <textarea name="lectura" placeholder="Como afecta a hoteles, restaurantes, food trucks, agencias, pubs o cualquier modelo de hosteleria."></textarea>
+            </div>
+            <div class="learn-span">
+                <label>Uso recomendado</label>
+                <textarea name="uso_recomendado" placeholder="Que podria probar la IA: oferta, carta, personal, compras, inversion, posicionamiento..."></textarea>
+            </div>
+            <div class="learn-span">
+                <label>Riesgos / contraste necesario</label>
+                <textarea name="riesgos" placeholder="Que hay que verificar antes de convertirlo en decision."></textarea>
+            </div>
+            <div class="learn-span">
+                <button class="btn btn-success" type="submit"><i class="fas fa-brain"></i> Guardar fuente sectorial</button>
+            </div>
+        </form>
+    </div>
+</section>
+
+<section class="learn-panel">
+    <h2>Fuentes externas recurrentes</h2>
+    <div class="learn-body">
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:10px;margin-bottom:14px;">
+            <form class="learn-form" method="post" action="{{ url_for('asistente.cargar_fuentes_externas_recomendadas') }}">
+                <div class="learn-span">
+                    <label>Base recomendada</label>
+                    <button class="btn btn-primary" type="submit"><i class="fas fa-wand-magic-sparkles"></i> Cargar fuentes recomendadas</button>
+                    <small>Turismo, revenue, demanda, gastronomia, compras, RRHH/PRL y tour operadores. Siempre como senales externas pendientes de contraste.</small>
+                </div>
+            </form>
+            <form class="learn-form" method="post" action="{{ url_for('asistente.leer_todas_fuentes_externas') }}">
+                <div>
+                    <label>Noticias por fuente</label>
+                    <input type="number" name="limite" value="6" min="1" max="20">
+                </div>
+                <div style="display:flex;align-items:end;">
+                    <button class="btn btn-success" type="submit"><i class="fas fa-satellite-dish"></i> Leer todas las fuentes activas</button>
+                </div>
+            </form>
+        </div>
+        <form class="learn-form" method="post" action="{{ url_for('asistente.guardar_fuente_externa') }}">
+            <div>
+                <label>Nombre</label>
+                <input name="nombre" placeholder="Hosteltur, INE turismo, revista sectorial..." required>
+            </div>
+            <div>
+                <label>URL feed o pagina</label>
+                <input name="url" placeholder="https://.../rss.xml" required>
+            </div>
+            <div>
+                <label>Tipo</label>
+                <select name="tipo">
+                    <option value="feed">Feed RSS/Atom</option>
+                    <option value="pagina">Pagina web</option>
+                </select>
+            </div>
+            <div>
+                <label>Area</label>
+                <select name="area">
+                    {% for valor, texto in areas_conocimiento %}
+                    <option value="{{ valor }}" {% if valor == 'mercado' %}selected{% endif %}>{{ texto }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="learn-span">
+                <button class="btn btn-primary" type="submit"><i class="fas fa-rss"></i> Guardar fuente externa</button>
+            </div>
+        </form>
+        <div style="overflow-x:auto; margin-top:14px;">
+            <table class="learn-table">
+                <thead>
+                    <tr>
+                        <th>Fuente</th>
+                        <th>Area</th>
+                        <th>Ultima lectura</th>
+                        <th>Resultado</th>
+                        <th>Accion</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for fx in fuentes_externas %}
+                    <tr>
+                        <td><strong>{{ fx.nombre }}</strong><br><small>{{ fx.url }}</small></td>
+                        <td>{{ fx.area }}<br><small>{{ fx.tipo }}</small></td>
+                        <td>{% if fx.ultima_lectura %}{{ fx.ultima_lectura|fecha_es }}{% else %}-{% endif %}</td>
+                        <td>{{ fx.ultimo_resultado or '-' }}</td>
+                        <td>
+                            <form method="post" action="{{ url_for('asistente.leer_fuente_externa', fuente_id=fx.id) }}">
+                                <input type="hidden" name="limite" value="8">
+                                <button class="btn btn-secondary" type="submit"><i class="fas fa-sync"></i> Leer ahora</button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="5">Todavia no hay fuentes externas recurrentes.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</section>
+
+<section class="learn-panel">
+    <h2>Fuentes sectoriales registradas</h2>
+    <div class="learn-body" style="overflow-x:auto;">
+        <form method="post" action="{{ url_for('asistente.procesar_fuentes_conocimiento') }}" style="margin-bottom:14px;">
+            <button class="btn btn-success" type="submit"><i class="fas fa-brain"></i> Procesar fuentes pendientes</button>
+            <span style="margin-left:8px;color:var(--text-muted,#5f6b7a);">Convierte articulos y enlaces en hipotesis contrastables con datos internos.</span>
+        </form>
+        <table class="learn-table">
+            <thead>
+                <tr>
+                    <th>Fecha</th>
+                    <th>Fuente</th>
+                    <th>Ambito</th>
+                    <th>Confianza</th>
+                    <th>Lectura IA</th>
+                    <th>Contraste necesario</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for f in fuentes_conocimiento %}
+                <tr>
+                    <td>{{ f.fecha_creacion|fecha_es }}</td>
+                    <td>
+                        <strong>{{ f.titulo }}</strong><br>
+                        <small>{{ f.tipo }}{% if f.autor %} - {{ f.autor }}{% endif %}</small>
+                        {% if f.url %}<br><a href="{{ f.url }}" target="_blank" rel="noopener noreferrer">{{ f.url }}</a>{% endif %}
+                    </td>
+                    <td>{{ f.ambito }}<br><small>{{ f.area }}</small></td>
+                    <td>{{ f.confianza_pct }}%<br><small>{{ f.estado }}</small></td>
+                    <td>{{ f.lectura_ia }}{% if f.uso_recomendado %}<br><small>{{ f.uso_recomendado }}</small>{% endif %}</td>
+                    <td>{% if f.lectura %}{{ f.lectura }}{% endif %}{% if f.riesgos %}<br><small>{{ f.riesgos }}</small>{% endif %}</td>
+                </tr>
+                {% else %}
+                <tr><td colspan="6">Todavia no hay fuentes sectoriales registradas.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</section>
+
+<section class="learn-panel">
+    <h2>Patrones aprendidos por feedback</h2>
+    <div class="learn-body" style="overflow-x:auto;">
+        <table class="learn-table">
+            <thead>
+                <tr>
+                    <th>Estado</th>
+                    <th>Modulo</th>
+                    <th>Senal</th>
+                    <th>Aceptadas</th>
+                    <th>Descartadas</th>
+                    <th>Lectura IA</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for p in patrones %}
+                <tr>
+                    <td><span class="learn-badge {{ p.estado }}">{{ p.estado }}</span></td>
+                    <td>{{ p.modulo }}</td>
+                    <td>{{ p.titulo }}</td>
+                    <td>{{ p.aceptadas }}</td>
+                    <td>{{ p.descartadas }}</td>
+                    <td>{{ p.lectura }}</td>
+                </tr>
+                {% else %}
+                <tr><td colspan="6">Aun no hay suficiente feedback guardado.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</section>
+
+<section class="learn-panel">
+    <h2>Lecciones de decisiones</h2>
+    <div class="learn-body" style="overflow-x:auto;">
+        <table class="learn-table">
+            <thead>
+                <tr>
+                    <th>Fecha</th>
+                    <th>Modulo</th>
+                    <th>Leccion</th>
+                    <th>Confianza</th>
+                    <th>Detalle</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for l in lecciones_decision %}
+                <tr>
+                    <td>{{ l.fecha_creacion|fecha_es }}</td>
+                    <td>{{ l.modulo }}</td>
+                    <td><span class="learn-badge {{ l.valor }}">{{ l.valor }}</span><br><strong>{{ l.clave }}</strong></td>
+                    <td>{{ "%.0f"|format((l.confianza or 0) * 100) }}%</td>
+                    <td>{{ l.detalle }}</td>
+                </tr>
+                {% else %}
+                <tr><td colspan="5">Todavia no hay lecciones de decisiones aceptadas o descartadas.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</section>
+
+<section class="learn-panel">
+    <h2>Memoria interna</h2>
+    <div class="learn-body" style="overflow-x:auto;">
+        <table class="learn-table">
+            <thead>
+                <tr>
+                    <th>Fecha</th>
+                    <th>Tipo</th>
+                    <th>Modulo</th>
+                    <th>Clave</th>
+                    <th>Valor</th>
+                    <th>Origen</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for m in memoria %}
+                <tr>
+                    <td>{{ m.fecha_creacion|fecha_es }}</td>
+                    <td>{{ m.tipo }}</td>
+                    <td>{{ m.modulo }}</td>
+                    <td>{{ m.clave }}<br><small>{{ m.detalle }}</small></td>
+                    <td>{{ m.valor }}</td>
+                    <td>{{ m.origen }}</td>
+                </tr>
+                {% else %}
+                <tr><td colspan="6">Todavia no hay memoria registrada.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</section>
+
+<section class="learn-panel">
+    <h2>Lagunas de datos</h2>
+    <div class="learn-body">
+        {% if lagunas %}
+            <ul>
+            {% for l in lagunas %}
+                <li><strong>{{ l.modulo }}</strong>: falta o no esta inicializada la tabla <code>{{ l.tabla }}</code>. {{ l.motivo }}.</li>
+            {% endfor %}
+            </ul>
+        {% else %}
+            <p>Las tablas principales para una IA operativa ya existen.</p>
+        {% endif %}
+    </div>
+</section>
+
+<section class="learn-panel">
+    <h2>Eventos recientes</h2>
+    <div class="learn-body" style="overflow-x:auto;">
+        <table class="learn-table">
+            <thead>
+                <tr>
+                    <th>Fecha</th>
+                    <th>Modulo</th>
+                    <th>Decision</th>
+                    <th>Senal</th>
+                    <th>Usuario</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for e in eventos %}
+                <tr>
+                    <td>{{ e.fecha_evento|fecha_es }}</td>
+                    <td>{{ e.modulo }}</td>
+                    <td>{{ e.decision }}</td>
+                    <td>{{ e.senal }}<br><small>{{ e.resultado }}</small></td>
+                    <td>{{ e.usuario }}</td>
+                </tr>
+                {% else %}
+                <tr><td colspan="5">Sin eventos de aprendizaje todavia.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</section>
+{% endblock %}

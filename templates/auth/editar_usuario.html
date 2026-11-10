@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="card">
+    <div class="card-header">
+        <h2><i class="fas fa-user-edit"></i> Editar usuario: {{ usuario.nombre }}</h2>
+        <a href="{{ url_for('auth.listar_usuarios') }}" class="btn btn-secondary">Volver</a>
+    </div>
+    <form method="POST">
+        <div class="form-group">
+            <label class="form-label">Nombre</label>
+            <input type="text" name="nombre" value="{{ usuario.nombre }}" required class="form-control">
+        </div>
+        <div class="form-group">
+            <label class="form-label">Email</label>
+            <input type="email" name="email" value="{{ usuario.email }}" required class="form-control">
+        </div>
+        <div class="form-group">
+            <label class="form-label">Codigo de acceso</label>
+            <input type="text" name="codigo_acceso" value="{{ usuario.codigo_acceso or '' }}" required class="form-control">
+        </div>
+        <div class="form-group">
+            <label class="form-label">Nueva contraseña (dejar en blanco para no cambiar)</label>
+            <input type="password" name="password" class="form-control" autocomplete="new-password">
+        </div>
+        <div class="form-group">
+            <label class="form-label">Rol</label>
+            <select name="rol_id" required class="form-control">
+                {% for r in roles %}
+                <option value="{{ r.id }}" {% if r.id == usuario.rol_id %}selected{% endif %}>{{ r.nombre }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="form-group">
+            <label class="form-label">Empleado vinculado</label>
+            <select name="empleado_id" class="form-control">
+                <option value="">Sin empleado</option>
+                {% for e in empleados %}
+                <option value="{{ e.id }}" {% if usuario.empleado_id == e.id %}selected{% endif %}>{{ e.nombre }} {{ e.apellidos or '' }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="form-group">
+            <label>
+                <input type="checkbox" name="activo" {% if usuario.activo %}checked{% endif %}> Activo
+            </label>
+        </div>
+        <div style="padding: 15px; margin-bottom: 20px; border: 1px solid #2c3e50; border-radius: 6px; background: #1e252b;">
+            <div class="form-label" style="margin-bottom: 12px;">Permisos directos del usuario</div>
+            <label style="display:block; margin-bottom: 8px;">
+                <input type="checkbox" name="es_global" {% if usuario.es_global %}checked{% endif %}> Acceso global a todos los departamentos
+            </label>
+            <label style="display:block; margin-bottom: 8px;">
+                <input type="checkbox" name="puede_ver_precios" {% if usuario.puede_ver_precios %}checked{% endif %}> Puede ver precios y costes
+            </label>
+            <label style="display:block; margin-bottom: 8px;">
+                <input type="checkbox" name="puede_modificar_precios" {% if usuario.puede_modificar_precios %}checked{% endif %}> Puede modificar precios
+            </label>
+            <label style="display:block; margin-bottom: 8px;">
+                <input type="checkbox" name="puede_validar_recepcion" {% if usuario.puede_validar_recepcion %}checked{% endif %}> Puede validar caja/facturacion de recepcion
+            </label>
+            <label style="display:block;">
+                <input type="checkbox" name="puede_validar_economicamente" {% if usuario.puede_validar_economicamente %}checked{% endif %}> Puede validar economicamente compras
+            </label>
+        </div>
+        <button type="submit" class="btn btn-success"><i class="fas fa-save"></i> Guardar cambios</button>
+    </form>
+</div>
+{% endblock %}

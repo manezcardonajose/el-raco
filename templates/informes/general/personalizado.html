@@ -1,0 +1,107 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="card">
+    <h2 style="color: #ff6b00;">️ GENERADOR DE INFORMES PERSONALIZADOS</h2>
+    
+    <form method="POST">
+        <div style="background: #3a3f44; padding: 20px; border-radius: 4px; margin: 20px 0;">
+            <h3 style="margin-top: 0;">1. Selecciona el tipo de informe</h3>
+            <select name="tipo" id="tipo" required style="width: 100%; padding: 8px;" onchange="cambiarTipo()">
+                <option value="">-- Seleccionar --</option>
+                <option value="compras"> Compras</option>
+                <option value="produccion"> Produccin</option>
+                <option value="stock"> Stock</option>
+            </select>
+        </div>
+        
+        <div style="background: #3a3f44; padding: 20px; border-radius: 4px; margin: 20px 0;" id="filtros-fecha">
+            <h3 style="margin-top: 0;">2. Filtros de fecha</h3>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                <div>
+                    <label>Desde:</label>
+                    <input type="date" name="fecha_desde" style="width: 100%; padding: 8px;">
+                </div>
+                <div>
+                    <label>Hasta:</label>
+                    <input type="date" name="fecha_hasta" style="width: 100%; padding: 8px;">
+                </div>
+            </div>
+        </div>
+        
+        <div style="background: #3a3f44; padding: 20px; border-radius: 4px; margin: 20px 0;" id="filtros-compras" style="display: none;">
+            <h3 style="margin-top: 0;">Filtros especficos de compras</h3>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                <div>
+                    <label>Proveedor:</label>
+                    <select name="proveedor_id" style="width: 100%; padding: 8px;">
+                        <option value="">Todos</option>
+                        {% for p in proveedores %}
+                        <option value="{{ p.id }}">{{ p.nombre }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label>Producto:</label>
+                    <select name="producto_id" style="width: 100%; padding: 8px;">
+                        <option value="">Todos</option>
+                        {% for p in productos %}
+                        <option value="{{ p.id }}">{{ p.nombre }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+        </div>
+        
+        <div style="background: #3a3f44; padding: 20px; border-radius: 4px; margin: 20px 0;" id="filtros-produccion" style="display: none;">
+            <h3 style="margin-top: 0;">Filtros especficos de produccin</h3>
+            <div>
+                <label>Receta:</label>
+                <select name="receta_id" style="width: 100%; padding: 8px;">
+                    <option value="">Todas</option>
+                    {% for r in recetas %}
+                    <option value="{{ r.id }}">{{ r.nombre }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+        
+        <div style="background: #3a3f44; padding: 20px; border-radius: 4px; margin: 20px 0;" id="filtros-stock" style="display: none;">
+            <h3 style="margin-top: 0;">Filtros especficos de stock</h3>
+            <div>
+                <label>Producto:</label>
+                <select name="producto_id" style="width: 100%; padding: 8px;">
+                    <option value="">Todos</option>
+                    {% for p in productos %}
+                    <option value="{{ p.id }}">{{ p.nombre }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+        
+        <button type="submit" class="btn btn-success"> Generar informe</button>
+        <a href="/informes" class="btn btn-red">Cancelar</a>
+    </form>
+</div>
+
+<script>
+    function cambiarTipo() {
+        var tipo = document.getElementById('tipo').value;
+        
+        document.getElementById('filtros-compras').style.display = 'none';
+        document.getElementById('filtros-produccion').style.display = 'none';
+        document.getElementById('filtros-stock').style.display = 'none';
+        
+        if (tipo === 'compras') {
+            document.getElementById('filtros-compras').style.display = 'block';
+        } else if (tipo === 'produccion') {
+            document.getElementById('filtros-produccion').style.display = 'block';
+        } else if (tipo === 'stock') {
+            document.getElementById('filtros-stock').style.display = 'block';
+        }
+    }
+</script>
+{% endblock %}
+
+
+

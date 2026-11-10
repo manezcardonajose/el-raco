@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="card">
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+        <h2> Recepciones de Mercanca</h2>
+        <a href="/compras/recepciones/nueva" class="btn btn-success"> Nueva Recepcin</a>
+        <a href="/compras/recepcion-directa" class="menu-item"> Recepción directa</a>
+    </div>
+    
+    <table>
+        <thead>
+            <tr>
+                <th>Fecha</th>
+                <th>Proveedor</th>
+                <th>Albarn</th>
+                <th>Pedido</th>
+                <th>Lneas</th>
+                <th>Recibido por</th>
+                <th>Acciones</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for r in recepciones %}
+            <tr>
+                <td>{{ r.fecha_recepcion }}</td>
+                <td>{{ r.proveedor_nombre }}</td>
+                <td>{{ r.numero_albaran or '---' }}</td>
+                <td>
+                    {% if r.pedido_id %}
+                        <a href="/compras/pedidos/{{ r.pedido_id }}">Ver pedido</a>
+                    {% else %}
+                        Sin pedido
+                    {% endif %}
+                </td>
+                <td>{{ r.num_lineas }}</td>
+                <td>{{ r.recibido_por or '---' }}</td>
+                <td>
+                    <a href="/compras/recepciones/{{ r.id }}/editar" class="btn-small btn-primary">️</a>
+                </td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="7" style="text-align: center;">No hay recepciones</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}
+
+
+

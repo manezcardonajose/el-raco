@@ -1,0 +1,358 @@
+{% extends "base.html" %}
+
+{% block title %}Chat estrategico IA{% endblock %}
+{% block breadcrumb %}<a href="{{ url_for('asistente.dashboard') }}">Asistente El Raco</a> / <a href="{{ url_for('asistente.centro_decision') }}">Centro de decision</a> / Chat estrategico{% endblock %}
+
+{% block content %}
+<style>
+    .chat-head {
+        margin-bottom: 16px;
+    }
+    .chat-head h1 {
+        margin: 0 0 6px;
+        color: #ff6b00;
+        font-size: 28px;
+    }
+    .chat-head p {
+        margin: 0;
+        max-width: 980px;
+        color: var(--text-muted, #5f6b7a);
+        line-height: 1.45;
+    }
+    .chat-layout {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr);
+        gap: 16px;
+        align-items: start;
+    }
+    .chat-panel, .chat-side, .chat-answer {
+        border: 1px solid var(--border-color, #d5dde7);
+        border-radius: 8px;
+        background: var(--card-bg, #fff);
+        box-shadow: 0 1px 2px rgba(0, 0, 0, .04);
+    }
+    .chat-panel, .chat-side, .chat-answer {
+        padding: 15px;
+    }
+    .chat-panel h2, .chat-side h2, .chat-answer h2 {
+        margin: 0 0 12px;
+        color: #ff6b00;
+        font-size: 19px;
+    }
+    .chat-form textarea {
+        width: 100%;
+        min-height: 130px;
+        border: 1px solid var(--border-color, #d5dde7);
+        border-radius: 8px;
+        padding: 11px;
+        background: var(--input-bg, #fff);
+        color: var(--text-color, #16202a);
+        resize: vertical;
+    }
+    .chat-actions {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        margin-top: 10px;
+    }
+    .chat-answer {
+        margin-top: 16px;
+    }
+    .chat-badges {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-bottom: 12px;
+    }
+    .chat-badge {
+        border: 1px solid var(--border-color, #d5dde7);
+        border-radius: 999px;
+        padding: 5px 9px;
+        font-size: 12px;
+        font-weight: 700;
+        color: var(--text-muted, #5f6b7a);
+        background: rgba(148, 163, 184, .08);
+    }
+    .chat-badge.warn {
+        border-color: #ffb86b;
+        color: #b45309;
+        background: rgba(255, 184, 107, .14);
+    }
+    .chat-text {
+        white-space: pre-line;
+        line-height: 1.5;
+        color: var(--text-color, #16202a);
+    }
+    .chat-list {
+        display: grid;
+        gap: 10px;
+    }
+    .chat-item {
+        border-top: 1px solid var(--border-color, #d5dde7);
+        padding-top: 9px;
+        color: var(--text-muted, #5f6b7a);
+        line-height: 1.35;
+    }
+    .chat-item strong {
+        color: var(--text-color, #16202a);
+    }
+    .chat-item small {
+        display: block;
+        margin-top: 3px;
+    }
+    .chat-kpis {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 8px;
+        margin-bottom: 12px;
+    }
+    .chat-kpis div {
+        border: 1px solid var(--border-color, #d5dde7);
+        border-radius: 8px;
+        padding: 9px;
+        background: rgba(148, 163, 184, .06);
+    }
+    .chat-kpis span {
+        display: block;
+        color: var(--text-muted, #5f6b7a);
+        font-size: 12px;
+    }
+    .chat-kpis strong {
+        display: block;
+        margin-top: 4px;
+    }
+    .chat-prompts {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 8px;
+        margin-top: 12px;
+    }
+    .chat-prompts a {
+        border: 1px solid var(--border-color, #d5dde7);
+        border-radius: 8px;
+        padding: 9px;
+        color: var(--text-color, #16202a);
+        background: rgba(148, 163, 184, .06);
+        text-decoration: none;
+        line-height: 1.3;
+        font-size: 13px;
+    }
+    .chat-learn {
+        margin-top: 12px;
+        border: 1px solid var(--border-color, #d5dde7);
+        border-radius: 8px;
+        padding: 10px;
+        background: rgba(148, 163, 184, .06);
+    }
+    .chat-learn label {
+        display: block;
+        color: var(--text-muted, #5f6b7a);
+        font-size: 12px;
+        margin-bottom: 5px;
+    }
+    .chat-learn select {
+        min-height: 34px;
+        border: 1px solid var(--border-color, #d5dde7);
+        border-radius: 7px;
+        padding: 6px 8px;
+        background: var(--input-bg, #fff);
+        color: var(--text-color, #16202a);
+        margin-left: 6px;
+    }
+    .chat-decision {
+        display: grid;
+        grid-template-columns: minmax(160px, .35fr) minmax(0, 1fr);
+        gap: 12px;
+        margin-bottom: 14px;
+    }
+    .chat-light {
+        border-radius: 8px;
+        padding: 14px;
+        color: #fff;
+    }
+    .chat-light.verde { background: #147a3f; }
+    .chat-light.ambar { background: #a15c00; }
+    .chat-light.rojo { background: #a83232; }
+    .chat-light span {
+        display: block;
+        font-size: 12px;
+        opacity: .9;
+    }
+    .chat-light strong {
+        display: block;
+        font-size: 28px;
+        margin-top: 4px;
+        text-transform: uppercase;
+    }
+    .chat-main-decision {
+        border: 1px solid var(--border-color, #d5dde7);
+        border-radius: 8px;
+        padding: 12px;
+        background: rgba(148, 163, 184, .06);
+    }
+    .chat-main-decision p { margin: 6px 0; }
+    .chat-support {
+        margin-top: 12px;
+    }
+    .chat-support summary {
+        cursor: pointer;
+        color: #ff6b00;
+        font-weight: 700;
+    }
+    @media (max-width: 980px) {
+        .chat-layout { grid-template-columns: 1fr; }
+        .chat-kpis { grid-template-columns: 1fr; }
+        .chat-decision { grid-template-columns: 1fr; }
+    }
+</style>
+
+<div class="chat-head">
+    <h1><i class="fas fa-comments"></i> Chat estrategico IA</h1>
+    <p>Pregunta sobre ofertas, inversiones, personal, menus, mercado, agencias, tour operadores o cualquier modelo de hosteleria. La respuesta usa memoria interna, fuentes sectoriales y escenarios guardados, marcando limites cuando falte contraste.</p>
+</div>
+
+<div class="chat-layout">
+    <main>
+        <section class="chat-panel">
+            <h2>Consulta de direccion</h2>
+            <form class="chat-form" method="post">
+                <textarea name="pregunta" placeholder="Ej. Me interesa aceptar un tour operador para verano sin hundir margen ni quemar al equipo?">{{ pregunta }}</textarea>
+                <div class="chat-actions">
+                    <button class="btn btn-primary" type="submit"><i class="fas fa-paper-plane"></i> Preguntar</button>
+                    <a class="btn btn-secondary" href="{{ url_for('asistente.centro_decision') }}"><i class="fas fa-compass"></i> Centro decision</a>
+                    <a class="btn btn-secondary" href="{{ url_for('asistente.aprendizaje') }}"><i class="fas fa-seedling"></i> Fuentes y memoria</a>
+                    <a class="btn btn-secondary" href="{{ url_for('asistente.simulador_decision') }}"><i class="fas fa-chart-line"></i> Simulador</a>
+                </div>
+                <div class="chat-learn">
+                    <label>
+                        <input type="checkbox" name="guardar_aprendizaje" value="1">
+                        Guardar lo escrito como aprendizaje para futuras respuestas
+                        <select name="tipo_aprendizaje">
+                            <option value="auto">Clasificar automatico</option>
+                            <option value="dato_confirmado">Dato confirmado</option>
+                            <option value="hipotesis">Hipotesis</option>
+                            <option value="criterio_direccion">Criterio de direccion</option>
+                            <option value="senal_externa">Senal externa</option>
+                        </select>
+                    </label>
+                    <small>Para no inventar, el chat guarda cada aprendizaje con confianza distinta. Una hipotesis pesa menos que un dato confirmado.</small>
+                </div>
+                <div class="chat-prompts">
+                    <a href="{{ url_for('asistente.chat_estrategico', pregunta='Analiza mi modelo de negocio y dime que datos faltan para decidir mejor') }}">Analiza mi modelo de negocio</a>
+                    <a href="{{ url_for('asistente.chat_estrategico', pregunta='Quiero mejorar rentabilidad sin bajar satisfaccion del cliente ni quemar al equipo') }}">Mejorar rentabilidad sin romper servicio</a>
+                    <a href="{{ url_for('asistente.chat_estrategico', pregunta='Tengo una oferta o tour operador: dime que datos debo pedir antes de aceptar') }}">Revisar oferta o tour operador</a>
+                    <a href="{{ url_for('asistente.chat_estrategico', pregunta='Que decision pequeña puedo probar esta semana y como la medimos') }}">Probar una decision pequeña</a>
+                </div>
+            </form>
+        </section>
+
+        {% if resultado %}
+        <section class="chat-answer">
+            <div class="chat-badges">
+                <span class="chat-badge warn">Foco: {{ resultado.foco }}</span>
+                {% if resultado.modelo_negocio %}<span class="chat-badge">Modelo {{ resultado.modelo_negocio.nombre }}</span>{% endif %}
+                <span class="chat-badge">Confianza {{ resultado.confianza_pct }}%</span>
+                <span class="chat-badge">Fuentes {{ resultado.fuentes_usadas|length }}</span>
+                <span class="chat-badge">Memoria {{ resultado.memoria_usada|length }}</span>
+                <span class="chat-badge">Escenarios {{ resultado.escenarios_usados|length }}</span>
+                {% if resultado.contraste %}<span class="chat-badge warn">Contraste {{ resultado.contraste.nivel }}</span>{% endif %}
+                {% if resultado.aprendizaje_guardado %}<span class="chat-badge warn">Aprendido como {{ resultado.aprendizaje_guardado.tipo }}</span>{% endif %}
+            </div>
+            {% if resultado.analisis_datos %}
+            <div class="chat-decision">
+                <div class="chat-light {{ resultado.analisis_datos.semaforo }}">
+                    <span>Semaforo de decision</span>
+                    <strong>{{ resultado.analisis_datos.semaforo }}</strong>
+                    <span>Score {{ resultado.analisis_datos.score }}/100</span>
+                </div>
+                <div class="chat-main-decision">
+                    <p><strong>Lectura:</strong> {{ resultado.analisis_datos.lectura }}</p>
+                    <p><strong>Accion:</strong> {{ resultado.analisis_datos.accion_recomendada }}</p>
+                    {% if resultado.analisis_datos.alertas %}
+                    <p><strong>Alertas:</strong> {{ resultado.analisis_datos.alertas|join('; ') }}.</p>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+            {% if resultado.contraste %}
+            <div class="chat-kpis">
+                <div><span>Fuentes externas relacionadas</span><strong>{{ resultado.contraste.fuentes|length }}</strong></div>
+                <div><span>Memoria interna relacionada</span><strong>{{ resultado.contraste.memoria|length }}</strong></div>
+                <div><span>Escenarios relacionados</span><strong>{{ resultado.contraste.escenarios|length }}</strong></div>
+            </div>
+            {% endif %}
+            <h2>Respuesta clara</h2>
+            <div class="chat-text">{{ resultado.respuesta }}</div>
+            {% set modulo = 'chat_estrategico' %}
+            {% set origen = 'asistente/chat_estrategico' %}
+            {% set referencia_id = resultado.foco %}
+            {% set contenido = resultado.respuesta %}
+            {% include "asistente/_reporte_contenido_ia.html" %}
+            {% if resultado.plan_contraste %}
+            <details class="chat-support">
+                <summary>Ver plan de contraste y datos usados</summary>
+                <p>{{ resultado.plan_contraste.prioridad }}</p>
+                <p><strong>Buscar fuera:</strong> {{ resultado.plan_contraste.busquedas_externas|join('; ') }}.</p>
+                <p><strong>Cruzar dentro:</strong> {{ resultado.plan_contraste.datos_internos|join('; ') }}.</p>
+                <p><strong>Simulacion minima:</strong> {{ resultado.plan_contraste.escenario_minimo }}</p>
+                {% if resultado.analisis_datos %}
+                <p><strong>Datos clave:</strong> {{ resultado.analisis_datos.datos_clave|join('; ') }}.</p>
+                {% endif %}
+            </details>
+            {% endif %}
+        </section>
+        {% endif %}
+
+        <section class="chat-answer">
+            <h2>Historial reciente</h2>
+            <div class="chat-list">
+                {% for h in historial %}
+                <div class="chat-item">
+                    <strong>{{ h.pregunta }}</strong>
+                    <small>{{ h.fecha_creacion|fecha_es }} - {{ h.foco }} - confianza {{ h.confianza_pct }}%</small>
+                    <div>{{ h.respuesta[:240] }}{% if h.respuesta|length > 240 %}...{% endif %}</div>
+                </div>
+                {% else %}
+                <p>Todavia no hay conversaciones estrategicas guardadas.</p>
+                {% endfor %}
+            </div>
+        </section>
+    </main>
+
+    <aside class="chat-side">
+        <details>
+            <summary><strong>Ver contexto usado</strong></summary>
+        <h2>Contexto vivo</h2>
+        <div class="chat-kpis">
+            <div><span>Margen aprox.</span><strong>{{ (metricas.margen_aprox or 0)|euros }}</strong></div>
+            <div><span>Ocupacion</span><strong>{{ metricas.ocupacion_aprox_pct or 0 }}%</strong></div>
+            <div><span>Quejas</span><strong>{{ metricas.quejas_abiertas or 0 }}</strong></div>
+        </div>
+
+        <h2>Fuentes recientes</h2>
+        <div class="chat-list">
+            {% for f in fuentes %}
+            <div class="chat-item">
+                <strong>{{ f.titulo }}</strong>
+                <small>{{ f.tipo }} - {{ f.area }} - {{ f.confianza_pct }}%</small>
+            </div>
+            {% else %}
+            <p>Sin fuentes sectoriales todavia.</p>
+            {% endfor %}
+        </div>
+
+        <h2 style="margin-top:16px;">Escenarios</h2>
+        <div class="chat-list">
+            {% for e in escenarios %}
+            <div class="chat-item">
+                <strong>{{ e.nombre }}</strong>
+                <small>{{ e.resultado.get('veredicto', '-') }} - riesgo {{ e.resultado.get('riesgo_pct', '-') }}%</small>
+            </div>
+            {% else %}
+            <p>Sin escenarios guardados.</p>
+            {% endfor %}
+        </div>
+        </details>
+    </aside>
+</div>
+{% endblock %}

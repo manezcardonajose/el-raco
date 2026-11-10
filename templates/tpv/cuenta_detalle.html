@@ -1,0 +1,125 @@
+{% extends 'base.html' %}
+{% block title %}{{ cuenta.numero }}{% endblock %}
+{% block breadcrumb %}TPV / Cuentas / {{ cuenta.numero }}{% endblock %}
+{% block content %}
+<style>
+  .tpv-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
+  .tpv-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;align-items:end;}
+  .tpv-note{color:#94a3b8;font-size:12px;line-height:1.35;}
+  .tpv-boxes{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-top:10px;}
+  .tpv-box{border:1px solid #334155;border-radius:8px;background:#0f172a;padding:12px;}
+  .tpv-box span{display:block;color:#94a3b8;font-size:12px;}
+  .tpv-box strong{font-size:22px;}
+</style>
+
+<div class="card">
+  <div class="card-header">
+    <h2><i class="fas fa-receipt"></i> {{ cuenta.numero }}</h2>
+    <div class="tpv-actions">
+      {% if terminal %}
+      {% if cuenta.estado == 'abierta' %}
+      <a class="btn btn-primary" href="{{ url_for('tpv.terminal', terminal_id=terminal.id, cuenta_id=cuenta.id) }}"><i class="fas fa-arrow-left"></i> Volver terminal</a>
+      {% else %}
+      <a class="btn btn-primary" href="{{ url_for('tpv.terminal', terminal_id=terminal.id) }}"><i class="fas fa-arrow-left"></i> Volver terminal</a>
+      {% endif %}
+      {% endif %}
+      <a class="btn btn-secondary" href="{{ url_for('tpv.cuentas', terminal_id=terminal_id, punto_venta_id=cuenta.punto_venta_id) }}">Cuentas</a>
+      {% if terminal and cuenta.estado == 'abierta' %}
+      <a class="btn btn-secondary" href="{{ url_for('tpv.terminal', terminal_id=terminal.id, cuenta_id=cuenta.id) }}">Anadir consumo</a>
+      {% endif %}
+    </div>
+  </div>
+  <div class="tpv-boxes">
+    <div class="tpv-box"><span>Punto</span><strong>{{ cuenta.punto_nombre or '-' }}</strong></div>
+    <div class="tpv-box"><span>Mesa / ref.</span><strong>{{ cuenta.mesa_nombre or cuenta.habitacion or cuenta.modo_servicio or '-' }}</strong></div>
+    <div class="tpv-box"><span>Cliente</span><strong>{{ cuenta.cliente or '-' }}</strong></div>
+    <div class="tpv-box"><span>Estado</span><strong>{{ estados.get(cuenta.estado, cuenta.estado) }}</strong></div>
+    <div class="tpv-box"><span>Total</span><strong>{{ '%.2f'|format(cuenta.total or 0) }} EUR</strong></div>
+  </div>
+</div>
+
+{% if cuenta.estado == 'abierta' %}
+<div class="card">
+  <div class="card-header"><h2><i class="fas fa-cash-register"></i> Cobro / cierre</h2></div>
+  <form method="post" action="{{ url_for('tpv.cuentas') }}" class="tpv-grid">
+    <input type="hidden" name="terminal_id" value="{{ terminal_id }}">
+    <input type="hidden" name="cuenta_id" value="{{ cuenta.id }}">
+    <div class="form-group"><label class="form-label">Forma de pago</label><select class="form-control" name="forma_pago">
+      {% for key,label in formas_pago.items() %}<option value="{{ key }}">{{ label }}</option>{% endfor %}
+    </select></div>
+    <div class="form-group"><label class="form-label">Motivo / nota</label><input class="form-control" name="motivo" placeholder="Cobro caja, cargo habitacion..."></div>
+    <button class="btn btn-success" name="accion" value="cobrar" type="submit"><i class="fas fa-check"></i> Cobrar</button>
+    <button class="btn btn-secondary" name="accion" value="cerrar" type="submit"><i class="fas fa-lock"></i> Cerrar sin cobro</button>
+    <button class="btn btn-danger" name="accion" value="cancelar" type="submit" onclick="return confirm('Cancelar cuenta?')"><i class="fas fa-ban"></i> Cancelar</button>
+  </form>
+</div>
+{% endif %}
+
+<div class="card">
+  <div class="card-header"><h2><i class="fas fa-list"></i> Lineas consumidas</h2></div>
+  <div class="table-container">
+    <table>
+      <thead><tr><th>Comanda</th><th>Articulo</th><th>Cantidad</th><th>Precio</th><th>Total</th><th>Destino</th><th>Estado</th><th>Notas</th></tr></thead>
+      <tbody>
+        {% for l in lineas %}
+        <tr>
+          <td>{{ l.comanda_numero }}</td>
+          <td><strong>{{ l.nombre }}</strong></td>
+          <td>{{ l.cantidad }}</td>
+          <td>{{ '%.2f'|format(l.precio or 0) }} EUR</td>
+          <td>{{ '%.2f'|format(l.total or 0) }} EUR</td>
+          <td>{{ l.destino_preparacion }}</td>
+          <td>{{ l.estado }}</td>
+          <td>{{ l.comentario or l.avisos or '-' }}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="8">Sin lineas.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header"><h2><i class="fas fa-paper-plane"></i> Comandas</h2></div>
+  <div class="table-container">
+    <table>
+      <thead><tr><th>Numero</th><th>Estado</th><th>Total</th><th>Usuario</th><th>Fecha</th></tr></thead>
+      <tbody>
+        {% for c in comandas %}
+        <tr>
+          <td>{{ c.numero }}</td>
+          <td>{{ c.estado }}</td>
+          <td>{{ '%.2f'|format(c.total or 0) }} EUR</td>
+          <td>{{ c.usuario or '-' }}</td>
+          <td>{{ c.fecha_creacion }}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="5">Sin comandas.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header"><h2><i class="fas fa-clipboard-check"></i> Auditoria</h2></div>
+  <div class="table-container">
+    <table>
+      <thead><tr><th>Fecha</th><th>Usuario</th><th>Accion</th><th>Motivo</th></tr></thead>
+      <tbody>
+        {% for a in auditoria %}
+        <tr>
+          <td>{{ a.fecha }}</td>
+          <td>{{ a.usuario or a.usuario_id or '-' }}</td>
+          <td>{{ a.accion }}</td>
+          <td>{{ a.motivo or '-' }}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="4">Sin auditoria.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

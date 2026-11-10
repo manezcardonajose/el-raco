@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;">
+        <div>
+            <h2>PUNTOS DE VENTA</h2>
+            <p>Locales donde se sirven menús, carta, buffet o servicios internos</p>
+        </div>
+        <a href="{{ url_for('puntos_venta.nuevo_punto_venta') }}" class="btn btn-success">Nuevo punto</a>
+    </div>
+
+    <table style="width:100%;margin-top:20px;">
+        <thead>
+            <tr>
+                <th>Nombre</th>
+                <th>Tipo</th>
+                <th>Departamento principal</th>
+                <th>Relaciones</th>
+                <th>Subdepartamento</th>
+                <th>Almacén</th>
+                <th>Comanda</th>
+                <th>Menu</th>
+                <th>Estado</th>
+                <th>Acciones</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in puntos %}
+            {% set p = item.punto %}
+            <tr>
+                <td><strong>{{ p.nombre }}</strong></td>
+                <td>{{ p.tipo }}</td>
+                <td>{{ p.departamento_nombre or '---' }}</td>
+                <td>
+                    {% if item.relaciones %}
+                        {% for r in item.relaciones %}
+                            <div>{{ r.nombre }}{% if r.rol_operativo %} ({{ r.rol_operativo }}){% endif %}</div>
+                        {% endfor %}
+                    {% else %}
+                        ---
+                    {% endif %}
+                </td>
+                <td>{{ p.subdepartamento_nombre or '---' }}</td>
+                <td>{{ p.almacen_nombre or '---' }}</td>
+                <td>{% if p.imprimir_comanda %}Sí{% else %}No{% endif %}</td>
+                <td>{{ p.num_recetas }}</td>
+                <td>{% if p.activo %}Activo{% else %}Inactivo{% endif %}</td>
+                <td>
+                    <a href="{{ url_for('puntos_venta.editar_punto_venta', id=p.id) }}" class="btn-small btn-primary">Editar</a>
+                    <a href="{{ url_for('puntos_venta.ver_recetas_punto', id=p.id) }}" class="btn-small btn-info">Menu</a>
+                    <a href="{{ url_for('tpv.catalogo', punto_venta_id=p.id) }}" class="btn-small btn-info">TPV</a>
+                    <a href="{{ url_for('tpv.punto_config', punto_venta_id=p.id) }}" class="btn-small btn-info">Config TPV</a>
+                    <a href="{{ url_for('tpv.mesas', punto_venta_id=p.id) }}" class="btn-small btn-info">Mesas</a>
+                    <a href="{{ url_for('tpv.buffet', punto_venta_id=p.id) }}" class="btn-small btn-info">Buffet</a>
+                    <form method="POST" action="{{ url_for('puntos_venta.eliminar_punto_venta', id=p.id) }}" style="display:inline;">
+                        <button type="submit" class="btn-small btn-danger" onclick="return confirm('¿Eliminar punto?')">Eliminar</button>
+                    </form>
+                </td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="10">No hay puntos de venta</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<style>
+    .btn-small {
+        padding: 4px 8px;
+        border-radius: 4px;
+        text-decoration: none;
+        font-size: 11px;
+        border: none;
+        cursor: pointer;
+        display: inline-block;
+    }
+    .btn-info { background: #17a2b8; color: white; }
+    .btn-primary { background: #007bff; color: white; }
+    .btn-danger { background: #dc3545; color: white; }
+</style>
+{% endblock %}

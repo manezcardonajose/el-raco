@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Cacahuetes">
+  <circle cx="32" cy="32" r="30" fill="#f28b2e"/>
+  <g fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M25 14c8 0 10 7 8 13 7-1 13 3 13 11 0 9-7 14-15 14-7 0-12-4-12-11 0-4 2-7 5-9-5-2-8-6-8-10 0-5 4-8 9-8z"/>
+    <path d="M28 25l8 15M24 37l15-8"/>
+  </g>
+</svg>

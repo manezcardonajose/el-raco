@@ -1,0 +1,332 @@
+{% extends "base.html" %}
+
+{% block content %}
+<style>
+    .biblioteca-page {
+        max-width: 1500px;
+        margin: 0 auto;
+    }
+    .biblioteca-grid {
+        display: grid;
+        grid-template-columns: 340px 1fr;
+        gap: 14px;
+        align-items: start;
+    }
+    .biblioteca-card {
+        border: 1px solid #2c3e50;
+        background: #1e252b;
+        border-radius: 8px;
+        padding: 14px;
+    }
+    .biblioteca-card h3 {
+        margin: 0 0 10px;
+        color: #ff6b00;
+        font-size: 18px;
+    }
+    .biblioteca-path {
+        padding: 10px;
+        border: 1px dashed #40546b;
+        border-radius: 6px;
+        color: #d1d5db;
+        word-break: break-all;
+        margin: 10px 0;
+        background: #111827;
+    }
+    .biblioteca-list {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        max-height: 420px;
+        overflow: auto;
+    }
+    .biblioteca-file {
+        display: flex;
+        justify-content: space-between;
+        gap: 8px;
+        padding: 8px;
+        border: 1px solid #34495e;
+        border-radius: 6px;
+        color: #e5e7eb;
+        font-size: 13px;
+    }
+    .propuesta {
+        border: 1px solid #34495e;
+        background: #111827;
+        border-radius: 8px;
+        padding: 12px;
+        margin-bottom: 12px;
+    }
+    .propuesta-top {
+        display: grid;
+        grid-template-columns: auto minmax(220px, 1fr) minmax(140px, 220px) minmax(140px, 220px) auto;
+        gap: 8px;
+        align-items: center;
+        margin-bottom: 8px;
+    }
+    .propuesta textarea {
+        width: 100%;
+        min-height: 90px;
+        resize: vertical;
+    }
+    .propuesta-details {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+    }
+    .mini-muted {
+        color: #9ca3af;
+        font-size: 12px;
+    }
+    .empty-box {
+        border: 1px dashed #40546b;
+        border-radius: 8px;
+        padding: 28px;
+        text-align: center;
+        color: #9ca3af;
+        background: #111827;
+    }
+    .memoria-kpis {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 10px;
+        margin-bottom: 14px;
+    }
+    .memoria-kpi {
+        border: 1px solid #34495e;
+        border-radius: 8px;
+        padding: 12px;
+        background: #111827;
+    }
+    .memoria-kpi span {
+        color: #9ca3af;
+        display: block;
+        font-size: 12px;
+    }
+    .memoria-kpi strong {
+        color: #fff;
+        font-size: 24px;
+    }
+    .memoria-form {
+        display: grid;
+        grid-template-columns: minmax(300px, 2fr) minmax(220px, 1fr) minmax(200px, 1fr) minmax(240px, 1fr) 150px;
+        gap: 12px;
+        align-items: end;
+        margin-bottom: 14px;
+    }
+    .memoria-form label,
+    .propuesta label {
+        display: block;
+        margin-bottom: 5px;
+    }
+    .memoria-form input,
+    .propuesta-top input {
+        width: 100%;
+        min-height: 42px;
+        box-sizing: border-box;
+        font-size: 15px;
+        padding: 8px 10px;
+    }
+    .memoria-form .btn {
+        min-height: 42px;
+    }
+    .propuesta textarea {
+        min-height: 150px;
+        font-size: 14px;
+        line-height: 1.35;
+        padding: 10px;
+        box-sizing: border-box;
+    }
+    @media (max-width: 1000px) {
+        .biblioteca-grid,
+        .propuesta-details,
+        .propuesta-top,
+        .memoria-form,
+        .memoria-kpis {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+
+<div class="biblioteca-page">
+    <div class="card">
+        <div class="card-header">
+            <h2><i class="fas fa-brain"></i> Inteligencia culinaria privada</h2>
+            <a href="{{ url_for('recetas.recetas') }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Volver
+            </a>
+        </div>
+
+        <div class="biblioteca-grid">
+            <aside class="biblioteca-card">
+                <h3>Fuentes privadas</h3>
+                <div class="mini-muted">Estos archivos alimentan la memoria interna de cocina. No son un catalogo publico de recetas.</div>
+                <div class="biblioteca-path">{{ carpeta }}</div>
+
+                {% if puede_editar %}
+                <form method="post">
+                    <input type="hidden" name="accion" value="escanear">
+                    <button type="submit" class="btn btn-success" style="width:100%;">
+                        <i class="fas fa-wand-magic-sparkles"></i> Escanear carpeta
+                    </button>
+                </form>
+                {% endif %}
+
+                <h3 style="margin-top:18px;">Resumen</h3>
+                <div class="biblioteca-file"><span>Archivos privados</span><small>{{ estadisticas_memoria.archivos }}</small></div>
+                <div class="biblioteca-file"><span>Ideas indexadas</span><small>{{ estadisticas_memoria.propuestas }}</small></div>
+                <div class="biblioteca-file"><span>Referencias utiles</span><small>{{ estadisticas_memoria.referencias }}</small></div>
+                <div class="biblioteca-file"><span>Avisos</span><small>{{ estadisticas_memoria.avisos }}</small></div>
+
+                <h3 style="margin-top:18px;">Archivos</h3>
+                {% if archivos %}
+                <div class="biblioteca-list">
+                    {% for archivo in archivos[:120] %}
+                    <div class="biblioteca-file">
+                        <span>{{ archivo.nombre }}</span>
+                        <small>{{ (archivo.tamano / 1024)|round(1) }} KB</small>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% if archivos|length > 120 %}
+                <p class="mini-muted" style="margin-top:8px;">Mostrando 120 de {{ archivos|length }} archivos.</p>
+                {% endif %}
+                {% else %}
+                <div class="empty-box">Todavia no hay archivos en la carpeta.</div>
+                {% endif %}
+
+                {% if datos.actualizado %}
+                <p class="mini-muted" style="margin-top:12px;">Ultimo escaneo: {{ datos.actualizado }}</p>
+                {% endif %}
+
+                <h3 style="margin-top:18px;">Red</h3>
+                <a href="{{ url_for('recetas.asesor_culinario') }}" class="btn btn-info" style="width:100%;">
+                    <i class="fas fa-user-chef"></i> Asesor culinario
+                </a>
+                <a href="{{ url_for('recetas.generador_culinario') }}" class="btn btn-success" style="width:100%;">
+                    <i class="fas fa-wand-magic-sparkles"></i> Generador culinario
+                </a>
+                <a href="{{ url_for('asistente.cocina_investigar') }}" class="btn btn-primary" style="width:100%;">
+                    <i class="fas fa-search"></i> Investigar recetas fuera
+                </a>
+                <a href="{{ url_for('recetas.analizador_libros') }}" class="btn btn-warning" style="width:100%; margin-top:8px;">
+                    <i class="fas fa-book-reader"></i> Analizar libros grandes
+                </a>
+            </aside>
+
+            <section class="biblioteca-card">
+                <h3>Consulta a la memoria</h3>
+                <div class="memoria-kpis">
+                    <div class="memoria-kpi">
+                        <span>Fuentes</span>
+                        <strong>{{ estadisticas_memoria.archivos }}</strong>
+                    </div>
+                    <div class="memoria-kpi">
+                        <span>Ideas disponibles</span>
+                        <strong>{{ estadisticas_memoria.propuestas }}</strong>
+                    </div>
+                    <div class="memoria-kpi">
+                        <span>Referencias APPCC / tecnica</span>
+                        <strong>{{ estadisticas_memoria.referencias }}</strong>
+                    </div>
+                    <div class="memoria-kpi">
+                        <span>Ultimo escaneo</span>
+                        <strong style="font-size:16px;">{{ datos.actualizado or '-' }}</strong>
+                    </div>
+                </div>
+
+                <form class="memoria-form" method="get">
+                    <div>
+                        <label>Que necesitas</label>
+                        <input type="text" name="consulta" value="{{ consulta }}" placeholder="monasterio, buffet asiatico, balneario, pescado...">
+                    </div>
+                    <div>
+                        <label>Contexto</label>
+                        <input type="text" name="contexto" value="{{ contexto }}" placeholder="hotel termal, antiguo convento...">
+                    </div>
+                    <div>
+                        <label>Servicio</label>
+                        <input type="text" name="servicio" value="{{ servicio }}" placeholder="buffet, carta, banquete...">
+                    </div>
+                    <div>
+                        <label>Criterio</label>
+                        <input type="text" name="criterio" value="{{ criterio }}" placeholder="economico, elegante, saludable...">
+                    </div>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-search"></i> Proponer
+                    </button>
+                </form>
+
+                {% if datos.errores %}
+                <div class="alert alert-warning">
+                    {% for error in datos.errores[:6] %}
+                    <div>{{ error.archivo }}: {{ error.error }}</div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+
+                {% if datos.referencias %}
+                <details style="margin-bottom:14px;">
+                    <summary>Ver referencias separadas de recetas ({{ datos.referencias|length }})</summary>
+                    <div class="biblioteca-list" style="max-height:220px; margin-top:10px;">
+                        {% for ref in datos.referencias[:40] %}
+                        <div class="biblioteca-file">
+                            <span>
+                                <strong>{{ ref.fuente }}</strong>
+                                <span class="mini-muted">{{ ref.tipo }}</span>
+                            </span>
+                            <small>{{ ref.motivo }}</small>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </details>
+                {% endif %}
+
+                {% if propuestas_filtradas %}
+                <form method="post">
+                    <input type="hidden" name="accion" value="importar">
+                    {% for propuesta in propuestas_filtradas %}
+                    <article class="propuesta">
+                        <div class="propuesta-top">
+                            <label>
+                                <input type="checkbox" name="propuesta_id" value="{{ propuesta.id }}">
+                            </label>
+                            <input type="text" name="nombre_{{ propuesta.id }}" value="{{ propuesta.nombre }}" placeholder="Nombre receta">
+                            <input type="text" name="categoria_{{ propuesta.id }}" value="{{ propuesta.categoria }}" placeholder="Categoria">
+                            <input type="text" name="alergenos_{{ propuesta.id }}" value="{{ propuesta.alergenos }}" placeholder="Alergenos">
+                            <span class="badge bg-info">{{ propuesta.score_memoria }}</span>
+                        </div>
+                        <div class="mini-muted" style="margin-bottom:8px;">Fuente: {{ propuesta.fuente }}</div>
+                        <div class="propuesta-details">
+                            <div>
+                                <label>Ingredientes</label>
+                                <textarea name="ingredientes_{{ propuesta.id }}">{% for ingrediente in propuesta.ingredientes %}{{ ingrediente }}
+{% endfor %}</textarea>
+                            </div>
+                            <div>
+                                <label>Elaboracion</label>
+                                <textarea name="elaboracion_{{ propuesta.id }}">{{ propuesta.elaboracion }}</textarea>
+                            </div>
+                        </div>
+                    </article>
+                    {% endfor %}
+
+                    {% if puede_editar %}
+                    <button type="submit" class="btn btn-success">
+                        <i class="fas fa-copy"></i> Copiar seleccionadas a recetas
+                    </button>
+                    {% else %}
+                    <div class="alert alert-warning">Puedes revisar la biblioteca, pero tu usuario no puede crear recetas.</div>
+                    {% endif %}
+                </form>
+                {% elif consulta or contexto or servicio or criterio %}
+                <div class="empty-box">No he encontrado propuestas con ese contexto. Prueba con terminos mas amplios: cocina monacal, pescado, buffet, verduras, arroz, salsas...</div>
+                {% elif datos.propuestas %}
+                <div class="empty-box">La memoria esta cargada, pero no muestra recetas hasta que pidas un contexto o una idea concreta.</div>
+                {% else %}
+                <div class="empty-box">Escanea la carpeta para alimentar la memoria culinaria privada.</div>
+                {% endif %}
+            </section>
+        </div>
+    </div>
+</div>
+{% endblock %}

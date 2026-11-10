@@ -1,0 +1,411 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="card">
+    <div class="card-header" style="display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap;">
+        <div>
+            <h2 style="margin:0;">Gestion de produccion</h2>
+            <div class="text-muted">
+                {{ parte.fecha }} · {{ parte.tipo_nombre or parte.turno }} ·
+                {{ parte.subdepartamento_nombre or 'Sin subdepartamento' }}
+            </div>
+        </div>
+        {% if parte.subdepartamento_id %}
+        <a href="{{ url_for('produccion.produccion_subdepartamento', subdepto_id=parte.subdepartamento_id, fecha=parte.fecha) }}" class="btn btn-secondary">
+            Volver
+        </a>
+        {% else %}
+        <a href="{{ url_for('produccion.produccion_index') }}" class="btn btn-secondary">Volver</a>
+        {% endif %}
+    </div>
+
+    <form method="POST" style="display:flex;flex-direction:column;gap:16px;">
+        {% for item in lineas %}
+        <div style="border:1px solid #334155;border-radius:8px;overflow:hidden;background:#16202a;">
+            <div style="display:grid;grid-template-columns:minmax(260px,1fr) 120px 100px 160px 180px;gap:10px;align-items:center;padding:12px;background:#101820;">
+                <div>
+                    <strong>{{ item.linea.receta_nombre }}</strong>
+                    {% if item.linea.estacion_buffet %}
+                    <div class="text-muted">{{ item.linea.estacion_buffet }}</div>
+                    {% endif %}
+                </div>
+                <div>
+                    <small>Raciones</small><br>
+                    <strong>{{ item.linea.raciones_planificadas or '-' }}</strong>
+                </div>
+                <div>
+                    <small>FM</small><br>
+                    <strong>{{ item.linea.cantidad_planificada }}</strong>
+                </div>
+                <div>
+                    <small>Real receta</small>
+                    <input class="form-control" type="number" step="0.01"
+                           name="cantidad_real_{{ item.linea.id }}"
+                           value="{{ item.linea.cantidad_real if item.linea.cantidad_real is not none else item.linea.cantidad_planificada }}">
+                </div>
+                <div>
+                    <small>Estado</small>
+                    <select class="form-control" name="estado_{{ item.linea.id }}">
+                        <option value="pendiente" {% if item.linea.estado == 'pendiente' %}selected{% endif %}>Pendiente</option>
+                        <option value="en_proceso" {% if item.linea.estado == 'en_proceso' %}selected{% endif %}>En proceso</option>
+                        <option value="completado" {% if item.linea.estado == 'completado' %}selected{% endif %}>Completado</option>
+                    </select>
+                </div>
+                <input type="hidden" name="linea_id[]" value="{{ item.linea.id }}">
+            </div>
+
+            <div style="padding:12px;">
+                <label>Observaciones de la receta</label>
+                <input class="form-control" name="observaciones_{{ item.linea.id }}" value="{{ item.linea.observaciones or '' }}">
+
+                {% if item.avisos_higiene %}
+                <div class="hygiene-alert">
+                    <div class="hygiene-title">
+                        <strong>Contaminacion cruzada / higiene antes de manipular</strong>
+                        {% if item.alergenos_operativos %}<span>{{ item.alergenos_operativos }}</span>{% endif %}
+                    </div>
+                    {% if item.contaminacion_cruzada %}
+                    <div class="hygiene-risk">Riesgo entre elaboraciones del mismo parte: limpiar y separar antes de continuar.</div>
+                    {% endif %}
+                    <ul>
+                        {% for aviso in item.avisos_higiene %}
+                        <li>{{ aviso }}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+                {% endif %}
+
+                {% set c = item.control %}
+                <div class="appcc-linea">
+                    <div class="appcc-head">
+                        <strong>Cierre APPCC de elaboración</strong>
+                        {% if item.lote_elaborado and item.lote_elaborado.estado == 'disponible' %}
+                        <span>Lote {{ item.lote_elaborado.codigo_lote }} disponible</span>
+                        {% endif %}
+                    </div>
+
+                    <div class="appcc-grid">
+                        <div>
+                            <label>Inicio elaboración</label>
+                            <input class="form-control" type="datetime-local"
+                                   name="hora_inicio_elaboracion_{{ item.linea.id }}"
+                                   value="{{ datetime_local(c.hora_inicio_elaboracion if c else '') }}">
+                        </div>
+                        <div>
+                            <label>Fin elaboración</label>
+                            <input class="form-control" type="datetime-local"
+                                   name="hora_fin_elaboracion_{{ item.linea.id }}"
+                                   value="{{ datetime_local(c.hora_fin_elaboracion if c else '') }}">
+                        </div>
+                        <div>
+                            <label>Temp. fin elaboración</label>
+                            <input class="form-control" type="number" step="0.1"
+                                   name="temperatura_fin_elaboracion_{{ item.linea.id }}"
+                                   value="{{ c.temperatura_fin_elaboracion if c and c.temperatura_fin_elaboracion is not none else '' }}"
+                                   placeholder="ºC">
+                        </div>
+                        <div>
+                            <label>Conservación</label>
+                            {% set metodo = c.metodo_conservacion if c else 'servicio_directo' %}
+                            <select class="form-control" name="metodo_conservacion_{{ item.linea.id }}">
+                                <option value="servicio_directo" {% if metodo == 'servicio_directo' %}selected{% endif %}>Servicio directo</option>
+                                <option value="caliente" {% if metodo == 'caliente' %}selected{% endif %}>Armario caliente</option>
+                                <option value="abatido" {% if metodo == 'abatido' %}selected{% endif %}>Abatido</option>
+                                <option value="frio" {% if metodo == 'frio' %}selected{% endif %}>Frío positivo</option>
+                                <option value="congelado" {% if metodo == 'congelado' %}selected{% endif %}>Congelado</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label>Temp. inicio conservación</label>
+                            <input class="form-control" type="number" step="0.1"
+                                   name="temperatura_inicio_conservacion_{{ item.linea.id }}"
+                                   value="{{ c.temperatura_inicio_conservacion if c and c.temperatura_inicio_conservacion is not none else '' }}"
+                                   placeholder="ºC">
+                        </div>
+                        <div>
+                            <label>Temp. fin conservación</label>
+                            <input class="form-control" type="number" step="0.1"
+                                   name="temperatura_fin_conservacion_{{ item.linea.id }}"
+                                   value="{{ c.temperatura_fin_conservacion if c and c.temperatura_fin_conservacion is not none else '' }}"
+                                   placeholder="ºC">
+                        </div>
+                        <div>
+                            <label>Ubicación</label>
+                            <input class="form-control" name="ubicacion_conservacion_{{ item.linea.id }}"
+                                   value="{{ c.ubicacion_conservacion if c else '' }}"
+                                   placeholder="Cámara, armario, estante...">
+                        </div>
+                        <div>
+                            <label>Envase / recipiente</label>
+                            {% set envase = c.tipo_envase if c else 'recipiente_tapado' %}
+                            <select class="form-control" name="tipo_envase_{{ item.linea.id }}">
+                                <option value="recipiente_tapado" {% if envase == 'recipiente_tapado' %}selected{% endif %}>Recipiente tapado</option>
+                                <option value="cubeta_gn_tapada" {% if envase == 'cubeta_gn_tapada' %}selected{% endif %}>Cubeta GN tapada</option>
+                                <option value="filmado" {% if envase == 'filmado' %}selected{% endif %}>Filmado</option>
+                                <option value="envasado_vacio" {% if envase == 'envasado_vacio' %}selected{% endif %}>Envasado al vacío</option>
+                                <option value="bolsa_vacio" {% if envase == 'bolsa_vacio' %}selected{% endif %}>Bolsa vacío</option>
+                                <option value="contenedor_congelacion" {% if envase == 'contenedor_congelacion' %}selected{% endif %}>Contenedor congelación</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label>Fecha envasado</label>
+                            <input class="form-control" type="datetime-local"
+                                   name="fecha_envasado_{{ item.linea.id }}"
+                                   value="{{ datetime_local(c.fecha_envasado if c else '') }}">
+                        </div>
+                        <div>
+                            <label>Vida útil días</label>
+                            <input class="form-control" type="number" step="1" min="0"
+                                   name="dias_vida_util_{{ item.linea.id }}"
+                                   value="{{ c.dias_vida_util if c and c.dias_vida_util is not none else '' }}"
+                                   placeholder="auto">
+                        </div>
+                        <div>
+                            <label>Fecha límite de uso</label>
+                            <input class="form-control" type="datetime-local"
+                                   name="fecha_limite_uso_{{ item.linea.id }}"
+                                   value="{{ datetime_local(c.fecha_limite_uso if c else '') }}">
+                            <small>Si se deja vacía, se calcula según conservación/envase.</small>
+                        </div>
+                        <div>
+                            <label>Regeneración</label>
+                            <label class="checkline">
+                                <input type="checkbox" name="requiere_regeneracion_{{ item.linea.id }}" value="1"
+                                       {% if c and c.requiere_regeneracion %}checked{% endif %}>
+                                Requiere control
+                            </label>
+                        </div>
+                        <div>
+                            <label>Temp. regeneración</label>
+                            <input class="form-control" type="number" step="0.1"
+                                   name="temperatura_regeneracion_{{ item.linea.id }}"
+                                   value="{{ c.temperatura_regeneracion if c and c.temperatura_regeneracion is not none else '' }}"
+                                   placeholder="ºC">
+                        </div>
+                        <div>
+                            <label>Tiempo regen. min</label>
+                            <input class="form-control" type="number" step="1"
+                                   name="tiempo_regeneracion_min_{{ item.linea.id }}"
+                                   value="{{ c.tiempo_regeneracion_min if c and c.tiempo_regeneracion_min is not none else '' }}">
+                        </div>
+                        <div>
+                            <label>Temp. servicio</label>
+                            <input class="form-control" type="number" step="0.1"
+                                   name="temperatura_servicio_{{ item.linea.id }}"
+                                   value="{{ c.temperatura_servicio if c and c.temperatura_servicio is not none else '' }}"
+                                   placeholder="ºC">
+                        </div>
+                        <div style="grid-column:1/-1;">
+                            <label>Justificación / observaciones APPCC</label>
+                            <input class="form-control" name="control_observaciones_{{ item.linea.id }}"
+                                   value="{{ c.observaciones if c else '' }}"
+                                   placeholder="Ej: equipo usado, incidencia de temperatura, ajuste de elaboración...">
+                        </div>
+                    </div>
+                </div>
+
+                <div style="overflow-x:auto;margin-top:12px;">
+                    <table class="table prod-ingredientes">
+                        <thead>
+                            <tr>
+                                <th>Producto de la receta</th>
+                                <th>Base receta</th>
+                                <th>Previsto</th>
+                                <th>APPCC / Lote</th>
+                                <th>Real usado</th>
+                                <th>Omitir</th>
+                                <th>Observaciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for ing in item.ingredientes %}
+                            <tr>
+                                <td>
+                                    <strong>{{ ing.nombre }}</strong>
+                                    {% if ing.familia %}<div class="text-muted">{{ ing.familia }}</div>{% endif %}
+                                </td>
+                                <td>{{ '%.3f'|format(ing.cantidad or 0) }} {{ ing.unidad or '' }}</td>
+                                <td>{{ '%.3f'|format(ing.cantidad_prevista or 0) }} {{ ing.unidad or '' }}</td>
+                                <td>
+                                    {% if ing.requiere_descongelado %}
+                                        {% if ing.stock_apto_descongelado >= ing.cantidad_real_sugerida %}
+                                        <span class="prod-badge ok">Apto</span>
+                                        {% elif ing.stock_apto_descongelado > 0 %}
+                                        <span class="prod-badge warn">Apto parcial</span>
+                                        {% else %}
+                                        <span class="prod-badge danger">Falta apto</span>
+                                        {% endif %}
+                                        <div class="prod-stock-line">Apto: {{ '%.3f'|format(ing.stock_apto_descongelado or 0) }} {{ ing.unidad or '' }}</div>
+                                        {% if ing.stock_en_descongelacion %}
+                                        <div class="prod-stock-line">En curso: {{ '%.3f'|format(ing.stock_en_descongelacion or 0) }} {{ ing.unidad or '' }}</div>
+                                        {% endif %}
+                                        {% if ing.stock_pendiente_congelador %}
+                                        <div class="prod-stock-line">Congelador: {{ '%.3f'|format(ing.stock_pendiente_congelador or 0) }} {{ ing.unidad or '' }}</div>
+                                        {% endif %}
+                                        <a class="prod-lote-link" href="{{ url_for('lotes.panel_carnes_pescados', q=ing.nombre) }}">
+                                            Congelados
+                                        </a>
+                                    {% else %}
+                                        <span class="prod-badge neutral">No aplica</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <input type="hidden" name="ingrediente_key[]" value="{{ item.linea.id }}:{{ ing.id }}">
+                                    <input class="form-control" type="number" step="0.001"
+                                           name="ingrediente_real_{{ item.linea.id }}_{{ ing.id }}"
+                                           value="{{ '%.3f'|format(ing.cantidad_real_sugerida or 0) }}">
+                                </td>
+                                <td style="text-align:center;">
+                                    <input type="checkbox" name="ingrediente_omitido[]" value="{{ ing.id }}" {% if ing.omitido %}checked{% endif %}>
+                                </td>
+                                <td>
+                                    <input class="form-control"
+                                           name="ingrediente_obs_{{ item.linea.id }}_{{ ing.id }}"
+                                           value="{{ ing.observaciones_registro or '' }}">
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="7" class="text-muted">Esta receta no tiene ingredientes cargados.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+
+        <div style="display:flex;gap:10px;justify-content:flex-end;position:sticky;bottom:0;background:#111827;padding:12px;border-top:1px solid #334155;">
+            <button class="btn btn-success">Guardar produccion</button>
+        </div>
+    </form>
+</div>
+
+<style>
+.appcc-linea {
+    margin-top:12px;
+    border:1px solid #334155;
+    background:#111827;
+    border-radius:8px;
+    padding:12px;
+}
+.hygiene-alert {
+    margin-top:12px;
+    border:1px solid #f59e0b;
+    background:#2a1f0d;
+    border-radius:8px;
+    padding:12px;
+}
+.hygiene-title {
+    display:flex;
+    justify-content:space-between;
+    gap:10px;
+    flex-wrap:wrap;
+    color:#fbbf24;
+}
+.hygiene-title span {
+    color:#fde68a;
+    font-size:13px;
+}
+.hygiene-risk {
+    margin-top:8px;
+    color:#fecaca;
+    font-weight:700;
+}
+.hygiene-alert ul {
+    margin:8px 0 0;
+    padding-left:20px;
+    color:#f8fafc;
+    line-height:1.45;
+}
+.appcc-head {
+    display:flex;
+    justify-content:space-between;
+    gap:10px;
+    flex-wrap:wrap;
+    margin-bottom:10px;
+    color:#ff8a2a;
+}
+.appcc-head span {
+    color:#86efac;
+    font-size:13px;
+}
+.appcc-grid {
+    display:grid;
+    grid-template-columns:repeat(auto-fit, minmax(190px, 1fr));
+    gap:10px;
+}
+.appcc-grid label {
+    display:block;
+    font-size:12px;
+    color:#cbd5e1;
+    margin-bottom:4px;
+}
+.appcc-grid small {
+    display:block;
+    color:#94a3b8;
+    font-size:11px;
+    margin-top:4px;
+}
+.checkline {
+    display:flex !important;
+    align-items:center;
+    gap:7px;
+    min-height:37px;
+}
+.prod-ingredientes {
+    width:100%;
+    min-width:1040px;
+}
+.prod-badge {
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    min-height:24px;
+    padding:4px 8px;
+    border-radius:6px;
+    font-size:12px;
+    font-weight:700;
+}
+.prod-badge.ok {
+    color:#052e16;
+    background:#86efac;
+}
+.prod-badge.warn {
+    color:#422006;
+    background:#facc15;
+}
+.prod-badge.danger {
+    color:#fff;
+    background:#dc2626;
+}
+.prod-badge.neutral {
+    color:#d1d5db;
+    background:#374151;
+}
+.prod-stock-line {
+    color:#cbd5e1;
+    font-size:11px;
+    margin-top:3px;
+    white-space:nowrap;
+}
+.prod-lote-link {
+    display:inline-flex;
+    align-items:center;
+    min-height:26px;
+    margin-top:6px;
+    padding:4px 8px;
+    border-radius:6px;
+    background:#0ea5e9;
+    color:#fff;
+    font-size:12px;
+    font-weight:700;
+    text-decoration:none;
+}
+.prod-lote-link:hover {
+    filter:brightness(1.08);
+}
+</style>
+
+{% endblock %}

@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="card">
+    <div class="card-header" style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:12px;">
+        <div>
+            <h2><i class="fas fa-calendar-week"></i> Semana de produccion</h2>
+            <div style="font-size:13px; opacity:.8;">Del {{ semana_inicio }} al {{ semana_fin }}</div>
+        </div>
+
+        <div style="display:flex; gap:8px; flex-wrap:wrap; justify-content:flex-end;">
+            <form method="GET" style="display:flex; gap:8px;">
+                <input type="date" name="fecha" value="{{ semana_inicio }}" class="form-control">
+                <button type="submit" class="btn btn-primary">Ver semana</button>
+            </form>
+            <a href="{{ url_for('menus.vista_semanal_menus', fecha=semana_inicio) }}" class="btn btn-info">Menus</a>
+            <a href="{{ url_for('produccion.produccion_index', fecha=semana_inicio) }}" class="btn btn-secondary">Partes</a>
+        </div>
+    </div>
+
+    <div class="table-container" style="overflow-x:auto;">
+        <table class="table table-hover" style="min-width:1100px;">
+            <thead>
+                <tr>
+                    <th>Servicio</th>
+                    {% for dia in dias_semana %}
+                    <th style="min-width:210px;">
+                        {{ dia.nombre }}<br>
+                        <small>{{ dia.fecha }}</small>
+                    </th>
+                    {% endfor %}
+                </tr>
+            </thead>
+
+            <tbody>
+                {% for tipo in tipos %}
+                <tr>
+                    <td><strong>{{ tipo.nombre }}</strong></td>
+                    {% for dia in dias_semana %}
+                    {% set menus_dia = planificacion[dia.fecha][tipo.id] %}
+                    <td style="vertical-align:top;">
+                        {% if menus_dia %}
+                            {% for menu in menus_dia %}
+                            <div style="border:1px solid rgba(148,163,184,.25); border-radius:6px; padding:8px; margin-bottom:8px;">
+                                <strong>Menu #{{ menu.menu_diario_id }}</strong>
+                                {% if menu.subdepartamento_nombre %}
+                                <div style="font-size:12px; opacity:.8;">{{ menu.subdepartamento_nombre }}</div>
+                                {% endif %}
+                                <div style="font-size:12px; opacity:.8;">{{ menu.num_platos or 0 }} recetas</div>
+                                <div style="display:flex; gap:5px; margin-top:6px; flex-wrap:wrap;">
+                                    <a href="{{ url_for('menus.ver_menu_diario', menu_id=menu.menu_diario_id) }}" class="btn-sm btn-info">Ver</a>
+                                    <form method="post" action="{{ url_for('produccion.planificar_desde_menu') }}" style="display:inline;">
+                                        <input type="hidden" name="menu_id" value="{{ menu.menu_diario_id }}">
+                                        <input type="hidden" name="fecha" value="{{ dia.fecha }}">
+                                        <button type="submit" class="btn-sm btn-success" onclick="return confirm('Generar produccion desde este menu?')">Enviar</button>
+                                    </form>
+                                    <form method="POST" action="{{ url_for('produccion.quitar_menu_produccion_semanal', planificacion_id=menu.id) }}" style="display:inline;">
+                                        <button type="submit" class="btn-sm btn-danger">Quitar</button>
+                                    </form>
+                                </div>
+                            </div>
+                            {% endfor %}
+                            <form method="POST" action="{{ url_for('produccion.enviar_semanal_a_produccion') }}">
+                                <input type="hidden" name="fecha" value="{{ dia.fecha }}">
+                                <input type="hidden" name="tipo_menu_id" value="{{ tipo.id }}">
+                                <button type="submit" class="btn btn-sm btn-success" style="width:100%;">Enviar servicio</button>
+                            </form>
+                        {% else %}
+                            <form method="POST" action="{{ url_for('produccion.anadir_menu_produccion_semanal') }}" style="display:flex; flex-direction:column; gap:6px;">
+                                <input type="hidden" name="fecha" value="{{ dia.fecha }}">
+                                <input type="hidden" name="tipo_menu_id" value="{{ tipo.id }}">
+                                <select name="menu_diario_id" required class="form-control">
+                                    <option value="">Seleccionar menu...</option>
+                                    {% for md in menus_disponibles %}
+                                    <option value="{{ md.id }}">{{ md.fecha }} - {{ md.tipo_nombre }} ({{ md.num_platos }} recetas)</option>
+                                    {% endfor %}
+                                </select>
+                                <select name="subdepartamento_id" class="form-control">
+                                    <option value="">Todos los subdepartamentos del menu</option>
+                                    {% for s in subdeptos %}
+                                    <option value="{{ s.id }}">{{ s.nombre }}</option>
+                                    {% endfor %}
+                                </select>
+                                <button type="submit" class="btn btn-sm btn-success">Anadir</button>
+                            </form>
+                        {% endif %}
+                    </td>
+                    {% endfor %}
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <div style="padding:15px; display:flex; justify-content:center;">
+        <form method="post" action="{{ url_for('produccion.planificar_semana_completa') }}" style="display:inline;">
+            <input type="hidden" name="fecha_inicio" value="{{ semana_inicio }}">
+            <button type="submit" class="btn btn-warning" onclick="return confirm('Enviar toda la semana a produccion?')">
+                Enviar toda la semana a produccion
+            </button>
+        </form>
+    </div>
+</div>
+
+{% endblock %}

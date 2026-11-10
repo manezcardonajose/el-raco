@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="card">
+    <h2 style="color: #ff6b00;">Nueva sección</h2>
+
+    <form method="POST">
+        <div style="margin-bottom: 15px;">
+            <label>Subdepartamento:</label>
+            <select name="subdepartamento_id" required style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid #555; background: #2b2f33; color: white;">
+                <option value="">-- Seleccionar --</option>
+                {% for s in subdeptos %}
+                <option value="{{ s.id }}">{{ s.departamento_nombre }} - {{ s.nombre }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div style="margin-bottom: 15px;">
+            <label>Nombre de sección (opcional):</label>
+            <input type="text" name="seccion" placeholder="Ej: Entrantes, Principales, Postres..." style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid #555; background: #2b2f33; color: white;">
+        </div>
+
+        <div style="margin-bottom: 15px;">
+            <label>Orden:</label>
+            <input type="number" name="orden" value="0" style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid #555; background: #2b2f33; color: white;">
+        </div>
+
+        <div style="margin-top: 30px;">
+            <button type="submit" class="btn btn-success">Crear sección</button>
+            <a href="{{ url_for('menus.ver_menu_diario', menu_id=menu_id) }}" class="btn btn-red">Cancelar</a>
+        </div>
+    </form>
+</div>
+
+<style>
+    .btn { padding: 8px 16px; border-radius: 4px; border: none; cursor: pointer; font-size: 14px; text-decoration: none; display: inline-block; margin-right: 5px; }
+    .btn-success { background: #28a745; color: white; }
+    .btn-red { background: #dc3545; color: white; }
+    label { display: block; margin-bottom: 5px; color: #ccc; }
+</style>
+{% endblock %}

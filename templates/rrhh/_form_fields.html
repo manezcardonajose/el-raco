@@ -1,0 +1,98 @@
+<h3 style="color:#ff6b00; margin: 10px 0 15px;"><i class="fas fa-id-card"></i> Datos personales</h3>
+<div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap:16px;">
+    <div class="form-group"><label class="form-label">Nombre *</label><input class="form-control" name="nombre" value="{{ empleado.nombre if empleado else '' }}" required></div>
+    <div class="form-group"><label class="form-label">Apellidos</label><input class="form-control" name="apellidos" value="{{ empleado.apellidos if empleado else '' }}"></div>
+    <div class="form-group"><label class="form-label">NIF/NIE</label><input class="form-control" name="nif" value="{{ empleado.nif if empleado else '' }}"></div>
+    <div class="form-group"><label class="form-label">Nº afiliación Seguridad Social</label><input class="form-control" name="numero_seguridad_social" value="{{ empleado.numero_seguridad_social if empleado else '' }}"></div>
+    <div class="form-group"><label class="form-label">Fecha nacimiento</label><input class="form-control" type="date" name="fecha_nacimiento" value="{{ empleado.fecha_nacimiento if empleado else '' }}"></div>
+    <div class="form-group"><label class="form-label">Nacionalidad</label><input class="form-control" name="nacionalidad" value="{{ empleado.nacionalidad if empleado else '' }}"></div>
+    <div class="form-group"><label class="form-label">Estado civil</label><input class="form-control" name="estado_civil" value="{{ empleado.estado_civil if empleado else '' }}"></div>
+    <div class="form-group"><label class="form-label">Email</label><input class="form-control" type="email" name="email" value="{{ empleado.email if empleado else '' }}"></div>
+    <div class="form-group"><label class="form-label">Teléfono</label><input class="form-control" name="telefono" value="{{ empleado.telefono if empleado else '' }}"></div>
+</div>
+
+<h3 style="color:#ff6b00; margin: 20px 0 15px;"><i class="fas fa-map-marker-alt"></i> Dirección y banco</h3>
+<div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap:16px;">
+    <div class="form-group"><label class="form-label">Dirección</label><input class="form-control" name="direccion" value="{{ empleado.direccion if empleado else '' }}"></div>
+    <div class="form-group"><label class="form-label">Código postal</label><input class="form-control" name="codigo_postal" value="{{ empleado.codigo_postal if empleado else '' }}"></div>
+    <div class="form-group"><label class="form-label">Localidad</label><input class="form-control" name="localidad" value="{{ empleado.localidad if empleado else '' }}"></div>
+    <div class="form-group"><label class="form-label">Provincia</label><input class="form-control" name="provincia" value="{{ empleado.provincia if empleado else '' }}"></div>
+    <div class="form-group"><label class="form-label">País</label><input class="form-control" name="pais" value="{{ empleado.pais if empleado else 'España' }}"></div>
+    <div class="form-group"><label class="form-label">IBAN</label><input class="form-control" name="iban" value="{{ empleado.iban if empleado else '' }}"></div>
+</div>
+
+<h3 style="color:#ff6b00; margin: 20px 0 15px;"><i class="fas fa-briefcase"></i> Datos laborales</h3>
+<div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap:16px;">
+    <div class="form-group"><label class="form-label">Categoría laboral</label><select class="form-control" name="categoria_id"><option value="">Sin categoría</option>{% for c in categorias %}<option value="{{ c.id }}" {% if empleado and empleado.categoria_id == c.id %}selected{% endif %}>{{ c.nombre }}</option>{% endfor %}</select></div>
+    <div class="form-group"><label class="form-label">Departamento</label><select class="form-control" name="departamento_id"><option value="">Sin departamento</option>{% for d in departamentos %}<option value="{{ d.id }}" {% if empleado and empleado.departamento_id == d.id %}selected{% endif %}>{{ d.nombre }}</option>{% endfor %}</select></div>
+    <div class="form-group"><label class="form-label">Subdepartamento</label><select class="form-control" name="subdepartamento_id"><option value="">Sin subdepartamento</option>{% for sd in subdepartamentos %}<option value="{{ sd.id }}" {% if empleado and empleado.subdepartamento_id == sd.id %}selected{% endif %}>{{ sd.nombre }}</option>{% endfor %}</select></div>
+    <div class="form-group"><label class="form-label">Punto de venta</label><select class="form-control" name="punto_venta_id"><option value="">Sin punto de venta</option>{% for pv in puntos_venta %}<option value="{{ pv.id }}" {% if empleado and empleado.punto_venta_id == pv.id %}selected{% endif %}>{{ pv.nombre }}</option>{% endfor %}</select></div>
+    <div class="form-group"><label class="form-label">Rol operativo</label><input class="form-control" name="rol" value="{{ empleado.rol if empleado else '' }}" placeholder="cocina, pisos, mantenimiento..."></div>
+    <div class="form-group"><label class="form-label">Usuario de acceso</label><select class="form-control" name="usuario_id"><option value="">Sin usuario</option>{% for u in usuarios|default([]) %}<option value="{{ u.id }}" {% if empleado and empleado.usuario_id == u.id %}selected{% endif %}>{{ u.nombre }}{% if u.codigo_acceso %} - {{ u.codigo_acceso }}{% endif %}{% if u.rol_nombre %} - {{ u.rol_nombre }}{% endif %}</option>{% endfor %}</select></div>
+    <div class="form-group"><label class="form-label">PIN fichaje tablet</label><input class="form-control" type="password" name="pin_fichaje" autocomplete="new-password" placeholder="{% if empleado and empleado.pin_fichaje_hash %}Dejar vacio para mantener{% else %}4-8 digitos recomendado{% endif %}"></div>
+    <div class="form-group"><label class="form-label">Fecha alta</label><input class="form-control" type="date" name="fecha_alta" value="{{ empleado.fecha_alta if empleado else '' }}"></div>
+    <div class="form-group"><label class="form-label">Fecha baja</label><input class="form-control" type="date" name="fecha_baja" value="{{ empleado.fecha_baja if empleado else '' }}"></div>
+    <div class="form-group"><label class="form-label">Nivel formación</label><input class="form-control" name="nivel_formacion" value="{{ empleado.nivel_formacion if empleado else '' }}"></div>
+</div>
+
+{% if not empleado %}
+<h3 style="color:#ff6b00; margin: 20px 0 15px;"><i class="fas fa-key"></i> Acceso operativo</h3>
+<div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap:16px;">
+    <label style="display:flex; gap:8px; align-items:center;"><input type="checkbox" name="crear_usuario_operativo" checked> Crear usuario para entrar en la ERP</label>
+    <div class="form-group"><label class="form-label">Rol de acceso</label><select class="form-control" name="rol_acceso">
+        {% for r in roles %}<option value="{{ r.nombre }}">{{ r.nombre }}</option>{% endfor %}
+    </select></div>
+    <div class="form-group"><label class="form-label">Contrasena inicial</label><input class="form-control" type="password" name="password" autocomplete="new-password" placeholder="Vacio = generar automaticamente"></div>
+    <div class="form-group"><label class="form-label">Repetir contrasena</label><input class="form-control" type="password" name="password_repetir" autocomplete="new-password"></div>
+</div>
+{% endif %}
+
+<h3 style="color:#ff6b00; margin: 20px 0 15px;"><i class="fas fa-percent"></i> IRPF / Modelo 145</h3>
+<div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap:16px;">
+    <div class="form-group"><label class="form-label">IRPF aplicado %</label><input class="form-control" type="number" step="0.01" min="0" max="100" name="irpf_pct" value="{{ empleado.irpf_pct if empleado and 'irpf_pct' in empleado.keys() else '' }}"></div>
+    <div class="form-group"><label class="form-label">Situacion familiar 145</label><select class="form-control" name="modelo145_situacion_familiar">
+        {% set situacion145 = empleado.modelo145_situacion_familiar if empleado and 'modelo145_situacion_familiar' in empleado.keys() else '' %}
+        <option value="">Sin comunicar</option>
+        <option value="1" {% if situacion145 == '1' %}selected{% endif %}>1 - Soltero/viudo/divorciado con hijos</option>
+        <option value="2" {% if situacion145 == '2' %}selected{% endif %}>2 - Conyuge sin rentas relevantes</option>
+        <option value="3" {% if situacion145 == '3' %}selected{% endif %}>3 - Otras situaciones</option>
+    </select></div>
+    <div class="form-group"><label class="form-label">NIF conyuge</label><input class="form-control" name="modelo145_conyuge_nif" value="{{ empleado.modelo145_conyuge_nif if empleado and 'modelo145_conyuge_nif' in empleado.keys() else '' }}"></div>
+    <div class="form-group"><label class="form-label">Discapacidad %</label><input class="form-control" type="number" step="0.01" min="0" max="100" name="modelo145_discapacidad_pct" value="{{ empleado.modelo145_discapacidad_pct if empleado and 'modelo145_discapacidad_pct' in empleado.keys() else '' }}"></div>
+    <div class="form-group"><label class="form-label">Hijos/descendientes</label><input class="form-control" type="number" min="0" name="modelo145_hijos" value="{{ empleado.modelo145_hijos if empleado and 'modelo145_hijos' in empleado.keys() else '' }}"></div>
+    <div class="form-group"><label class="form-label">Hijos menores de 3</label><input class="form-control" type="number" min="0" name="modelo145_hijos_menores3" value="{{ empleado.modelo145_hijos_menores3 if empleado and 'modelo145_hijos_menores3' in empleado.keys() else '' }}"></div>
+    <div class="form-group"><label class="form-label">Ascendientes</label><input class="form-control" type="number" min="0" name="modelo145_ascendientes" value="{{ empleado.modelo145_ascendientes if empleado and 'modelo145_ascendientes' in empleado.keys() else '' }}"></div>
+    <div class="form-group"><label class="form-label">Pension compensatoria anual</label><input class="form-control" type="number" step="0.01" min="0" name="modelo145_pension_compensatoria" value="{{ empleado.modelo145_pension_compensatoria if empleado and 'modelo145_pension_compensatoria' in empleado.keys() else '' }}"></div>
+    <div class="form-group"><label class="form-label">Anualidades alimentos</label><input class="form-control" type="number" step="0.01" min="0" name="modelo145_anualidades_alimentos" value="{{ empleado.modelo145_anualidades_alimentos if empleado and 'modelo145_anualidades_alimentos' in empleado.keys() else '' }}"></div>
+    <div class="form-group"><label class="form-label">Fecha firma Modelo 145</label><input class="form-control" type="date" name="modelo145_fecha_firma" value="{{ empleado.modelo145_fecha_firma if empleado and 'modelo145_fecha_firma' in empleado.keys() else '' }}"></div>
+    <div class="form-group"><label class="form-label">Ultima actualizacion 145</label><input class="form-control" type="date" name="modelo145_fecha_actualizacion" value="{{ empleado.modelo145_fecha_actualizacion if empleado and 'modelo145_fecha_actualizacion' in empleado.keys() else '' }}"></div>
+</div>
+<div style="display:flex; gap:22px; flex-wrap:wrap; margin-bottom:12px;">
+    <label><input type="checkbox" name="modelo145_movilidad_geografica" {% if empleado and 'modelo145_movilidad_geografica' in empleado.keys() and empleado.modelo145_movilidad_geografica %}checked{% endif %}> Movilidad geografica</label>
+    <label><input type="checkbox" name="modelo145_vivienda_habitual" {% if empleado and 'modelo145_vivienda_habitual' in empleado.keys() and empleado.modelo145_vivienda_habitual %}checked{% endif %}> Vivienda habitual con financiacion ajena</label>
+</div>
+<div class="form-group"><label class="form-label">Observaciones Modelo 145</label><textarea class="form-control" name="modelo145_observaciones" rows="2">{{ empleado.modelo145_observaciones if empleado and 'modelo145_observaciones' in empleado.keys() else '' }}</textarea></div>
+
+<h3 style="color:#ff6b00; margin: 20px 0 15px;"><i class="fas fa-shield-alt"></i> PRL, sanidad y uniformidad</h3>
+<div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap:16px;">
+    <div class="form-group"><label class="form-label">Caducidad carnet manipulador</label><input class="form-control" type="date" name="fecha_caducidad_carnet" value="{{ empleado.fecha_caducidad_carnet if empleado else '' }}"></div>
+    <div class="form-group"><label class="form-label">Fecha PRL</label><input class="form-control" type="date" name="fecha_prl" value="{{ empleado.fecha_prl if empleado else '' }}"></div>
+    <div class="form-group"><label class="form-label">Fecha reconocimiento médico</label><input class="form-control" type="date" name="fecha_reconocimiento" value="{{ empleado.fecha_reconocimiento if empleado else '' }}"></div>
+    <div class="form-group"><label class="form-label">Talla uniforme</label><input class="form-control" name="talla_uniforme" value="{{ empleado.talla_uniforme if empleado else '' }}"></div>
+    <div class="form-group"><label class="form-label">Talla calzado</label><input class="form-control" name="talla_calzado" value="{{ empleado.talla_calzado if empleado else '' }}"></div>
+</div>
+<div style="display:flex; gap:22px; flex-wrap:wrap; margin-bottom:18px;">
+    <label><input type="checkbox" name="carnet_manipulador" {% if empleado and empleado.carnet_manipulador %}checked{% endif %}> Carnet manipulador</label>
+    <label><input type="checkbox" name="prl_realizada" {% if empleado and empleado.prl_realizada %}checked{% endif %}> PRL realizada</label>
+    <label><input type="checkbox" name="reconocimiento_medico" {% if empleado and empleado.reconocimiento_medico %}checked{% endif %}> Reconocimiento médico</label>
+</div>
+
+<h3 style="color:#ff6b00; margin: 20px 0 15px;"><i class="fas fa-phone"></i> Emergencias</h3>
+<div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap:16px;">
+    <div class="form-group"><label class="form-label">Contacto emergencia</label><input class="form-control" name="contacto_emergencia_nombre" value="{{ empleado.contacto_emergencia_nombre if empleado else '' }}"></div>
+    <div class="form-group"><label class="form-label">Teléfono emergencia</label><input class="form-control" name="contacto_emergencia_telefono" value="{{ empleado.contacto_emergencia_telefono if empleado else '' }}"></div>
+    <div class="form-group"><label class="form-label">Relación</label><input class="form-control" name="contacto_emergencia_relacion" value="{{ empleado.contacto_emergencia_relacion if empleado else '' }}"></div>
+</div>
+<div class="form-group"><label class="form-label">Alergias / observaciones médicas operativas</label><textarea class="form-control" name="alergias_observaciones" rows="2">{{ empleado.alergias_observaciones if empleado else '' }}</textarea></div>
+<div class="form-group"><label class="form-label">Observaciones internas</label><textarea class="form-control" name="observaciones" rows="3">{{ empleado.observaciones if empleado else '' }}</textarea></div>
+{% if empleado %}<label style="display:flex; gap:8px; align-items:center;"><input type="checkbox" name="activo" {% if empleado.activo %}checked{% endif %}> Empleado activo</label>{% endif %}

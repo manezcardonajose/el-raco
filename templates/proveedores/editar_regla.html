@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header">
+        <h2><i class="fas fa-edit"></i> Editar regla - {{ regla.proveedor_nombre }}</h2>
+        <a href="{{ url_for('proveedores.listar_reglas', proveedor_id=regla.proveedor_id) }}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left"></i> Volver
+        </a>
+    </div>
+
+    <form method="POST">
+        <div class="form-group">
+            <label class="form-label">Tipo:</label>
+            <select name="tipo" required class="form-control">
+                <option value="pedido" {% if regla.tipo == 'pedido' %}selected{% endif %}>
+                    <i class="fas fa-box"></i> Día de pedido
+                </option>
+                <option value="entrega" {% if regla.tipo == 'entrega' %}selected{% endif %}>
+                    <i class="fas fa-truck"></i> Día de entrega
+                </option>
+                <option value="visita" {% if regla.tipo == 'visita' %}selected{% endif %}>
+                    <i class="fas fa-user-friends"></i> Visita comercial
+                </option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label class="form-label">Frecuencia:</label>
+            <div style="display: flex; gap: 20px;">
+                <label><input type="radio" name="frecuencia" value="semanal" {% if regla.frecuencia == 'semanal' %}checked{% endif %}> Semanal</label>
+                <label><input type="radio" name="frecuencia" value="mensual" {% if regla.frecuencia == 'mensual' %}checked{% endif %}> Mensual</label>
+            </div>
+        </div>
+
+        <div id="semanal" class="form-group" {% if regla.frecuencia == 'mensual' %}style="display: none;"{% endif %}>
+            <label class="form-label">Día de la semana:</label>
+            <select name="dia_semana" class="form-control">
+                <option value="0" {% if regla.dia_semana == 0 %}selected{% endif %}>Lunes</option>
+                <option value="1" {% if regla.dia_semana == 1 %}selected{% endif %}>Martes</option>
+                <option value="2" {% if regla.dia_semana == 2 %}selected{% endif %}>Miércoles</option>
+                <option value="3" {% if regla.dia_semana == 3 %}selected{% endif %}>Jueves</option>
+                <option value="4" {% if regla.dia_semana == 4 %}selected{% endif %}>Viernes</option>
+                <option value="5" {% if regla.dia_semana == 5 %}selected{% endif %}>Sábado</option>
+                <option value="6" {% if regla.dia_semana == 6 %}selected{% endif %}>Domingo</option>
+            </select>
+        </div>
+
+        <div id="mensual" class="form-group" {% if regla.frecuencia == 'semanal' %}style="display: none;"{% endif %}>
+            <label class="form-label">Día del mes (1-31):</label>
+            <input type="number" name="dia_mes" min="1" max="31" value="{{ regla.dia_mes }}" class="form-control">
+        </div>
+
+        <div class="form-group">
+            <label class="form-label">Hora (opcional):</label>
+            <input type="time" name="hora" value="{{ regla.hora or '' }}" class="form-control">
+        </div>
+
+        <div style="margin-top: 20px;">
+            <button type="submit" class="btn btn-success">
+                <i class="fas fa-save"></i> Guardar cambios
+            </button>
+        </div>
+    </form>
+</div>
+
+<script>
+    document.querySelectorAll('input[name="frecuencia"]').forEach(radio => {
+        radio.addEventListener('change', function() {
+            if (this.value === 'semanal') {
+                document.getElementById('semanal').style.display = 'block';
+                document.getElementById('mensual').style.display = 'none';
+            } else {
+                document.getElementById('semanal').style.display = 'none';
+                document.getElementById('mensual').style.display = 'block';
+            }
+        });
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,42 @@
+{% extends 'base.html' %}
+{% block title %}RRHH{% endblock %}
+{% block breadcrumb %}RRHH{% endblock %}
+{% block content %}
+<div class="card">
+  <div class="card-header">
+    <h2><i class="fas fa-users"></i> Panel RRHH</h2>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+      <a class="btn btn-secondary" href="{{ url_for('rrhh.seguridad_social_ficheros') }}"><i class="fas fa-share-alt"></i> Seguridad Social</a>
+      <a class="btn btn-warning" href="{{ url_for('rrhh.prl_operativa') }}"><i class="fas fa-hard-hat"></i> PRL operativa</a>
+      <a class="btn btn-secondary" href="{{ url_for('rrhh.seleccion') }}"><i class="fas fa-user-check"></i> Seleccion</a>
+      <a class="btn btn-primary" href="{{ url_for('rrhh.pendientes_rrhh') }}"><i class="fas fa-inbox"></i> Ver pendientes</a>
+    </div>
+  </div>
+  <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap:16px;">
+    <div class="card"><h3>{{ pendientes.total }}</h3><p>Pendientes RRHH</p></div>
+    <div class="card"><h3>{{ alertas_admin.resumen.total }}</h3><p>Caducidades RRHH</p></div>
+    <div class="card"><h3>{{ total_empleados }}</h3><p>Empleados activos</p></div>
+    <div class="card"><h3>{{ total_contratos }}</h3><p>Contratos activos</p></div>
+    <div class="card"><h3>{{ fichajes_hoy }}</h3><p>Fichajes hoy</p></div>
+    <div class="card"><h3>{{ nominas_pendientes }}</h3><p>Nominas pendientes</p></div>
+    <div class="card"><h3>{{ prl.riesgos.total or 0 }}</h3><p>Riesgos PRL</p></div>
+    <div class="card"><h3>{{ prl.riesgos.altos or 0 }}</h3><p>PRL alto/critico</p></div>
+  </div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:14px;">
+    <span class="badge badge-info">{{ pendientes.correcciones }} correcciones</span>
+    <span class="badge badge-info">{{ pendientes.solicitudes }} ausencias</span>
+    <span class="badge badge-info">{{ pendientes.documentos }} documentos</span>
+    <span class="badge badge-info">{{ pendientes.contratos }} contratos sin firma</span>
+    <span class="badge badge-warning">{{ alertas_admin.resumen.documentos_caducidad }} docs vencen</span>
+    <span class="badge badge-warning">{{ alertas_admin.resumen.contratos_fin }} contratos finalizan</span>
+    <span class="badge badge-danger">{{ prl.incidentes.abiertos or 0 }} incidentes PRL abiertos</span>
+    <span class="badge badge-info">{{ prl.formaciones.total or 0 }} formaciones PRL</span>
+  </div>
+</div>
+<div class="card">
+  <div class="card-header"><h2><i class="fas fa-clock"></i> Ultimos fichajes</h2><a class="btn btn-primary" href="{{ url_for('rrhh.lista_fichajes') }}">Ver fichajes</a></div>
+  <div class="table-container"><table><thead><tr><th>Fecha</th><th>Empleado</th><th>Tipo</th><th>Departamento</th></tr></thead><tbody>
+  {% for f in ultimos_fichajes %}<tr><td>{{ f.fecha_hora }}</td><td>{{ f.empleado_nombre }}</td><td><span class="badge badge-info">{{ f.tipo }}</span></td><td>{{ f.departamento_nombre or '-' }}</td></tr>{% else %}<tr><td colspan="4">Sin fichajes.</td></tr>{% endfor %}
+  </tbody></table></div>
+</div>
+{% endblock %}

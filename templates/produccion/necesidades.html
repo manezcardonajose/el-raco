@@ -1,0 +1,304 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="card">
+    <div class="card-header" style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;">
+        <h2 style="margin:0;"><i class="fas fa-clipboard-check"></i> Necesidades de planificacion</h2>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <a href="{{ url_for('produccion.produccion_index') }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Partes
+            </a>
+            <a href="{{ url_for('appcc.alertas_descongelados_appcc') }}" class="btn btn-secondary">
+                <i class="fas fa-bell"></i> Alertas
+            </a>
+        </div>
+    </div>
+
+    <div class="card" style="margin-bottom:16px;">
+        <form method="get" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;align-items:end;">
+            <div>
+                <label>Desde</label>
+                <input type="date" name="fecha_desde" value="{{ fecha_desde }}" class="form-control">
+            </div>
+            <div>
+                <label>Hasta</label>
+                <input type="date" name="fecha_hasta" value="{{ fecha_hasta }}" class="form-control">
+            </div>
+            <div>
+                <button class="btn btn-primary"><i class="fas fa-filter"></i> Calcular</button>
+            </div>
+        </form>
+    </div>
+
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;margin-bottom:16px;">
+        <div style="padding:12px;border:1px solid #d1d5db;border-radius:8px;background:#fff;">
+            <div style="font-size:12px;color:#6b7280;">Recetas planificadas</div>
+            <div style="font-size:24px;font-weight:700;">{{ datos.totales.recetas_planificadas }}</div>
+        </div>
+        <div style="padding:12px;border:1px solid #d1d5db;border-radius:8px;background:#fff;">
+            <div style="font-size:12px;color:#6b7280;">Productos calculados</div>
+            <div style="font-size:24px;font-weight:700;">{{ datos.totales.productos }}</div>
+        </div>
+        <div style="padding:12px;border:1px solid #d1d5db;border-radius:8px;background:#fff;">
+            <div style="font-size:12px;color:#6b7280;">Faltantes</div>
+            <div style="font-size:24px;font-weight:700;">{{ datos.totales.faltantes }}</div>
+        </div>
+        <div style="padding:12px;border:1px solid #d1d5db;border-radius:8px;background:#fff;">
+            <div style="font-size:12px;color:#6b7280;">Coste teorico</div>
+            <div style="font-size:24px;font-weight:700;">{{ '%.2f'|format(datos.totales.coste_estimado or 0) }} EUR</div>
+        </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px;margin-bottom:16px;">
+        <div style="padding:12px;border:1px solid #d1d5db;border-radius:8px;background:#fff;">
+            <div style="font-size:12px;color:#6b7280;">Origen: produccion creada</div>
+            <div style="font-size:22px;font-weight:700;">{{ datos.totales.origen_partes or 0 }}</div>
+        </div>
+        <div style="padding:12px;border:1px solid #d1d5db;border-radius:8px;background:#fff;">
+            <div style="font-size:12px;color:#6b7280;">Origen: planificacion</div>
+            <div style="font-size:22px;font-weight:700;">{{ datos.totales.origen_planificacion or 0 }}</div>
+        </div>
+        <div style="padding:12px;border:1px solid #d1d5db;border-radius:8px;background:#fff;">
+            <div style="font-size:12px;color:#6b7280;">Origen: menu sin enviar</div>
+            <div style="font-size:22px;font-weight:700;">{{ datos.totales.origen_menu or 0 }}</div>
+        </div>
+        <div style="padding:12px;border:1px solid #d1d5db;border-radius:8px;background:#fff;">
+            <div style="font-size:12px;color:#6b7280;">Coherencia menu/produccion</div>
+            <div style="font-size:22px;font-weight:700;color:{% if datos.coherencia.resumen.estado == 'ok' %}#16a34a{% else %}#dc2626{% endif %};">
+                {{ 'OK' if datos.coherencia.resumen.estado == 'ok' else 'REVISAR' }}
+            </div>
+        </div>
+    </div>
+
+    {% if datos.coherencia.resumen.produccion_sin_menu or datos.coherencia.resumen.menus_sin_produccion %}
+    <div class="alert alert-danger">
+        <strong>Antes de comprar, revisar coherencia:</strong>
+        {{ datos.coherencia.resumen.produccion_sin_menu }} lineas de produccion no coinciden con su menu y
+        {{ datos.coherencia.resumen.menus_sin_produccion }} platos de menu no han llegado a produccion.
+    </div>
+    {% endif %}
+
+    {% if datos.recetas_sin_ingredientes or datos.ingredientes_sin_cantidad %}
+    <div class="alert alert-warning">
+        <strong>Recetas incompletas:</strong>
+        {{ datos.recetas_sin_ingredientes|length }} sin ingredientes y
+        {{ datos.ingredientes_sin_cantidad|length }} ingredientes sin cantidad. Estas lineas no pueden alimentar compras ni stock.
+    </div>
+    {% endif %}
+
+    {% if datos.coherencia.produccion_sin_menu %}
+    <h3>Produccion fuera de menu</h3>
+    <div style="overflow-x:auto;margin-bottom:18px;">
+        <table class="table">
+            <thead><tr><th>Fecha</th><th>Servicio</th><th>Centro</th><th>Receta producida</th><th>Parte</th></tr></thead>
+            <tbody>
+                {% for r in datos.coherencia.produccion_sin_menu[:30] %}
+                <tr>
+                    <td>{{ r.fecha }}</td>
+                    <td>{{ r.servicio }}</td>
+                    <td>{{ r.centro }}</td>
+                    <td><strong>{{ r.receta }}</strong></td>
+                    <td>#{{ r.parte_id }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+
+    {% if datos.coherencia.menus_sin_produccion %}
+    <h3>Menu pendiente de enviar a produccion</h3>
+    <div style="overflow-x:auto;margin-bottom:18px;">
+        <table class="table">
+            <thead><tr><th>Fecha</th><th>Servicio</th><th>Centro</th><th>Receta del menu</th><th>Menu</th></tr></thead>
+            <tbody>
+                {% for r in datos.coherencia.menus_sin_produccion[:30] %}
+                <tr>
+                    <td>{{ r.fecha }}</td>
+                    <td>{{ r.servicio }}</td>
+                    <td>{{ r.centro }}</td>
+                    <td><strong>{{ r.receta }}</strong></td>
+                    <td>#{{ r.menu_diario_id }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px;">
+        <form method="post">
+            <input type="hidden" name="fecha_desde" value="{{ fecha_desde }}">
+            <input type="hidden" name="fecha_hasta" value="{{ fecha_hasta }}">
+            <input type="hidden" name="accion" value="generar_alertas">
+            <button class="btn btn-warning" {% if not datos.alertas_descongelado %}disabled{% endif %}>
+                <i class="fas fa-snowflake"></i> Generar alertas APPCC
+            </button>
+        </form>
+        {% set puede_pasar_compras = datos.coherencia.resumen.estado == 'ok' and not datos.recetas_sin_ingredientes and not datos.ingredientes_sin_cantidad %}
+        {% if puede_pasar_compras %}
+        <a href="{{ url_for('compras.necesidades_compra', fecha_desde=fecha_desde, fecha_hasta=fecha_hasta, incluir_planificacion=1) }}" class="btn btn-secondary">
+            <i class="fas fa-shopping-cart"></i> Pasar a compras
+        </a>
+        {% else %}
+        <button class="btn btn-secondary" disabled title="Corrige coherencia menu/produccion y recetas incompletas antes de comprar.">
+            <i class="fas fa-shopping-cart"></i> Pasar a compras
+        </button>
+        <span class="text-muted" style="align-self:center;font-size:12px;">
+            Bloqueado hasta corregir menu/produccion y escandallos.
+        </span>
+        {% endif %}
+    </div>
+
+    <h3>Productos necesarios</h3>
+    {% if datos.productos %}
+    <div style="overflow-x:auto;">
+        <table class="table" style="width:100%;min-width:1150px;">
+            <thead>
+                <tr>
+                    <th>Producto</th>
+                    <th>Familia</th>
+                    <th>Necesario</th>
+                    <th>Stock</th>
+                    <th>Pedido pendiente</th>
+                    <th>Faltante</th>
+                    <th>APPCC</th>
+                    <th>Origen</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for p in datos.productos %}
+                <tr>
+                    <td>
+                        <strong>{{ p.nombre }}</strong>
+                        <div class="text-muted" style="font-size:12px;">{{ p.tipo_conservacion or '-' }}</div>
+                    </td>
+                    <td>{{ p.familia or '-' }}</td>
+                    <td>{{ '%.3f'|format(p.cantidad_necesaria or 0) }} {{ p.unidad }}</td>
+                    <td>{{ '%.3f'|format(p.stock or 0) }} {{ p.unidad }}</td>
+                    <td>{{ '%.3f'|format(p.pendiente_compra or 0) }} {{ p.unidad }}</td>
+                    <td>
+                        {% if p.faltante > 0 %}
+                        <span class="badge bg-danger">{{ '%.3f'|format(p.faltante) }} {{ p.unidad }}</span>
+                        {% else %}
+                        <span class="badge bg-success">Cubierto</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if p.horas_descongelado %}
+                        <span class="badge bg-info text-dark">{{ p.horas_descongelado }}h APPCC descongelado</span>
+                        {% endif %}
+                        {% if p.requiere_desinfeccion %}
+                        <span class="badge bg-warning text-dark">Desinfeccion</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% for d in p.detalle[:3] %}
+                        <div style="font-size:12px;">
+                            {{ d.fecha }} - {{ d.receta }}:
+                            {{ '%.3f'|format(d.cantidad) }} {{ p.unidad }}
+                            {% if d.raciones %}({{ '%.0f'|format(d.raciones) }} rac.){% endif %}
+                            {% if d.estacion %}<br><span class="text-muted">{{ d.estacion }}</span>{% endif %}
+                        </div>
+                        {% endfor %}
+                        {% if p.detalle|length > 3 %}
+                        <div class="text-muted" style="font-size:12px;">+ {{ p.detalle|length - 3 }} mas</div>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="alert alert-info">No hay productos calculables para el rango seleccionado.</div>
+    {% endif %}
+
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:16px;margin-top:20px;">
+        <div class="card">
+            <h3>Alertas APPCC de descongelado</h3>
+            {% if datos.alertas_descongelado %}
+            <table class="table">
+                <thead>
+                    <tr><th>Fecha aviso</th><th>Producto</th><th>Produccion</th><th>Cantidad</th></tr>
+                </thead>
+                <tbody>
+                    {% for a in datos.alertas_descongelado[:20] %}
+                    <tr>
+                        <td>{{ a.fecha_alerta.strftime('%Y-%m-%d %H:%M') }}{% if a.hora_estimada %}<br><small>Hora estimada</small>{% endif %}</td>
+                        <td>
+                            <strong>{{ a.producto }}</strong>
+                            <div class="text-muted" style="font-size:12px;">Aviso {{ a.horas }}h antes</div>
+                        </td>
+                        <td>{{ a.fecha_produccion }}</td>
+                        <td>{{ '%.3f'|format(a.cantidad or 0) }} {{ a.unidad }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <p class="text-muted">No hay productos congelados calculables en este rango.</p>
+            {% endif %}
+        </div>
+
+        <div class="card">
+            <h3>Desinfeccion en recepcion</h3>
+            {% if datos.desinfecciones %}
+            <table class="table">
+                <thead>
+                    <tr><th>Fecha uso</th><th>Producto</th><th>Cantidad</th></tr>
+                </thead>
+                <tbody>
+                    {% for d in datos.desinfecciones[:20] %}
+                    <tr>
+                        <td>{{ d.fecha }}</td>
+                        <td>{{ d.producto }}</td>
+                        <td>{{ '%.3f'|format(d.cantidad or 0) }} {{ d.unidad }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <p class="text-muted">No hay fruta/verdura calculable en este rango.</p>
+            {% endif %}
+        </div>
+    </div>
+
+    {% if datos.recetas_sin_ingredientes %}
+    <h3>Recetas sin ingredientes</h3>
+    <div style="overflow-x:auto;">
+        <table class="table">
+            <thead><tr><th>Receta</th><th>Fecha</th><th>Origen</th><th>Acciones</th></tr></thead>
+            <tbody>
+                {% for r in datos.recetas_sin_ingredientes %}
+                <tr>
+                    <td>{{ r.nombre }}</td>
+                    <td>{{ r.fecha }}</td>
+                    <td>{{ r.origen }}</td>
+                    <td>
+                        <a class="btn btn-sm btn-primary" href="{{ url_for('recetas.ver_receta', receta_id=r.id) }}">Ver receta</a>
+                        <a class="btn btn-sm btn-secondary" href="{{ url_for('recetas.fuentes_externas_recetas') }}">Fuentes externas</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+
+    {% if datos.ingredientes_sin_cantidad %}
+    <h3>Ingredientes sin cantidad</h3>
+    <div style="overflow-x:auto;">
+        <table class="table">
+            <thead><tr><th>Receta</th><th>Producto</th><th>Fecha</th></tr></thead>
+            <tbody>
+                {% for i in datos.ingredientes_sin_cantidad %}
+                <tr><td>{{ i.receta }}</td><td>{{ i.producto }}</td><td>{{ i.fecha }}</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+</div>
+
+{% endblock %}

@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+{% block title %}Configurar pasarela{% endblock %}
+{% block breadcrumb %}Pagos / Configuracion{% endblock %}
+
+{% block content %}
+<div class="card">
+  <div class="card-header">
+    <h2><i class="fas fa-shield-alt"></i> {{ 'Editar pasarela' if config else 'Nueva pasarela' }}</h2>
+  </div>
+
+  {% if not crypto_ok %}
+  <div class="alert alert-warning">
+    No hay cifrado local activo. Para claves reales usa <code>env:NOMBRE_VARIABLE</code> o define <code>PAYMENT_MASTER_KEY</code>.
+    <br><small>Clave sugerida: <code>{{ master_key_sugerida }}</code></small>
+  </div>
+  {% endif %}
+
+  {% if config %}
+  <div class="alert {% if config.diagnostico.estado == 'ok' %}alert-success{% elif config.diagnostico.estado == 'revisar' %}alert-warning{% else %}alert-danger{% endif %}">
+    <strong>Diagnostico:</strong> {{ config.diagnostico.estado }}.
+    {% for item in config.diagnostico.issues %}
+      <br>Bloqueante: {{ item.texto }}
+    {% endfor %}
+    {% for item in config.diagnostico.warnings %}
+      <br>Revisar: {{ item.texto }}
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <form method="post" style="display:grid;gap:16px;">
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;">
+      <div class="form-group">
+        <label class="form-label">Nombre interno</label>
+        <input class="form-control" name="nombre" required value="{{ config.nombre if config else 'Pasarela principal' }}">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Proveedor</label>
+        <select class="form-control" name="proveedor">
+          {% for code,label in proveedores %}
+          <option value="{{ code }}" {% if config and config.proveedor == code %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Modo</label>
+        <select class="form-control" name="modo">
+          <option value="test" {% if not config or config.modo == 'test' %}selected{% endif %}>Pruebas</option>
+          <option value="live" {% if config and config.modo == 'live' %}selected{% endif %}>Real</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Moneda</label>
+        <input class="form-control" name="moneda" value="{{ config.moneda if config else 'EUR' }}">
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;">
+      <div class="form-group">
+        <label class="form-label">Marca visible</label>
+        <input class="form-control" name="marca_nombre" value="{{ config.marca_nombre if config else '' }}" placeholder="Hotel / Restaurante cliente">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Logo</label>
+        <input class="form-control" name="marca_logo" value="{{ config.marca_logo if config else '' }}" placeholder="/static/...">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Color</label>
+        <input class="form-control" name="marca_color" value="{{ config.marca_color if config else '#ff6b00' }}">
+      </div>
+      <label class="form-label" style="display:flex;align-items:center;gap:8px;margin-top:24px;">
+        <input type="checkbox" name="activo" {% if not config or config.activo %}checked{% endif %}> Activa
+      </label>
+    </div>
+
+    <div>
+      <label class="form-label">Metodos permitidos</label>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;">
+        {% for code,label in metodos %}
+        <label style="border:1px solid #cbd5e1;border-radius:6px;padding:8px 10px;background:#fff;">
+          <input type="checkbox" name="metodo_{{ code }}" {% if config and config.metodos.get(code) %}checked{% elif not config and code in ['tarjeta','bizum','link','nfc'] %}checked{% endif %}>
+          {{ label }}
+        </label>
+        {% endfor %}
+      </div>
+    </div>
+
+    <div class="card" style="box-shadow:none;">
+      <h3 style="color:#ff6b00;margin-top:0;">Configuracion publica</h3>
+      <p style="opacity:.75;">URLs, merchant account visible, payment methods de Stripe, endpoint Redsys, etc. No pongas claves aqui.</p>
+      <textarea class="form-control" name="config_publica_json" rows="7">{{ config.config_publica|tojson(indent=2) if config else '{\n  "success_url": "https://cliente.es/pagos/ok",\n  "cancel_url": "https://cliente.es/pagos/ko"\n}' }}</textarea>
+    </div>
+
+    <div class="card" style="box-shadow:none;">
+      <h3 style="color:#ff6b00;margin-top:0;">Secretos</h3>
+      {% if config %}
+      <p style="opacity:.75;">Guardados: {{ config.secretos_mascara }}. Rellena solo los que quieras cambiar.</p>
+      {% endif %}
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;">
+        {% for key,label in [('api_key','API key'),('secret_key','Secret key'),('webhook_secret','Webhook secret'),('merchant_code','Redsys comercio'),('terminal','Redsys terminal'),('merchant_account','Adyen merchant')] %}
+        <div class="form-group">
+          <label class="form-label">{{ label }}</label>
+          <input class="form-control" name="secret_{{ key }}" placeholder="env:{{ key|upper }}">
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+      <button class="btn btn-success" type="submit"><i class="fas fa-save"></i> Guardar</button>
+      <a class="btn btn-secondary" href="{{ url_for('pagos.dashboard') }}">Volver</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

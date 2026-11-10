@@ -1,0 +1,114 @@
+{% extends 'base.html' %}
+{% block title %}Panel pisos{% endblock %}
+{% block breadcrumb %}Pisos / Panel{% endblock %}
+{% block content %}
+<style>
+  .px-actions{display:flex;gap:6px;flex-wrap:wrap;align-items:center;}
+  .px-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:12px 0 16px;}
+  .px-card{border:1px solid #334155;border-radius:6px;background:#111827;padding:12px;}
+  .px-card span{display:block;color:#94a3b8;font-size:12px;}
+  .px-card strong{display:block;font-size:24px;margin-top:4px;}
+  .px-two{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  .px-note{color:#94a3b8;font-size:12px;line-height:1.35;}
+  .px-pill{display:inline-block;border:1px solid #475569;border-radius:4px;padding:2px 6px;font-size:12px;background:#0f172a;}
+  @media (max-width:900px){.px-two{grid-template-columns:1fr;}}
+</style>
+
+<div class="card">
+  <div class="card-header">
+    <h2><i class="fas fa-chart-line"></i> Panel de pisos</h2>
+    <div class="px-actions">
+      <a class="btn btn-secondary" href="{{ url_for('pisos.dashboard', fecha=fecha) }}"><i class="fas fa-list"></i> Parte</a>
+      <a class="btn btn-secondary" href="{{ url_for('pisos.asignacion', fecha=fecha) }}"><i class="fas fa-user-check"></i> Asignacion</a>
+      <a class="btn btn-secondary" href="{{ url_for('pisos.productos') }}"><i class="fas fa-boxes"></i> Stock</a>
+      <a class="btn btn-secondary" href="{{ url_for('pisos.pedidos') }}"><i class="fas fa-shopping-cart"></i> Pedidos</a>
+      <a class="btn btn-secondary" href="{{ url_for('pisos.objetos_perdidos') }}"><i class="fas fa-key"></i> Objetos</a>
+      <a class="btn btn-secondary" href="{{ url_for('pisos.lavanderia', desde=fecha, hasta=fecha) }}"><i class="fas fa-soap"></i> Lavanderia</a>
+    </div>
+  </div>
+
+  <form method="get" class="px-actions" style="margin-bottom:12px;">
+    <input class="form-control" style="max-width:180px;" type="date" name="fecha" value="{{ fecha }}">
+    <button class="btn btn-primary" type="submit"><i class="fas fa-search"></i> Ver</button>
+  </form>
+
+  <div class="px-grid">
+    <div class="px-card"><span>Pendientes</span><strong>{{ panel.trabajos_estado.get('pendiente', 0) }}</strong></div>
+    <div class="px-card"><span>En curso</span><strong>{{ panel.trabajos_estado.get('en_curso', 0) }}</strong></div>
+    <div class="px-card"><span>Hechas</span><strong>{{ panel.trabajos_estado.get('hecha', 0) }}</strong></div>
+    <div class="px-card"><span>Incidencias abiertas</span><strong>{{ panel.incidencias_abiertas }}</strong></div>
+    <div class="px-card"><span>Objetos guardados</span><strong>{{ panel.objetos_guardados }}</strong></div>
+    <div class="px-card"><span>Productos bajo minimo</span><strong>{{ panel.productos_bajo_minimo|length }}</strong></div>
+    <div class="px-card"><span>Pedidos pendientes</span><strong>{{ panel.pedidos_pendientes }}</strong></div>
+    <div class="px-card"><span>Lenceria hoy</span><strong>S{{ panel.lenceria.sabanas }} T{{ panel.lenceria.toallas }}</strong></div>
+  </div>
+</div>
+
+<div class="px-two">
+  <div class="card">
+    <div class="card-header"><h2><i class="fas fa-users"></i> Productividad diaria</h2></div>
+    <div class="table-container">
+      <table>
+        <thead><tr><th>Trabajadora</th><th>Total</th><th>Hechas</th><th>Incidencias</th></tr></thead>
+        <tbody>
+          {% for p in panel.productividad %}
+          <tr><td>{{ p.asignado_a }}</td><td>{{ p.total }}</td><td>{{ p.hechas or 0 }}</td><td>{{ p.incidencias or 0 }}</td></tr>
+          {% else %}
+          <tr><td colspan="4">Sin trabajos para esta fecha.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header"><h2><i class="fas fa-bed"></i> Habitaciones</h2></div>
+    <div class="px-grid">
+      {% for key,total in panel.habitaciones_estado.items() %}
+      <div class="px-card"><span>{{ estados_habitacion.get(key, key) }}</span><strong>{{ total }}</strong></div>
+      {% else %}
+      <div class="px-note">Sin habitaciones.</div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+
+<div class="px-two">
+  <div class="card">
+    <div class="card-header"><h2><i class="fas fa-exclamation-triangle"></i> Ultimas incidencias</h2></div>
+    <div class="table-container">
+      <table>
+        <thead><tr><th>Fecha</th><th>Tipo</th><th>Descripcion</th><th>Estado</th></tr></thead>
+        <tbody>
+          {% for i in ultimas_incidencias %}
+          <tr><td>{{ i.fecha }}</td><td>{{ i.tipo }}</td><td>{{ i.descripcion }}</td><td><span class="px-pill">{{ i.estado }}</span></td></tr>
+          {% else %}
+          <tr><td colspan="4">Sin incidencias.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header"><h2><i class="fas fa-key"></i> Ultimos objetos</h2></div>
+    <div class="table-container">
+      <table>
+        <thead><tr><th>Fecha</th><th>Habitacion</th><th>Objeto</th><th>Estado</th></tr></thead>
+        <tbody>
+          {% for o in ultimos_objetos %}
+          <tr>
+            <td>{{ o.fecha }}</td>
+            <td>{{ o.habitacion_numero or o.habitacion_nombre or '-' }}</td>
+            <td>{{ o.descripcion }}</td>
+            <td><span class="px-pill">{{ o.estado }}</span></td>
+          </tr>
+          {% else %}
+          <tr><td colspan="4">Sin objetos registrados.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 180" role="img" aria-labelledby="title desc">
+  <title id="title">El Racó ERP</title>
+  <desc id="desc">Arbol corporativo con hojas verdes y aves azul oscuro.</desc>
+  <rect width="240" height="180" fill="none"/>
+  <path d="M48 152c29-15 115-18 154 0-34-5-120-8-154 0z" fill="#061f3a"/>
+  <path d="M117 148c12-31 8-57 2-77-3-10-2-23 4-33 5 21 8 43 20 50 14 8 28-5 34-25 4 12-2 36-19 47-9 6-20 7-28 3 1 14 4 24 14 35z" fill="#061f3a"/>
+  <path d="M119 83c-16-13-31-23-55-26 24-3 43 6 57 19z" fill="#061f3a"/>
+  <path d="M121 111c-22-8-43-4-59-20 22 9 43 1 62 16z" fill="#061f3a"/>
+  <path d="M141 107c16-7 22-21 31-33-2 19-12 36-31 43z" fill="#061f3a"/>
+  <g fill="#5a8f00">
+    <ellipse cx="77" cy="56" rx="16" ry="9" transform="rotate(34 77 56)"/>
+    <ellipse cx="96" cy="72" rx="10" ry="7" transform="rotate(43 96 72)"/>
+    <ellipse cx="105" cy="93" rx="11" ry="8" transform="rotate(49 105 93)"/>
+    <ellipse cx="77" cy="102" rx="14" ry="8" transform="rotate(25 77 102)"/>
+    <ellipse cx="64" cy="84" rx="16" ry="9" transform="rotate(8 64 84)"/>
+    <ellipse cx="55" cy="65" rx="11" ry="6" transform="rotate(28 55 65)"/>
+    <ellipse cx="128" cy="48" rx="14" ry="8" transform="rotate(-39 128 48)"/>
+    <ellipse cx="143" cy="69" rx="12" ry="7" transform="rotate(-8 143 69)"/>
+    <ellipse cx="152" cy="94" rx="8" ry="13" transform="rotate(-28 152 94)"/>
+    <ellipse cx="174" cy="85" rx="16" ry="8" transform="rotate(-7 174 85)"/>
+    <ellipse cx="173" cy="111" rx="14" ry="7" transform="rotate(-9 173 111)"/>
+    <ellipse cx="142" cy="120" rx="8" ry="11" transform="rotate(-26 142 120)"/>
+    <ellipse cx="112" cy="128" rx="13" ry="7" transform="rotate(-11 112 128)"/>
+  </g>
+  <g fill="#061f3a">
+    <path d="M155 31c17-7 28-2 37 1-16 1-23 9-18 18-10-2-22-13-35-10 6-5 11-7 16-9z"/>
+    <path d="M178 52c17-6 31-4 45 0-19 5-30 11-36 21-11-9-22-11-34-13 9-2 17-1 25 2z"/>
+    <path d="M202 43c8-6 16-4 21-2-9 1-13 4-13 10-5-2-10-3-17-3 3-2 6-4 9-5z"/>
+  </g>
+</svg>

@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="es">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{{ empresa.nombre }} | Atencion al cliente</title>
+    <link rel="icon" href="{{ url_for('static', filename='brand/el-raco-logo.svg') }}" type="image/svg+xml">
+    <style>
+        :root { color-scheme: light; --accent:#ff6b00; --ink:#17202a; --muted:#64748b; --line:#d9e2ec; --bg:#f6f8fb; }
+        body { margin:0; font-family:Arial, Helvetica, sans-serif; background:var(--bg); color:var(--ink); }
+        .wrap { max-width:980px; margin:0 auto; padding:28px 18px 42px; }
+        .hero { background:#fff; border:1px solid var(--line); border-radius:10px; padding:28px; box-shadow:0 6px 20px rgba(15,23,42,.06); }
+        .brand { display:flex; align-items:center; gap:12px; margin-bottom:18px; }
+        .brand img { width:56px; height:56px; object-fit:contain; }
+        h1 { margin:0 0 10px; font-size:32px; color:var(--accent); }
+        p { line-height:1.55; color:var(--muted); }
+        .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(210px,1fr)); gap:12px; margin:22px 0; }
+        .card { border:1px solid var(--line); border-radius:8px; padding:16px; background:#fbfdff; }
+        .card strong { display:block; margin-bottom:6px; color:var(--ink); }
+        .actions { display:flex; flex-wrap:wrap; gap:12px; margin-top:22px; }
+        .btn { display:inline-flex; align-items:center; justify-content:center; min-height:42px; padding:0 16px; border-radius:7px; text-decoration:none; font-weight:700; }
+        .primary { background:var(--accent); color:#fff; }
+        .secondary { background:#e2e8f0; color:#17202a; }
+        .foot { margin-top:18px; font-size:13px; color:var(--muted); }
+    </style>
+</head>
+<body>
+    <main class="wrap">
+        <section class="hero">
+            <div class="brand">
+                <img src="{{ url_for('static', filename='brand/el-raco-logo.svg') }}" alt="{{ empresa.nombre }}">
+                <div>
+                    <strong>{{ empresa.nombre }}</strong>
+                    <div style="color:var(--muted);font-size:14px;">Atencion durante su estancia</div>
+                </div>
+            </div>
+            <h1>Queremos que disfrute su estancia</h1>
+            <p>Nuestro equipo esta para ayudarle: recepcion, pisos, cocina, sala, mantenimiento, animacion y direccion trabajan conectados para que cualquier detalle llegue al departamento correcto.</p>
+            <div class="grid">
+                <div class="card"><strong>Atencion rapida</strong>Sus comentarios llegan al equipo responsable para hacer seguimiento.</div>
+                <div class="card"><strong>Preferencias cuidadas</strong>Podemos tener en cuenta alergias, intolerancias, idioma, descanso o necesidades especiales.</div>
+                <div class="card"><strong>Mejora continua</strong>Cada sugerencia ayuda a mejorar el servicio, la limpieza, la comida y la experiencia.</div>
+            </div>
+            <div class="actions">
+                <a class="btn primary" href="{{ url_for('experiencia.publico_queja', empresa_id=empresa_id) }}">Enviar comentario</a>
+                {% if empresa.email %}<a class="btn secondary" href="mailto:{{ empresa.email }}">Contactar por email</a>{% endif %}
+            </div>
+            <p class="foot">Este enlace es para clientes. La respuesta y cualquier accion se revisa siempre por el equipo humano del establecimiento.</p>
+        </section>
+    </main>
+</body>
+</html>

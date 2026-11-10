@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Menú fijo</title>
+</head>
+<body>
+
+<h2>{{ menu.nombre }}</h2>
+
+{% for s in secciones %}
+    <h4>{{ s.subdepartamento_nombre }} - {{ s.seccion }}</h4>
+    <ul>
+        {% for p in s.platos %}
+            <li>{{ p.receta_nombre }}</li>
+        {% endfor %}
+    </ul>
+{% endfor %}
+
+</body>
+</html>

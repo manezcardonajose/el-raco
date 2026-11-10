@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% block title %}Terminales de pago{% endblock %}
+{% block breadcrumb %}Pagos / Terminales{% endblock %}
+
+{% block content %}
+<div class="card">
+  <div class="card-header" style="display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap;">
+    <div>
+      <h2><i class="fas fa-mobile-alt"></i> Terminales de pago</h2>
+      <p style="margin:4px 0 0;opacity:.78;">Datáfonos, NFC, Tap to Pay o terminales virtuales por centro.</p>
+    </div>
+    <a class="btn btn-secondary" href="{{ url_for('pagos.dashboard') }}">Volver</a>
+  </div>
+
+  <form method="post" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px;align-items:end;margin-bottom:18px;">
+    <div class="form-group">
+      <label class="form-label">Pasarela</label>
+      <select class="form-control" name="config_id" required>
+        {% for c in configs %}
+        <option value="{{ c.id }}">{{ c.nombre }} - {{ c.proveedor }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Nombre</label>
+      <input class="form-control" name="nombre" placeholder="TPV recepcion 1" required>
+    </div>
+    <div class="form-group">
+      <label class="form-label">ID proveedor</label>
+      <input class="form-control" name="proveedor_terminal_id" placeholder="reader_xxx / terminal_xxx">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Ubicacion</label>
+      <input class="form-control" name="ubicacion" placeholder="Recepcion, Bar piscina...">
+    </div>
+    <label class="form-label"><input type="checkbox" name="nfc" checked> NFC</label>
+    <label class="form-label"><input type="checkbox" name="tap_to_pay"> Tap to Pay</label>
+    <label class="form-label"><input type="checkbox" name="activo" checked> Activo</label>
+    <button class="btn btn-success" type="submit"><i class="fas fa-save"></i> Guardar</button>
+  </form>
+
+  <div class="table-responsive">
+    <table class="table">
+      <thead><tr><th>Nombre</th><th>Pasarela</th><th>Ubicacion</th><th>ID proveedor</th><th>NFC</th><th>Tap to Pay</th><th>Estado</th></tr></thead>
+      <tbody>
+        {% for t in terminales %}
+        <tr>
+          <td><strong>{{ t.nombre }}</strong></td>
+          <td>{{ t.config_nombre }} / {{ t.proveedor }}</td>
+          <td>{{ t.ubicacion or '-' }}</td>
+          <td>{{ t.proveedor_terminal_id or '-' }}</td>
+          <td>{{ 'SI' if t.nfc else 'NO' }}</td>
+          <td>{{ 'SI' if t.tap_to_pay else 'NO' }}</td>
+          <td><span class="badge {{ 'badge-success' if t.activo else 'badge-secondary' }}">{{ 'Activo' if t.activo else 'Inactivo' }}</span></td>
+        </tr>
+        {% else %}
+        <tr><td colspan="7" style="text-align:center;padding:24px;">Sin terminales configurados.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

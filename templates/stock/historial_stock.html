@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Historial de Stock</title>
+</head>
+<body>
+
+<h2>Historial de Movimientos</h2>
+
+<p><strong>Producto:</strong> {{ producto['nombre'] }}</p>
+
+{% if movimientos %}
+<table border="1" cellpadding="5">
+    <tr>
+        <th>Fecha</th>
+        <th>Tipo</th>
+        <th>Cantidad</th>
+        <th>Usuario</th>
+    </tr>
+
+    {% for m in movimientos %}
+    <tr>
+        <td>{{ m['fecha'] }}</td>
+        <td>
+            {% if m['tipo_movimiento'] == 'entrada' %}
+                <span style="color:green;">Entrada</span>
+            {% else %}
+                <span style="color:red;">Salida</span>
+            {% endif %}
+        </td>
+        <td>{{ m['cantidad'] }}</td>
+        <td>{{ m['usuario'] }}</td>
+    </tr>
+    {% endfor %}
+</table>
+{% else %}
+<p>No hay movimientos registrados.</p>
+{% endif %}
+
+<br>
+<a href="/productos">Volver</a>
+
+</body>
+</html>
+
+

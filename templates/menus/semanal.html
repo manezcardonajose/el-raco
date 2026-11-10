@@ -1,0 +1,239 @@
+﻿{% extends "base.html" %}
+{% block content %}
+
+<div class="card">
+
+    <div class="card-header">
+        <h2><i class="fas fa-calendar-week"></i> Vista semanal de menÃºs</h2>
+
+        <div style="display:flex; gap:10px;">
+            <form method="GET" style="display:flex; gap:10px;">
+                <input type="date" name="fecha" value="{{ semana_inicio }}" class="form-control">
+                <button type="submit" class="btn btn-primary">Ver semana</button>
+            </form>
+
+            <form method="post" action="{{ url_for('produccion.planificar_desde_semanal') }}" style="display:inline;">
+                <input type="hidden" name="fecha_inicio" value="{{ semana_inicio }}">
+                <button type="submit" class="btn btn-success" onclick="return confirm('Generar produccion para toda la semana?')">Generar produccion semana</button>
+            </form>
+
+            <a href="{{ url_for('menus.lista_menus_principal') }}" class="btn btn-secondary">
+                Volver
+            </a>
+        </div>
+    </div>
+
+    <div style="margin:12px 0 16px;padding:12px;border:1px solid #334155;border-radius:6px;background:#18212a;">
+        <form method="POST" action="{{ url_for('menus.aplicar_ciclo_menus') }}"
+              style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;align-items:end;">
+            <div>
+                <label>Inicio del ciclo</label>
+                <input type="date" name="fecha_inicio" value="{{ semana_inicio }}" class="form-control" required>
+            </div>
+            <div>
+                <label>Tipo de ciclo</label>
+                <select name="ciclo_dias" class="form-control">
+                    <option value="14" selected>14 dias - semana 1 y 2</option>
+                    <option value="7">7 dias - repetir semana 1</option>
+                </select>
+            </div>
+            <div>
+                <label>Semanas a generar</label>
+                <input type="number" name="semanas" value="2" min="1" max="12" class="form-control">
+            </div>
+            <label style="display:flex;gap:8px;align-items:center;margin-bottom:8px;">
+                <input type="checkbox" name="reemplazar" value="1" checked>
+                Reemplazar rango
+            </label>
+            <button class="btn btn-warning">
+                <i class="fas fa-sync-alt"></i> Aplicar ciclo
+            </button>
+        </form>
+    </div>
+
+    <div style="overflow-x:auto;">
+        <table class="tabla-semanal">
+
+            <thead>
+                <tr>
+                    <th>Servicio</th>
+                    {% for dia in dias_semana %}
+                        <th>
+                            {{ dia.nombre }}<br>
+                            <small>{{ dia.fecha }}</small>
+                        </th>
+                    {% endfor %}
+                </tr>
+            </thead>
+
+            <tbody>
+                {% for tipo in tipos %}
+                <tr>
+
+                    <td class="col-servicio">
+                        <i class="fas fa-utensils"></i> {{ tipo.nombre }}
+                    </td>
+
+                    {% for dia in dias_semana %}
+                    <td class="celda">
+
+                        {% set menus_dia = planificacion[dia.fecha][tipo.id] if planificacion and planificacion[dia.fecha] and planificacion[dia.fecha][tipo.id] else [] %}
+
+                        <!-- MENÃšS YA ASIGNADOS -->
+                        {% for menu in menus_dia %}
+                        <div class="bloque-menu">
+
+                            <div class="top">
+                                <div>
+                                    <strong>#{{ menu.menu_diario_id }}</strong>
+                                    {% if menu.subdepartamento_nombre %}
+                                        <br><small>{{ menu.subdepartamento_nombre }}</small>
+                                    {% endif %}
+                                </div>
+
+                                <form method="POST"
+                                      action="{{ url_for('menus.quitar_menu_de_semanal', planificacion_id=menu.id) }}">
+                                    <button class="btn-x">X</button>
+                                </form>
+                            </div>
+
+                            <div class="acciones">
+                                <a href="{{ url_for('menus.ver_menu_diario', menu_id=menu.menu_diario_id) }}" title="Ver">
+                                    ðŸ‘
+                                </a>
+
+                                <a href="{{ url_for('menus.editar_menu_diario', menu_id=menu.menu_diario_id) }}" title="Editar">
+                                    âœ
+                                </a>
+
+                                <form method="post" action="{{ url_for('produccion.planificar_desde_menu') }}" style="display:inline;">
+                                    <input type="hidden" name="menu_id" value="{{ menu.menu_diario_id }}">
+                                    <input type="hidden" name="fecha" value="{{ dia.fecha }}">
+                                    <button type="submit" title="Generar produccion" onclick="return confirm('Generar produccion desde este menu?')">⚙</button>
+                                </form>
+                            </div>
+
+                        </div>
+                        {% endfor %}
+
+                        <!-- AÃ‘ADIR MENÃš -->
+                        <div class="bloque-add">
+
+                            <form method="POST" action="{{ url_for('menus.anadir_menu_a_semanal') }}">
+
+                                <input type="hidden" name="fecha" value="{{ dia.fecha }}">
+                                <input type="hidden" name="tipo_menu_id" value="{{ tipo.id }}">
+
+                                <select name="menu_diario_id" required>
+                                    <option value="">MenÃº diario...</option>
+                                    {% for md in menus_disponibles %}
+                                        <option value="{{ md.id }}">
+                                            {{ md.fecha }} - {{ md.tipo_nombre }}
+                                        </option>
+                                    {% endfor %}
+                                </select>
+
+                                <select name="subdepartamento_id">
+                                    <option value="">Subdept</option>
+                                    {% for s in subdeptos %}
+                                        <option value="{{ s.id }}">{{ s.nombre }}</option>
+                                    {% endfor %}
+                                </select>
+
+                                <button class="btn-add">+</button>
+
+                            </form>
+
+                            <!-- COPIAR DESDE FIJO -->
+                            <form method="post" action="{{ url_for('menus.copiar_menu_fijo_a_diario') }}" style="display:inline;">
+                                <input type="hidden" name="menu_fijo_id" value="1">
+                                <input type="hidden" name="fecha" value="{{ dia.fecha }}">
+                                <input type="hidden" name="tipo_id" value="{{ tipo.id }}">
+                               <button type="submit" class="btn-mini" onclick="return confirm('Copiar menu fijo a este dia?')">
+                               Fijo â†’
+                               </button>
+                            </form>
+
+                        </div>
+
+                    </td>
+                    {% endfor %}
+                </tr>
+                {% endfor %}
+            </tbody>
+
+        </table>
+    </div>
+
+</div>
+
+<style>
+.tabla-semanal { width:100%; border-collapse:collapse; }
+
+.tabla-semanal th {
+    background:#1c1f23;
+    padding:10px;
+}
+
+.celda {
+    background:#1e252b;
+    border:1px solid #444;
+    padding:8px;
+    vertical-align:top;
+}
+
+.col-servicio {
+    background:#2b2f33;
+    font-weight:bold;
+    padding:10px;
+}
+
+.bloque-menu {
+    background:#2b2f33;
+    padding:6px;
+    margin-bottom:6px;
+    border-left:3px solid #ff6b00;
+}
+
+.top {
+    display:flex;
+    justify-content:space-between;
+}
+
+.acciones {
+    display:flex;
+    gap:6px;
+    margin-top:4px;
+}
+
+.btn-x {
+    background:#dc3545;
+    border:none;
+    color:white;
+    padding:2px 6px;
+}
+
+.bloque-add {
+    margin-top:5px;
+}
+
+.bloque-add form {
+    display:flex;
+    gap:4px;
+}
+
+.btn-add {
+    background:#28a745;
+    border:none;
+    color:white;
+}
+
+.btn-mini {
+    display:block;
+    margin-top:4px;
+    font-size:11px;
+    color:#ff6b00;
+}
+</style>
+
+{% endblock %}

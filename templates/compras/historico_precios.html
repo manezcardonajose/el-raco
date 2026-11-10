@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="card">
+    <div class="card-header" style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;">
+        <div>
+            <h3 style="margin:0;"><i class="fas fa-chart-line"></i> Historico de precios</h3>
+            <small>Evolucion por producto y proveedor a partir de validaciones economicas.</small>
+        </div>
+        <a href="{{ url_for('compras.validar_recepciones') }}" class="btn btn-secondary btn-sm">Volver</a>
+    </div>
+
+    <div class="card-body">
+        <form method="get" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;align-items:end;margin-bottom:14px;">
+            <div>
+                <label>Producto</label>
+                <select name="producto_id" class="form-control">
+                    <option value="">Todos</option>
+                    {% for p in productos %}
+                    <option value="{{ p.id }}" {% if filtros.producto_id == p.id %}selected{% endif %}>{{ p.nombre }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label>Proveedor</label>
+                <select name="proveedor_id" class="form-control">
+                    <option value="">Todos</option>
+                    {% for pr in proveedores %}
+                    <option value="{{ pr.id }}" {% if filtros.proveedor_id == pr.id %}selected{% endif %}>{{ pr.nombre }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <button class="btn btn-primary">Filtrar</button>
+                <a href="{{ url_for('compras.historico_precios') }}" class="btn btn-secondary">Limpiar</a>
+            </div>
+        </form>
+
+        <div class="table-responsive">
+            <table class="table" style="min-width:1100px;">
+                <thead>
+                    <tr>
+                        <th>Fecha</th>
+                        <th>Producto</th>
+                        <th>Proveedor</th>
+                        <th>Precio anterior</th>
+                        <th>Precio nuevo</th>
+                        <th>Diferencia</th>
+                        <th>Origen</th>
+                        <th>Referencia</th>
+                        <th>Usuario</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for h in historico %}
+                    {% set anterior = h.precio_anterior %}
+                    {% set nuevo = h.precio_nuevo or 0 %}
+                    {% set dif = (nuevo - anterior) if anterior is not none else none %}
+                    <tr>
+                        <td>{{ h.fecha }}</td>
+                        <td>{{ h.producto_nombre }}</td>
+                        <td>{{ h.proveedor_nombre or '-' }}</td>
+                        <td>{% if anterior is not none %}{{ '%.4f'|format(anterior) }} EUR{% else %}-{% endif %}</td>
+                        <td>{{ '%.4f'|format(nuevo) }} EUR</td>
+                        <td>
+                            {% if dif is not none %}
+                            <span class="badge {{ 'bg-danger' if dif > 0 else ('bg-success' if dif < 0 else 'bg-secondary') }}">
+                                {{ '%+.4f'|format(dif) }} EUR
+                            </span>
+                            {% else %}
+                            -
+                            {% endif %}
+                        </td>
+                        <td>{{ h.origen or '-' }}</td>
+                        <td>{{ h.referencia_tipo or '-' }} {{ h.referencia_id or '' }}</td>
+                        <td>{{ h.usuario or '-' }}</td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="9" style="text-align:center;">Todavia no hay historico de precios.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

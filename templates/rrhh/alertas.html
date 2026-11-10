@@ -1,0 +1,136 @@
+{% extends 'base.html' %}
+{% block title %}Alertas RRHH{% endblock %}
+{% block breadcrumb %}RRHH / Alertas{% endblock %}
+{% block content %}
+<style>
+.alerta-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-bottom:16px}.metric{background:#17212b;border:1px solid #334155;border-radius:8px;padding:14px}.metric strong{font-size:1.5rem;color:#25c2e3}.alert-row{border:1px solid #334155;border-left:5px solid #dc3545;border-radius:8px;padding:12px;margin-bottom:10px;background:#1b2430}.alert-row.warning{border-left-color:#ffc107}.alert-row.info{border-left-color:#25c2e3}.alert-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}.inline-form{display:inline-flex;gap:6px;align-items:center;flex-wrap:wrap}.inline-form input,.inline-form select{max-width:220px}.muted{color:#aab4bf}.tipo-pill{display:inline-block;padding:3px 8px;border-radius:999px;background:#34485d;color:#fff;font-size:12px}.admin-alert-table{width:100%;border-collapse:collapse;min-width:850px}.admin-alert-table th,.admin-alert-table td{border-bottom:1px solid #334155;padding:9px;vertical-align:top}.admin-alert-table th{color:#ff6b00;background:#151a20}.table-scroll{overflow-x:auto}
+</style>
+<div class="card">
+  <div class="card-header">
+    <h2><i class="fas fa-bell"></i> Alertas RRHH de fichaje y cuadrante</h2>
+    <div>
+      <a class="btn btn-info" target="_blank" href="{{ url_for('rrhh.imprimir_alertas_rrhh', fecha=fecha, centro_id=centro_id, departamento_id=departamento_id, subdepartamento_id=subdepartamento_id) }}"><i class="fas fa-print"></i> Imprimir</a>
+      <a class="btn btn-secondary" href="{{ url_for('rrhh.cuadrante_real', fecha=fecha, centro_id=centro_id, departamento_id=departamento_id, subdepartamento_id=subdepartamento_id) }}"><i class="fas fa-calendar-week"></i> Cuadrante</a>
+      <a class="btn btn-secondary" href="{{ url_for('rrhh.lista_fichajes') }}"><i class="fas fa-clock"></i> Fichajes</a>
+    </div>
+  </div>
+
+  <div class="alert alert-info">
+    Cruza cuadrante, fichajes y ausencias. Si hay más de 30 minutos de entrada anticipada o salida tardía, queda pendiente de aprobación. Si no se aprueba, manda el horario del cuadrante.
+  </div>
+
+  <form method="get" class="card" style="padding:15px;">
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;align-items:end;">
+      <div><label class="form-label">Fecha</label><input type="date" name="fecha" value="{{ fecha }}" class="form-control"></div>
+      <div><label class="form-label">Centro</label><select name="centro_id" class="form-control"><option value="">Todos</option>{% for c in centros %}<option value="{{ c.id }}" {% if centro_id|string == c.id|string %}selected{% endif %}>{{ c.nombre }}</option>{% endfor %}</select></div>
+      <div><label class="form-label">Departamento</label><select name="departamento_id" class="form-control"><option value="">Todos</option>{% for d in departamentos %}<option value="{{ d.id }}" {% if departamento_id|string == d.id|string %}selected{% endif %}>{{ d.nombre }}</option>{% endfor %}</select></div>
+      <div><label class="form-label">Subdepartamento</label><select name="subdepartamento_id" class="form-control"><option value="">Todos</option>{% for sd in subdepartamentos %}<option value="{{ sd.id }}" {% if subdepartamento_id|string == sd.id|string %}selected{% endif %}>{{ sd.nombre }}</option>{% endfor %}</select></div>
+      <button class="btn btn-primary"><i class="fas fa-search"></i> Revisar</button>
+    </div>
+  </form>
+</div>
+
+<div class="alerta-grid">
+  <div class="metric"><span>Sin fichar</span><br><strong>{{ resumen.sin_fichar }}</strong></div>
+  <div class="metric"><span>Justificadas</span><br><strong>{{ resumen.justificadas }}</strong></div>
+  <div class="metric"><span>OK fichaje</span><br><strong>{{ resumen.ok }}</strong></div>
+  <div class="metric"><span>Extras pendientes</span><br><strong>{{ resumen.extras_pendientes }}</strong></div>
+  <div class="metric"><span>Extras aprobadas</span><br><strong>{{ resumen.extras_aprobadas }}</strong></div>
+  <div class="metric"><span>Salida anticipada</span><br><strong>{{ resumen.salidas_anticipadas }}</strong></div>
+  <div class="metric"><span>Docs/contratos vencen</span><br><strong>{{ alertas_admin.resumen.total }}</strong></div>
+</div>
+
+<div class="card">
+  <div class="card-header">
+    <h2><i class="fas fa-file-circle-exclamation"></i> Alertas administrativas</h2>
+    <a class="btn btn-primary" href="{{ url_for('rrhh.pendientes_rrhh') }}"><i class="fas fa-inbox"></i> Pendientes</a>
+  </div>
+  {% if alertas_admin.resumen.total %}
+  <div class="table-scroll">
+    <table class="admin-alert-table">
+      <thead><tr><th>Tipo</th><th>Empleado</th><th>Vencimiento</th><th>Estado</th><th>Acciones</th></tr></thead>
+      <tbody>
+        {% for d in alertas_admin.documentos %}
+        <tr>
+          <td><strong>Documento</strong><br><span class="muted">{{ d.nombre or d.tipo_documento }}</span></td>
+          <td>{{ d.empleado_nombre }}<br><span class="muted">{{ d.departamento_nombre or '-' }}</span></td>
+          <td>{{ d.fecha_caducidad }}</td>
+          <td>
+            {% if d.dias_restantes < 0 %}<span class="badge badge-danger">Vencido hace {{ 0 - d.dias_restantes }} dia(s)</span>
+            {% elif d.dias_restantes == 0 %}<span class="badge badge-warning">Vence hoy</span>
+            {% else %}<span class="badge badge-warning">Vence en {{ d.dias_restantes }} dia(s)</span>{% endif %}
+          </td>
+          <td>
+            {% if d.archivo %}<a class="btn btn-sm btn-info" href="{{ url_for('rrhh.descargar_documento_rrhh', id=d.id) }}"><i class="fas fa-download"></i></a>{% endif %}
+            <a class="btn btn-sm btn-warning" href="{{ url_for('rrhh.editar_documento', id=d.id) }}"><i class="fas fa-edit"></i> Revisar</a>
+          </td>
+        </tr>
+        {% endfor %}
+        {% for c in alertas_admin.contratos %}
+        <tr>
+          <td><strong>Contrato</strong><br><span class="muted">{{ c.tipo_contrato or 'Contrato' }}</span></td>
+          <td>{{ c.empleado_nombre }}<br><span class="muted">{{ c.departamento_nombre or '-' }}</span></td>
+          <td>{{ c.fecha_fin }}</td>
+          <td>
+            {% if c.dias_restantes < 0 %}<span class="badge badge-danger">Finalizado hace {{ 0 - c.dias_restantes }} dia(s)</span>
+            {% elif c.dias_restantes == 0 %}<span class="badge badge-warning">Finaliza hoy</span>
+            {% else %}<span class="badge badge-warning">Finaliza en {{ c.dias_restantes }} dia(s)</span>{% endif %}
+          </td>
+          <td>
+            {% if c.archivo %}<a class="btn btn-sm btn-info" href="{{ url_for('rrhh.descargar_contrato_rrhh', id=c.id) }}"><i class="fas fa-download"></i></a>{% endif %}
+            <a class="btn btn-sm btn-warning" href="{{ url_for('rrhh.editar_contrato', id=c.id) }}"><i class="fas fa-edit"></i> Revisar</a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <p class="muted">No hay documentos ni contratos vencidos o con vencimiento en los proximos 30 dias.</p>
+  {% endif %}
+</div>
+
+<div class="card">
+  <div class="card-header"><h2><i class="fas fa-list-check"></i> Detalle de alertas</h2></div>
+  {% for a in alertas %}
+  <div class="alert-row {{ a.nivel }}">
+    <strong>{{ a.tipo }}</strong> — {{ a.empleado }} <span class="tipo-pill">{{ a.codigo }}</span><br>
+    <span class="muted">{{ a.turno.departamento_nombre or '' }}{% if a.turno.subdepartamento_nombre %} / {{ a.turno.subdepartamento_nombre }}{% endif %}{% if a.turno.puesto_nombre %} · {{ a.turno.puesto_nombre }}{% endif %}</span><br>
+    <span>{{ a.turno.fecha }} · {{ a.turno.hora_inicio or '--:--' }} - {{ a.turno.hora_fin or '--:--' }}</span><br>
+    <small>{{ a.detalle }}</small>
+
+    <div class="alert-actions">
+      {% if puede_editar and a.extra %}
+        {% if a.extra.estado == 'pendiente' %}
+        <form class="inline-form" method="post" action="{{ url_for('rrhh.aprobar_tiempo_extra', id=a.extra.id) }}">
+          <input type="hidden" name="fecha" value="{{ fecha }}"><input class="form-control" name="motivo" placeholder="Motivo aprobación" value="Aprobado por responsable"><button class="btn btn-success btn-sm"><i class="fas fa-check"></i> Aprobar extra</button>
+        </form>
+        <form class="inline-form" method="post" action="{{ url_for('rrhh.rechazar_tiempo_extra', id=a.extra.id) }}">
+          <input type="hidden" name="fecha" value="{{ fecha }}"><input class="form-control" name="motivo" placeholder="Motivo rechazo" value="No autorizado"><button class="btn btn-warning btn-sm"><i class="fas fa-ban"></i> Rechazar</button>
+        </form>
+        {% else %}
+          <span class="badge {% if a.extra.estado == 'aprobado' %}badge-success{% else %}badge-warning{% endif %}">{{ a.extra.estado }}</span>
+        {% endif %}
+      {% endif %}
+
+      {% if puede_editar and a.codigo in ['sin_fichaje','sin_entrada','sin_salida','salida_anticipada'] %}
+      <a class="btn btn-primary btn-sm" href="{{ url_for('rrhh.editar_turno_rrhh', id=a.turno.id) }}"><i class="fas fa-edit"></i> Editar turno</a>
+      <details>
+        <summary class="btn btn-info btn-sm"><i class="fas fa-file-medical"></i> Justificar ausencia</summary>
+        <form method="post" enctype="multipart/form-data" action="{{ url_for('rrhh.justificar_ausencia_desde_alerta') }}" style="background:#252b33;border:1px solid #334155;padding:10px;border-radius:8px;margin-top:8px;display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px;">
+          <input type="hidden" name="empleado_id" value="{{ a.turno.empleado_id }}"><input type="hidden" name="fecha" value="{{ a.turno.fecha }}">
+          <select name="tipo" class="form-control"><option value="baja_medica">Baja médica</option><option value="accidente_laboral">Accidente laboral</option><option value="permiso_retribuido">Permiso retribuido</option><option value="permiso_no_retribuido">Permiso no retribuido</option><option value="ausencia_injustificada">Ausencia injustificada</option><option value="vacaciones">Vacaciones</option></select>
+          <select name="estado" class="form-control"><option value="aprobada">Aprobada</option><option value="solicitada">Solicitada</option></select>
+          <input type="file" name="archivo_documento" class="form-control" accept=".pdf,.png,.jpg,.jpeg,.webp,.heic,.tif,.tiff">
+          <input type="text" name="observaciones" class="form-control" placeholder="Motivo / observación">
+          <button class="btn btn-success btn-sm"><i class="fas fa-save"></i> Guardar justificación</button>
+        </form>
+      </details>
+      {% endif %}
+    </div>
+  </div>
+  {% else %}
+    <p class="muted">No hay alertas para la fecha seleccionada.</p>
+  {% endfor %}
+</div>
+{% endblock %}

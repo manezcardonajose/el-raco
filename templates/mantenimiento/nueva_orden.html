@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="card">
+    <h2 style="color: #ff6b00;"> NUEVA ORDEN DE TRABAJO</h2>
+    
+    <form method="POST">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+            <div>
+                <label>Equipo:</label>
+                <select name="equipo_id" required style="width: 100%; padding: 8px;">
+                    <option value="">-- Seleccionar equipo --</option>
+                    {% for e in equipos %}
+                    <option value="{{ e.id }}">{{ e.nombre }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div>
+                <label>Tipo:</label>
+                <select name="tipo" required style="width: 100%; padding: 8px;">
+                    <option value="correctivo"> Correctivo (avera)</option>
+                    <option value="preventivo"> Preventivo</option>
+                    <option value="instalacion">️ Instalacin</option>
+                </select>
+            </div>
+            
+            <div>
+                <label>Prioridad:</label>
+                <select name="prioridad" required style="width: 100%; padding: 8px;">
+                    <option value="baja"> Baja</option>
+                    <option value="media"> Media</option>
+                    <option value="alta"> Alta</option>
+                    <option value="urgente"> Urgente</option>
+                </select>
+            </div>
+            
+            <div>
+                <label>Tcnico asignado:</label>
+                <input type="text" name="tecnico_asignado" style="width: 100%; padding: 8px;">
+            </div>
+            
+            <div>
+                <label>Horas estimadas:</label>
+                <input type="number" step="0.5" name="horas_estimadas" style="width: 100%; padding: 8px;">
+            </div>
+        </div>
+        
+        <div style="margin-top: 20px;">
+            <label>Descripcin del problema/tarea:</label>
+            <textarea name="descripcion" rows="4" required style="width: 100%; padding: 8px;"></textarea>
+        </div>
+        
+        <div style="margin-top: 30px;">
+            <button type="submit" class="btn btn-success"> Crear orden</button>
+            <a href="/mantenimiento/ordenes" class="btn btn-red">Cancelar</a>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+
+

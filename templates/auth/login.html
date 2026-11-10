@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="card" style="max-width: 400px; margin: 50px auto;">
+    <h2 style="color: #ff6b00; text-align: center; margin-bottom: 30px;">
+        <i class="fas fa-sign-in-alt"></i> Iniciar sesión
+    </h2>
+    <form method="POST">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="form-group">
+            <label class="form-label">Email o codigo de acceso</label>
+            <input type="text" name="email" required class="form-control" autocomplete="username">
+        </div>
+        <div class="form-group">
+            <label class="form-label">Contraseña</label>
+            <input type="password" name="password" required class="form-control">
+        </div>
+        <button type="submit" class="btn btn-success" style="width: 100%;">
+            <i class="fas fa-sign-in-alt"></i> Entrar
+        </button>
+    </form>
+</div>
+{% endblock %}

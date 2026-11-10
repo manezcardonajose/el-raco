@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="es">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{{ empresa.nombre }} | Comentarios</title>
+    <link rel="icon" href="{{ url_for('static', filename='brand/el-raco-logo.svg') }}" type="image/svg+xml">
+    <style>
+        :root { --accent:#ff6b00; --ink:#17202a; --muted:#64748b; --line:#d9e2ec; --bg:#f6f8fb; }
+        body { margin:0; font-family:Arial, Helvetica, sans-serif; background:var(--bg); color:var(--ink); }
+        .wrap { max-width:860px; margin:0 auto; padding:24px 16px 42px; }
+        .panel { background:#fff; border:1px solid var(--line); border-radius:10px; padding:24px; box-shadow:0 6px 20px rgba(15,23,42,.06); }
+        .brand { display:flex; align-items:center; gap:12px; margin-bottom:16px; }
+        .brand img { width:48px; height:48px; object-fit:contain; }
+        h1 { margin:0 0 8px; color:var(--accent); font-size:28px; }
+        p { color:var(--muted); line-height:1.5; }
+        .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(210px,1fr)); gap:12px; }
+        label { display:block; font-size:13px; font-weight:700; margin:12px 0 5px; }
+        input, select, textarea { box-sizing:border-box; width:100%; min-height:42px; border:1px solid var(--line); border-radius:7px; padding:9px 11px; font:inherit; color:var(--ink); background:#fff; }
+        textarea { min-height:130px; resize:vertical; }
+        .check { display:flex; gap:9px; align-items:flex-start; margin-top:14px; color:var(--muted); font-size:14px; }
+        .check input { width:auto; min-height:0; margin-top:3px; }
+        .actions { display:flex; flex-wrap:wrap; gap:10px; margin-top:18px; }
+        .btn { border:0; min-height:44px; padding:0 18px; border-radius:7px; font-weight:700; cursor:pointer; text-decoration:none; display:inline-flex; align-items:center; }
+        .primary { background:var(--accent); color:#fff; }
+        .secondary { background:#e2e8f0; color:#17202a; }
+    </style>
+</head>
+<body>
+    <main class="wrap">
+        <section class="panel">
+            <div class="brand">
+                <img src="{{ url_for('static', filename='brand/el-raco-logo.svg') }}" alt="{{ empresa.nombre }}">
+                <div>
+                    <strong>{{ empresa.nombre }}</strong>
+                    <div style="color:var(--muted);font-size:14px;">Comentarios, sugerencias y ayuda</div>
+                </div>
+            </div>
+            <h1>Cuente con nosotros</h1>
+            <p>Si algo no esta como espera, si necesita ayuda o quiere dejarnos una sugerencia, este mensaje llega al equipo de atencion al cliente para revisarlo y responderle.</p>
+            <form method="post" action="{{ url_for('experiencia.publico_queja') }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <input type="hidden" name="empresa_id" value="{{ empresa_id }}">
+                <input type="text" name="web" value="" autocomplete="off" tabindex="-1" style="position:absolute;left:-10000px;width:1px;height:1px;opacity:0;" aria-hidden="true">
+                <div class="grid">
+                    <div>
+                        <label>Tipo de mensaje</label>
+                        <select name="tipo">
+                            {% for value, label in tipos %}
+                            <option value="{{ value }}">{{ label }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div>
+                        <label>Categoria</label>
+                        <select name="categoria">
+                            {% for value, label in categorias %}
+                            <option value="{{ value }}">{{ label }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div>
+                        <label>Nombre</label>
+                        <input type="text" name="titular_nombre" placeholder="Su nombre">
+                    </div>
+                    <div>
+                        <label>Habitacion / reserva</label>
+                        <input type="text" name="habitacion" placeholder="Ej. 205">
+                    </div>
+                    <div>
+                        <label>Email</label>
+                        <input type="email" name="email" placeholder="Para poder responder">
+                    </div>
+                    <div>
+                        <label>Telefono</label>
+                        <input type="text" name="telefono">
+                    </div>
+                    <div>
+                        <label>Idioma preferido</label>
+                        <input type="text" name="idioma" placeholder="es, en, de, it...">
+                    </div>
+                    <div>
+                        <label>Detalle opcional</label>
+                        <input type="text" name="subcategoria" placeholder="Ej. desayuno, limpieza, ruido...">
+                    </div>
+                </div>
+                <label>Mensaje</label>
+                <textarea name="descripcion" required placeholder="Explique que ha pasado o que necesita."></textarea>
+                <label>Impacto o urgencia</label>
+                <textarea name="impacto" placeholder="Por ejemplo: ocurre ahora, afecta a un menor, alergia, descanso, salida hoy..."></textarea>
+                <label class="check">
+                    <input type="checkbox" name="acepta_privacidad" value="1" required>
+                    <span>Autorizo al establecimiento a tratar estos datos para responder a mi solicitud durante la estancia o seguimiento posterior.</span>
+                </label>
+                <div class="actions">
+                    <button class="btn primary" type="submit">Enviar al equipo</button>
+                    <a class="btn secondary" href="{{ url_for('experiencia.publico_cliente', empresa_id=empresa_id) }}">Volver</a>
+                </div>
+            </form>
+        </section>
+    </main>
+</body>
+</html>

@@ -1,0 +1,138 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+
+    <h1>Almacenes</h1>
+
+    <!-- ACCIONES -->
+    <div style="margin-bottom: 20px; display:flex; gap:10px;">
+        <a href="{{ url_for('almacenes.nuevo_almacen') }}" class="btn btn-success">
+            ➕ Nuevo almacén
+        </a>
+        <a href="{{ url_for('almacenes.alta_masiva') }}" class="btn btn-primary">
+            Alta masiva por plantas
+        </a>
+    </div>
+
+    <!-- FILTROS -->
+    <div style="margin-bottom: 20px; display:flex; gap:10px;">
+        <input type="text" id="buscador" placeholder="Buscar almacén..." style="padding:8px; width:250px;">
+
+        <select id="filtro_tipo" style="padding:8px;">
+            <option value="">Todos los tipos</option>
+            <option value="seco">Seco</option>
+            <option value="refrigerado">Refrigerado</option>
+            <option value="congelado">Congelado</option>
+            <option value="botellero">Botellero</option>
+            <option value="camara">Camara</option>
+            <option value="vitrina">Vitrina</option>
+        </select>
+    </div>
+
+    <!-- TABLA -->
+    <div class="table-container">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Nombre</th>
+                    <th>Tipo</th>
+                    <th>Ubicación</th>
+                    <th>Responsable</th>
+                    <th>Departamento</th>
+                    <th>Equipos</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+
+            <tbody id="tabla_almacenes">
+                {% for a in almacenes %}
+                <tr data-tipo="{{ a.tipo }}">
+                    <td><strong>{{ a.nombre }}</strong></td>
+                    <td>{{ a.tipo }}</td>
+                    <td>{{ a.ubicacion or '-' }}</td>
+                    <td>{{ a.responsable or '-' }}</td>
+                    <td>{{ a.departamento_nombre or '-' }}</td>
+                    <td>
+                        {% if a.equipo_mantenimiento_id %}
+                            <a href="{{ url_for('mantenimiento.ver_equipo', equipo_id=a.equipo_mantenimiento_id) }}">
+                                {{ a.equipo_mantenimiento_codigo or ('EQ-' ~ a.equipo_mantenimiento_id) }}
+                            </a>
+                        {% else %}
+                            -
+                        {% endif %}
+                        {% if a.equipo_appcc_id %}
+                            <br><small>APPCC temperatura</small>
+                        {% endif %}
+                    </td>
+
+                    <td style="display:flex; gap:5px;">
+
+                        <!-- VER -->
+                        <a href="{{ url_for('almacenes.ver_almacen', almacen_id=a.id) }}"
+                           class="btn btn-small btn-info">
+                            👁
+                        </a>
+
+                        <!-- EDITAR -->
+                        <a href="{{ url_for('almacenes.editar_almacen', almacen_id=a.id) }}"
+                           class="btn btn-small btn-warning">
+                            ✏
+                        </a>
+
+                        <!-- ELIMINAR -->
+                        <form method="POST"
+                              action="{{ url_for('almacenes.eliminar_almacen', almacen_id=a.id) }}"
+                              onsubmit="return confirm('¿Eliminar este almacén?')">
+
+                            <button type="submit" class="btn btn-small btn-danger">
+                                🗑
+                            </button>
+                        </form>
+
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="7">No hay almacenes</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+
+        </table>
+    </div>
+</div>
+
+<!-- SCRIPT FILTROS -->
+<script>
+const buscador = document.getElementById('buscador');
+const filtroTipo = document.getElementById('filtro_tipo');
+const filas = document.querySelectorAll('#tabla_almacenes tr');
+
+function filtrar() {
+    const texto = buscador.value.toLowerCase();
+    const tipo = filtroTipo.value;
+
+    filas.forEach(fila => {
+        const nombre = fila.children[0]?.innerText.toLowerCase() || '';
+        const filaTipo = fila.dataset.tipo || '';
+
+        let visible = true;
+
+        if (texto && !nombre.includes(texto)) {
+            visible = false;
+        }
+
+        if (tipo && tipo !== filaTipo) {
+            visible = false;
+        }
+
+        fila.style.display = visible ? '' : 'none';
+    });
+}
+
+buscador.addEventListener('keyup', filtrar);
+filtroTipo.addEventListener('change', filtrar);
+</script>
+
+{% endblock %}

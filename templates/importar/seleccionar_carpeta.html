@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="card">
+    <h2 style="color: #ff6b00;">Importar desde carpeta</h2>
+    
+    <form method="POST">
+        <div style="margin-bottom: 15px;">
+            <label>Ruta de la carpeta:</label>
+            <input type="text" name="ruta_carpeta"
+                   placeholder="C:\Users\pepe\Desktop\recetas_excel"
+                   style="width: 100%; padding: 8px;" required>
+        </div>
+        <button type="submit" class="btn btn-success">Importar todos los archivos</button>
+        <a href="/importar" class="btn btn-red">Cancelar</a>
+    </form>
+</div>
+{% endblock %}

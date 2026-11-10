@@ -1,0 +1,289 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;">
+        <div>
+            <h2 style="color:#ff6b00;margin:0;">{{ orden.numero_orden }}</h2>
+            <small>{{ orden.origen_modulo or 'mantenimiento' }}{% if orden.origen_tipo %} · {{ orden.origen_tipo }} #{{ orden.origen_id }}{% endif %}</small>
+        </div>
+        <a href="{{ url_for('mantenimiento.lista_ordenes') }}" class="btn btn-secondary">Volver</a>
+    </div>
+
+    <div style="background:#3a3f44;padding:20px;border-radius:8px;margin:20px 0;">
+        <div style="display:grid;grid-template-columns:repeat(3,minmax(180px,1fr));gap:15px;">
+            <div><strong>Equipo:</strong> {{ orden.equipo_nombre }}{% if orden.marca or orden.modelo %} ({{ orden.marca or '' }} {{ orden.modelo or '' }}){% endif %}</div>
+            <div><strong>Tipo:</strong> {{ orden.tipo }}</div>
+            <div><strong>Prioridad:</strong> {{ orden.prioridad }}</div>
+            <div><strong>Estado:</strong> {{ orden.estado }}</div>
+            <div><strong>Fecha apertura:</strong> {{ orden.fecha_apertura }}</div>
+            <div><strong>Tecnico:</strong> {{ orden.tecnico_asignado or '-' }}</div>
+            <div><strong>Ubicacion:</strong> {{ orden.ubicacion or '-' }}</div>
+            <div><strong>Departamento:</strong> {{ orden.departamento_nombre or '-' }}</div>
+            <div><strong>Subdepartamento:</strong> {{ orden.subdepartamento_nombre or '-' }}</div>
+            <div><strong>Punto venta:</strong> {{ orden.punto_venta_nombre or '-' }}</div>
+            <div><strong>Incidencia:</strong> {% if orden.incidencia_id %}<a href="{{ url_for('incidencias.ver', incidencia_id=orden.incidencia_id) }}">#{{ orden.incidencia_id }}</a>{% else %}-{% endif %}</div>
+            <div><strong>APPCC:</strong> {{ 'Si' if orden.requiere_appcc else 'No' }}</div>
+        </div>
+
+        <div style="margin-top:20px;">
+            <strong>Descripcion:</strong>
+            <p style="background:#2b2f33;padding:10px;border-radius:4px;white-space:pre-wrap;">{{ orden.descripcion }}</p>
+        </div>
+        {% if orden.incidencia_descripcion %}
+        <div style="margin-top:12px;">
+            <strong>Incidencia origen:</strong>
+            <p style="background:#2b2f33;padding:10px;border-radius:4px;">{{ orden.incidencia_descripcion }}</p>
+        </div>
+        {% endif %}
+    </div>
+
+    <div style="display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap;">
+        {% if orden.estado == 'abierta' %}
+        <form method="post" action="{{ url_for('mantenimiento.cambiar_estado_orden', orden_id=orden.id, estado='asignada') }}" style="display:inline;">
+            <button type="submit" class="btn btn-primary">Asignar</button>
+        </form>
+        {% endif %}
+        {% if orden.estado == 'asignada' %}
+        <form method="post" action="{{ url_for('mantenimiento.cambiar_estado_orden', orden_id=orden.id, estado='en_proceso') }}" style="display:inline;">
+            <button type="submit" class="btn btn-warning">Iniciar</button>
+        </form>
+        {% endif %}
+        {% if orden.estado == 'en_proceso' %}
+        <a href="#cerrar-orden" class="btn btn-success">Cerrar con solucion</a>
+        {% endif %}
+        {% if orden.estado not in ['completada', 'cancelada'] %}
+        <form method="post" action="{{ url_for('mantenimiento.cambiar_estado_orden', orden_id=orden.id, estado='cancelada') }}" style="display:inline;">
+            <button type="submit" class="btn btn-red" onclick="return confirm('Cancelar orden?')">Cancelar</button>
+        </form>
+        {% endif %}
+    </div>
+
+    {% if orden.estado == 'en_proceso' %}
+    <div id="cerrar-orden" style="background:#20252a;border:1px solid #3a4652;border-radius:8px;padding:18px;margin-bottom:22px;">
+        <h3 style="margin-top:0;color:#ff6b00;">Cierre de la orden</h3>
+        <form method="POST" action="{{ url_for('mantenimiento.cerrar_orden', orden_id=orden.id) }}">
+            <div style="display:grid;grid-template-columns:repeat(2,minmax(220px,1fr));gap:14px;">
+                <div>
+                    <label>Diagnostico</label>
+                    <textarea name="diagnostico" rows="4" style="width:100%;">{{ orden.diagnostico or '' }}</textarea>
+                </div>
+                <div>
+                    <label>Trabajo realizado *</label>
+                    <textarea name="trabajo_realizado" rows="4" style="width:100%;" required>{{ orden.trabajo_realizado or '' }}</textarea>
+                </div>
+                <div>
+                    <label>Resultado</label>
+                    <select name="resultado" style="width:100%;">
+                        <option value="resuelta">Resuelta</option>
+                        <option value="provisional">Solucion provisional</option>
+                        <option value="pendiente_repuesto">Pendiente de repuesto</option>
+                        <option value="requiere_seguimiento">Requiere seguimiento</option>
+                    </select>
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+                    <div>
+                        <label>Horas reales</label>
+                        <input type="number" name="horas_reales" step="0.25" min="0" value="{{ orden.horas_reales or '' }}" style="width:100%;">
+                    </div>
+                    <div>
+                        <label>Coste real</label>
+                        <input type="number" name="coste_real" step="0.01" min="0" value="{{ orden.coste_real or '' }}" style="width:100%;">
+                    </div>
+                </div>
+                <div style="grid-column:1/-1;">
+                    <label>Observaciones</label>
+                    <textarea name="observaciones" rows="3" style="width:100%;">{{ orden.observaciones or '' }}</textarea>
+                </div>
+            </div>
+            <label style="display:inline-flex;align-items:center;gap:8px;margin-top:12px;">
+                <input type="checkbox" name="requiere_seguimiento" value="1" {% if orden.requiere_seguimiento %}checked{% endif %}>
+                Requiere seguimiento posterior
+            </label>
+            <div style="margin-top:14px;">
+                <button type="submit" class="btn btn-success" onclick="return confirm('Cerrar la orden con esta solucion?')">Cerrar orden</button>
+            </div>
+        </form>
+    </div>
+    {% elif orden.estado == 'completada' %}
+    <div style="background:#20252a;border:1px solid #3a4652;border-radius:8px;padding:18px;margin-bottom:22px;">
+        <h3 style="margin-top:0;color:#ff6b00;">Solucion registrada</h3>
+        <div style="display:grid;grid-template-columns:repeat(3,minmax(160px,1fr));gap:12px;margin-bottom:12px;">
+            <div><strong>Resultado:</strong> {{ orden.resultado or 'resuelta' }}</div>
+            <div><strong>Cerrado por:</strong> {{ orden.cerrado_por or '-' }}</div>
+            <div><strong>Fecha cierre:</strong> {{ orden.fecha_cierre or '-' }}</div>
+            <div><strong>Horas:</strong> {{ orden.horas_reales or '-' }}</div>
+            <div><strong>Coste:</strong> {{ "%.2f"|format(orden.coste_real or 0) }} EUR</div>
+            <div><strong>Seguimiento:</strong> {{ 'Si' if orden.requiere_seguimiento else 'No' }}</div>
+        </div>
+        {% if orden.diagnostico %}
+        <strong>Diagnostico:</strong>
+        <p style="background:#2b2f33;padding:10px;border-radius:4px;white-space:pre-wrap;">{{ orden.diagnostico }}</p>
+        {% endif %}
+        <strong>Trabajo realizado:</strong>
+        <p style="background:#2b2f33;padding:10px;border-radius:4px;white-space:pre-wrap;">{{ orden.trabajo_realizado or '-' }}</p>
+    </div>
+    {% endif %}
+
+    <h3>Repuestos utilizados</h3>
+    {% if orden.estado not in ['completada', 'cancelada'] %}
+    <form method="POST" action="{{ url_for('mantenimiento.agregar_repuesto_orden', orden_id=orden.id) }}" style="background:#20252a;border:1px solid #3a4652;border-radius:8px;padding:14px;margin-bottom:14px;">
+        <div style="display:grid;grid-template-columns:minmax(240px,1.4fr) 100px 110px minmax(180px,1fr) auto;gap:10px;align-items:end;">
+            <div>
+                <label>Repuesto</label>
+                <select name="repuesto_id" class="form-control" required>
+                    <option value="">Seleccionar</option>
+                    {% for r in repuestos_disponibles %}
+                    <option value="{{ r.id }}">
+                        {{ r.codigo }} - {{ r.nombre }} | stock {{ "%.2f"|format(r.stock_actual or 0) }} {{ r.unidad or 'ud' }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label>Cantidad</label>
+                <input type="number" step="0.01" min="0.01" name="cantidad" class="form-control" value="1" required>
+            </div>
+            <div>
+                <label>Precio</label>
+                <input type="number" step="0.01" min="0" name="precio_unitario" class="form-control" placeholder="auto">
+            </div>
+            <div>
+                <label>Observaciones</label>
+                <input name="observaciones" class="form-control" placeholder="pieza sustituida, motivo...">
+            </div>
+            <button class="btn btn-success">Anadir</button>
+        </div>
+    </form>
+    {% endif %}
+    <table style="width:100%;">
+        <thead><tr><th>Codigo</th><th>Repuesto</th><th>Cantidad</th><th>Precio</th><th>Total</th><th>Usuario</th></tr></thead>
+        <tbody>
+            {% for r in repuestos %}
+            <tr>
+                <td>{{ r.codigo }}</td>
+                <td>{{ r.repuesto_nombre }}</td>
+                <td>{{ r.cantidad }}</td>
+                <td>{{ "%.2f"|format(r.precio_unitario or 0) }}</td>
+                <td>{{ "%.2f"|format((r.cantidad or 0) * (r.precio_unitario or 0)) }}</td>
+                <td>{{ r.usuario or '-' }}</td>
+            </tr>
+            {% else %}
+            <tr><td colspan="6" style="text-align:center;">No se han usado repuestos.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <h3 style="margin-top:24px;">Compras vinculadas</h3>
+    {% if orden.estado not in ['completada', 'cancelada'] %}
+    <form method="POST" action="{{ url_for('mantenimiento.solicitar_compra_repuesto_orden', orden_id=orden.id) }}" style="background:#20252a;border:1px solid #3a4652;border-radius:8px;padding:14px;margin-bottom:14px;">
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;align-items:end;">
+            <div>
+                <label>Repuesto catalogado</label>
+                <select name="repuesto_compra_id" class="form-control">
+                    <option value="">No esta en la lista</option>
+                    {% for r in repuestos_disponibles %}
+                    <option value="{{ r.id }}">{{ r.codigo }} - {{ r.nombre }} | stock {{ "%.2f"|format(r.stock_actual or 0) }} {{ r.unidad or 'ud' }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label>Pieza no catalogada</label>
+                <input name="pieza_compra_nombre" class="form-control" placeholder="Ej: bisagra puerta camara, placa electronica...">
+            </div>
+            <div>
+                <label>Ref. proveedor</label>
+                <input name="referencia_pieza_compra" class="form-control" placeholder="Referencia, medidas, modelo...">
+            </div>
+            <div>
+                <label>Cantidad</label>
+                <input type="number" step="0.01" min="0.01" name="cantidad_compra" class="form-control" value="1" required>
+            </div>
+            <div>
+                <label>Unidad</label>
+                <select name="unidad_pieza_compra" class="form-control">
+                    <option value="ud">ud</option>
+                    <option value="m">m</option>
+                    <option value="pack">pack</option>
+                    <option value="caja">caja</option>
+                    <option value="kg">kg</option>
+                    <option value="l">l</option>
+                </select>
+            </div>
+            <div>
+                <label>Precio estimado</label>
+                <input type="number" step="0.01" min="0" name="precio_compra_estimado" class="form-control" placeholder="opcional">
+            </div>
+            <div>
+                <label>Proveedor</label>
+                <select name="proveedor_compra_id" class="form-control">
+                    <option value="">Proveedor del repuesto</option>
+                    {% for p in proveedores %}
+                    <option value="{{ p.id }}">{{ p.nombre }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label>Entrega</label>
+                <input type="date" name="fecha_entrega_compra" class="form-control">
+            </div>
+            <div>
+                <label>Observaciones</label>
+                <input name="observaciones_compra" class="form-control" placeholder="urgente, marca, modelo...">
+            </div>
+            <button class="btn btn-warning">Pedir a compras</button>
+        </div>
+        <small style="display:block;margin-top:8px;opacity:.8;">
+            Si la pieza no existe, escribe el nombre: se crea como repuesto provisional y se manda a compras vinculado a esta orden.
+        </small>
+    </form>
+    {% endif %}
+
+    <table style="width:100%;">
+        <thead><tr><th>Pedido</th><th>Repuesto</th><th>Proveedor</th><th>Cantidad</th><th>Recibido</th><th>Estado</th><th></th></tr></thead>
+        <tbody>
+            {% for s in solicitudes_compra %}
+            <tr>
+                <td>{{ s.numero_pedido or ('Pedido #' ~ s.pedido_id) }}</td>
+                <td>{{ s.repuesto_codigo }} - {{ s.repuesto_nombre }}</td>
+                <td>{{ s.proveedor_nombre or '-' }}</td>
+                <td>{{ "%.2f"|format(s.cantidad or 0) }}</td>
+                <td>{{ "%.2f"|format(s.cantidad_recibida_aplicada or 0) }}</td>
+                <td>{{ s.estado }}{% if s.pedido_estado %}<br><small>Compras: {{ s.pedido_estado }}</small>{% endif %}</td>
+                <td><a class="btn btn-sm btn-info" href="{{ url_for('compras.ver_pedido', pedido_id=s.pedido_id) }}">Ver pedido</a></td>
+            </tr>
+            {% else %}
+            <tr><td colspan="7" style="text-align:center;">Sin compras vinculadas a esta orden.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <h3 style="margin-top:24px;">Historial del equipo</h3>
+    <table style="width:100%;">
+        <thead>
+            <tr>
+                <th>Fecha</th>
+                <th>Tipo</th>
+                <th>Descripcion</th>
+                <th>Tecnico</th>
+                <th>Horas</th>
+                <th>Coste</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for h in historial %}
+            <tr>
+                <td>{{ h.fecha }}</td>
+                <td>{{ h.tipo }}</td>
+                <td style="white-space:pre-wrap;">{{ h.descripcion }}</td>
+                <td>{{ h.tecnico or '-' }}</td>
+                <td>{{ h.horas or '-' }}</td>
+                <td>{{ "%.2f"|format(h.coste or 0) }} EUR</td>
+            </tr>
+            {% else %}
+            <tr><td colspan="6" style="text-align:center;">Todavia no hay historial para esta orden.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

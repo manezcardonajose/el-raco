@@ -1,0 +1,6 @@
+{% extends 'base.html' %}
+{% block title %}Historial RRHH{% endblock %}
+{% block breadcrumb %}RRHH / Historial{% endblock %}
+{% block content %}
+<div class="card"><div class="card-header"><h2><i class="fas fa-history"></i> Historial de cambios RRHH</h2></div><div class="table-container"><table><thead><tr><th>Fecha</th><th>Tabla</th><th>ID</th><th>Acción</th><th>Motivo</th><th>Usuario</th></tr></thead><tbody>{% for h in historial %}<tr><td>{{ h.fecha }}</td><td>{{ h.tabla }}</td><td>{{ h.registro_id }}</td><td>{{ h.accion }}</td><td>{{ h.motivo or '-' }}</td><td>{{ h.usuario_id or '-' }}</td></tr>{% else %}<tr><td colspan="6">Sin cambios registrados.</td></tr>{% endfor %}</tbody></table></div></div>
+{% endblock %}

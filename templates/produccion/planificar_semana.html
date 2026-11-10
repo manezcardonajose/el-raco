@@ -1,0 +1,176 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="card">
+    <div class="card-header">
+        <h2><i class="fas fa-calendar-week"></i> Planificación semanal de producción</h2>
+        <div>
+            <form method="GET" style="display: inline-flex; gap: 10px;">
+                <input type="date" name="fecha" value="{{ semana_inicio }}" class="form-control" style="width: 200px;">
+                <button type="submit" class="btn btn-primary">Ver semana</button>
+            </form>
+            <a href="{{ url_for('produccion.produccion_index') }}" class="btn btn-secondary">Volver</a>
+        </div>
+    </div>
+
+    <div style="overflow-x: auto;">
+        <table style="width: 100%; border-collapse: collapse;">
+            <thead>
+                <tr style="background: #1c1f23;">
+                    <th style="padding: 12px; text-align: left; min-width: 120px;">Servicio / Día</th>
+                    {% for dia in dias_semana %}
+                    <th style="padding: 12px; text-align: center; min-width: 200px;">
+                        {{ dia.nombre }}<br>
+                        <small style="color: #999;">{{ dia.fecha }}</small>
+                    </th>
+                    {% endfor %}
+                </tr>
+            </thead>
+            <tbody>
+                {% for tipo in tipos %}
+                <tr style="border-bottom: 1px solid #444;">
+                    <td style="padding: 12px; font-weight: bold; background: #2b2f33;">
+                        <i class="fas fa-utensils"></i> {{ tipo.nombre }}
+                    </td>
+                    {% for dia in dias_semana %}
+                    <td style="padding: 12px; border: 1px solid #444; vertical-align: top; background: #1e252b;">
+                        {% set menus_dia = planificacion[dia.fecha][tipo.id] if planificacion and planificacion[dia.fecha] and planificacion[dia.fecha][tipo.id] else [] %}
+
+                        {% if menus_dia %}
+                        {% for menu in menus_dia %}
+                        <div style="background: #2b2f33; padding: 8px; border-radius: 4px; margin-bottom: 8px; border-left: 3px solid #ff6b00;">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <div>
+                                    <strong>Menú #{{ menu.menu_diario_id }}</strong>
+                                    {% if menu.subdepartamento_nombre %}
+                                    <br><small style="color: #ff6b00;">{{ menu.subdepartamento_nombre }}</small>
+                                    {% endif %}
+                                    <br><small>{{ menu.num_platos or 0 }} platos</small>
+                                </div>
+                                <div>
+                                    <form method="POST" action="{{ url_for('produccion.quitar_menu_produccion_semanal', planificacion_id=menu.id) }}" style="display: inline;">
+                                        <button type="submit" class="btn-icon" style="background: #dc3545; color: white; padding: 3px 6px;" title="Quitar">
+                                            <i class="fas fa-times"></i>
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                            <div style="margin-top: 5px; display: flex; gap: 5px;">
+                                <a href="{{ url_for('menus.ver_menu_diario', menu_id=menu.menu_diario_id) }}" class="btn-icon" title="Ver menú">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                                <form method="post" action="{{ url_for('produccion.planificar_desde_menu') }}" style="display:inline;">
+                                    <input type="hidden" name="menu_id" value="{{ menu.menu_diario_id }}">
+                                    <input type="hidden" name="fecha" value="{{ dia.fecha }}">
+                                    <button type="submit" class="btn-icon" style="background: #28a745; color: white; border: 0; cursor: pointer;" title="Enviar a producción">
+                                        <i class="fas fa-play"></i>
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                        {% endfor %}
+                        <form method="POST" action="{{ url_for('produccion.enviar_semanal_a_produccion') }}" style="margin-top: 8px;">
+                            <input type="hidden" name="fecha" value="{{ dia.fecha }}">
+                            <input type="hidden" name="tipo_menu_id" value="{{ tipo.id }}">
+                            <button type="submit" class="btn btn-sm btn-success" style="width: 100%; padding: 5px;">
+                                <i class="fas fa-play"></i> Enviar servicio
+                            </button>
+                        </form>
+                        {% else %}
+                        <div style="text-align: center; padding: 10px; background: #1e252b; border: 1px dashed #444; border-radius: 4px;">
+                            <p style="color: #666; margin-bottom: 8px;">-- Sin menús --</p>
+                            <form method="POST" action="{{ url_for('produccion.anadir_menu_produccion_semanal') }}" style="display: flex; flex-direction: column; gap: 5px;">
+                                <input type="hidden" name="fecha" value="{{ dia.fecha }}">
+                                <input type="hidden" name="tipo_menu_id" value="{{ tipo.id }}">
+                                <select name="menu_diario_id" required class="form-control" style="padding: 4px; font-size: 12px;">
+                                    <option value="">Seleccionar menú...</option>
+                                    {% for md in menus_disponibles %}
+                                    <option value="{{ md.id }}">{{ md.fecha }} - {{ md.tipo_nombre }} ({{ md.num_platos }} platos)</option>
+                                    {% endfor %}
+                                </select>
+                                <select name="subdepartamento_id" class="form-control" style="padding: 4px; font-size: 12px;">
+                                    <option value="">Sin subdepartamento</option>
+                                    {% for s in subdeptos %}
+                                    <option value="{{ s.id }}">{{ s.nombre }}</option>
+                                    {% endfor %}
+                                </select>
+                                <button type="submit" class="btn btn-sm btn-success" style="padding: 4px;">
+                                    <i class="fas fa-plus"></i> Añadir menú
+                                </button>
+                            </form>
+                        </div>
+                        {% endif %}
+                    </td>
+                    {% endfor %}
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <div style="margin-top: 20px; text-align: center;">
+        <form method="post" action="{{ url_for('produccion.planificar_semana_completa') }}" style="display:inline;">
+            <input type="hidden" name="fecha_inicio" value="{{ semana_inicio }}">
+            <button type="submit" class="btn btn-warning btn-lg">
+                <i class="fas fa-calendar-week"></i> Enviar toda la semana a producción
+            </button>
+        </form>
+    </div>
+
+    <div style="margin-top: 20px; background: #2b2f33; padding: 15px; border-radius: 6px;">
+        <p style="color: #ff6b00; margin: 0;">
+            <i class="fas fa-info-circle"></i>
+            Esta vista permite asignar menús a cada día y servicio. Al enviar a producción, se crearán partes por subdepartamento.
+        </p>
+    </div>
+</div>
+
+<style>
+    .btn-icon {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 4px 6px;
+        border-radius: 4px;
+        text-decoration: none;
+        background: #3a3f44;
+        color: #ff6b00;
+        transition: all 0.2s;
+        font-size: 12px;
+        border: none;
+        cursor: pointer;
+    }
+
+        .btn-icon:hover {
+            background: #ff6b00;
+            color: white;
+            transform: scale(1.05);
+        }
+
+    .btn-sm {
+        padding: 4px 8px;
+        font-size: 12px;
+        border-radius: 4px;
+    }
+
+    .btn-warning {
+        background: #ffc107;
+        color: black;
+    }
+
+        .btn-warning:hover {
+            opacity: 0.8;
+        }
+
+    table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    th {
+        font-weight: 600;
+        text-transform: uppercase;
+        font-size: 12px;
+        letter-spacing: 0.5px;
+    }
+</style>
+{% endblock %}

@@ -1,0 +1,59 @@
+{% extends 'base.html' %}
+{% block title %}Cuadrantes RRHH{% endblock %}
+{% block breadcrumb %}RRHH / Cuadrantes{% endblock %}
+{% block content %}
+<div class="card">
+  <div class="card-header">
+    <h2><i class="fas fa-calendar-week"></i> Cuadrante semanal</h2>
+    <div>
+      <a class="btn btn-secondary" href="{{ url_for('rrhh.cuadrantes', fecha=(inicio - timedelta(days=7)).isoformat(), departamento_id=departamento_id, subdepartamento_id=subdepartamento_id) }}"><i class="fas fa-chevron-left"></i> Semana anterior</a>
+      <a class="btn btn-secondary" href="{{ url_for('rrhh.cuadrantes', fecha=(inicio + timedelta(days=7)).isoformat(), departamento_id=departamento_id, subdepartamento_id=subdepartamento_id) }}">Semana siguiente <i class="fas fa-chevron-right"></i></a>
+      <a class="btn btn-info" href="{{ url_for('rrhh.vacaciones') }}"><i class="fas fa-umbrella-beach"></i> Vacaciones</a>
+    </div>
+  </div>
+  <form method="get" class="card" style="padding:15px;">
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:15px;align-items:end;">
+      <div class="form-group"><label class="form-label">Semana de referencia</label><input type="date" name="fecha" value="{{ inicio.isoformat() }}" class="form-control"></div>
+      <div class="form-group"><label class="form-label">Departamento</label><select name="departamento_id" class="form-control"><option value="">Todos</option>{% for d in departamentos %}<option value="{{ d.id }}" {% if departamento_id|string == d.id|string %}selected{% endif %}>{{ d.nombre }}</option>{% endfor %}</select></div>
+      <div class="form-group"><label class="form-label">Subdepartamento</label><select name="subdepartamento_id" class="form-control"><option value="">Todos</option>{% for sd in subdepartamentos %}<option value="{{ sd.id }}" data-departamento="{{ sd.departamento_id or '' }}" {% if subdepartamento_id|string == sd.id|string %}selected{% endif %}>{{ sd.nombre }}</option>{% endfor %}</select></div>
+      <button class="btn btn-primary"><i class="fas fa-search"></i> Ver cuadrante</button>
+    </div>
+  </form>
+  {% if puede_editar %}
+  <form method="post" action="{{ url_for('rrhh.crear_turno_cuadrante') }}" class="card" style="padding:15px;">
+    <h3 style="color:#ff6b00;margin-bottom:12px;">Añadir turno</h3>
+    <div style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr 1fr 1fr;gap:12px;align-items:end;">
+      <div class="form-group"><label class="form-label">Empleado</label><select name="empleado_id" class="form-control" required>{% for e in empleados %}<option value="{{ e.id }}">{{ e.nombre }} {{ e.apellidos or '' }}{% if e.departamento_nombre %} — {{ e.departamento_nombre }}{% endif %}</option>{% endfor %}</select></div>
+      <div class="form-group"><label class="form-label">Fecha</label><input type="date" name="fecha" value="{{ inicio.isoformat() }}" class="form-control" required></div>
+      <div class="form-group"><label class="form-label">Inicio</label><input type="time" name="hora_inicio" class="form-control" required></div>
+      <div class="form-group"><label class="form-label">Fin</label><input type="time" name="hora_fin" class="form-control" required></div>
+      <div class="form-group"><label class="form-label">Tipo</label><select name="tipo" class="form-control"><option value="normal">Normal</option><option value="nocturno">Nocturno</option><option value="festivo">Festivo</option><option value="extra">Extra</option></select></div>
+      <div class="form-group"><label class="form-label">Repetir semanas</label><input type="number" name="repetir_semanas" min="1" max="8" value="1" class="form-control"></div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 2fr auto;gap:12px;align-items:end;">
+      <div class="form-group"><label class="form-label">Departamento</label><select name="departamento_id" class="form-control"><option value="">Del empleado</option>{% for d in departamentos %}<option value="{{ d.id }}">{{ d.nombre }}</option>{% endfor %}</select></div>
+      <div class="form-group"><label class="form-label">Subdepartamento</label><select name="subdepartamento_id" class="form-control"><option value="">Del empleado</option>{% for sd in subdepartamentos %}<option value="{{ sd.id }}" data-departamento="{{ sd.departamento_id or '' }}">{{ sd.nombre }}</option>{% endfor %}</select></div>
+      <div class="form-group"><label class="form-label">Observaciones</label><input type="text" name="observaciones" class="form-control"></div>
+      <button class="btn btn-success"><i class="fas fa-plus"></i> Añadir</button>
+    </div>
+  </form>
+  {% endif %}
+  {% include 'rrhh/_herramientas_tabla.html' %}
+<div class="table-container">
+    <table>
+      <thead><tr><th>Día</th><th>Empleado</th><th>Departamento</th><th>Subdepartamento</th><th>Horario</th><th>Tipo</th><th>Obs.</th><th></th></tr></thead>
+      <tbody>
+      {% for t in turnos %}
+        <tr>
+          <td>{{ t.fecha }}</td><td>{{ t.empleado_nombre }}</td><td>{{ t.departamento_nombre or '-' }}</td><td>{{ t.subdepartamento_nombre or '-' }}</td><td>{{ t.hora_inicio or '-' }} - {{ t.hora_fin or '-' }}</td><td><span class="badge badge-info">{{ t.tipo }}</span></td><td>{{ t.observaciones or '' }}</td>
+          <td>{% if puede_editar %}<form method="post" action="{{ url_for('rrhh.eliminar_turno_cuadrante', id=t.id) }}" onsubmit="return confirm('¿Eliminar turno?')"><button class="btn-icon" title="Eliminar"><i class="fas fa-trash"></i></button></form>{% endif %}</td>
+        </tr>
+      {% else %}<tr><td colspan="8">No hay turnos en esta semana.</td></tr>{% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% if vacaciones %}
+  <div class="alert alert-warning"><strong>Vacaciones/Ausencias en esta semana:</strong> {% for v in vacaciones %} {{ v.empleado_nombre }} ({{ v.fecha_inicio }} a {{ v.fecha_fin }}){% if not loop.last %}, {% endif %}{% endfor %}</div>
+  {% endif %}
+</div>
+{% endblock %}

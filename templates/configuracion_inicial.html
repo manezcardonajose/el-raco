@@ -1,0 +1,226 @@
+{% extends "base.html" %}
+{% block content %}
+<style>
+    .setup-header {
+        display: grid;
+        grid-template-columns: 1fr minmax(220px, 320px);
+        gap: 18px;
+        align-items: stretch;
+        margin-bottom: 18px;
+    }
+
+    .setup-title {
+        border: 1px solid #2c3e50;
+        border-radius: 8px;
+        background: #252b33;
+        padding: 22px;
+    }
+
+    .setup-title h1 {
+        color: #ffffff;
+        margin: 0 0 8px;
+        font-size: 28px;
+        letter-spacing: 0;
+    }
+
+    .setup-title p {
+        color: #aeb8c6;
+        margin: 0;
+        line-height: 1.45;
+    }
+
+    .setup-summary {
+        border: 1px solid #2c3e50;
+        border-radius: 8px;
+        background: #111827;
+        padding: 22px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+    }
+
+    .setup-summary strong {
+        color: #ffffff;
+        font-size: 34px;
+        line-height: 1;
+    }
+
+    .setup-summary span {
+        color: #aeb8c6;
+        margin-top: 8px;
+        display: block;
+    }
+
+    .setup-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 14px;
+    }
+
+    .setup-card {
+        border: 1px solid #2c3e50;
+        border-radius: 8px;
+        background: #252b33;
+        padding: 18px;
+        min-height: 250px;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+    }
+
+    .setup-card-top {
+        display: grid;
+        grid-template-columns: 42px 1fr auto;
+        gap: 12px;
+        align-items: start;
+        margin-bottom: 14px;
+    }
+
+    .setup-icon {
+        width: 42px;
+        height: 42px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 8px;
+        background: #111827;
+        color: #ff6b00;
+        font-size: 18px;
+    }
+
+    .setup-card h2 {
+        color: #ffffff;
+        font-size: 17px;
+        margin: 0 0 5px;
+    }
+
+    .setup-card p {
+        color: #aeb8c6;
+        margin: 0;
+        line-height: 1.4;
+        font-size: 13px;
+    }
+
+    .setup-state {
+        border-radius: 999px;
+        padding: 5px 8px;
+        font-size: 11px;
+        font-weight: 700;
+        white-space: nowrap;
+    }
+
+    .setup-state.listo {
+        background: #12351f;
+        color: #95f0b6;
+    }
+
+    .setup-state.pendiente {
+        background: #3a2e1e;
+        color: #ffe6a5;
+    }
+
+    .setup-progress {
+        height: 8px;
+        border-radius: 999px;
+        background: #111827;
+        overflow: hidden;
+        margin: 14px 0;
+    }
+
+    .setup-progress span {
+        display: block;
+        height: 100%;
+        background: #ff6b00;
+    }
+
+    .setup-metrics {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-bottom: 14px;
+    }
+
+    .setup-metric {
+        background: #1d2530;
+        border: 1px solid #34465c;
+        border-radius: 8px;
+        padding: 8px 10px;
+        color: #d7dee8;
+        font-size: 12px;
+    }
+
+    .setup-metric strong {
+        color: #ffffff;
+        margin-left: 6px;
+    }
+
+    .setup-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    .setup-actions a {
+        color: #ffffff;
+        background: #334155;
+        border-radius: 6px;
+        padding: 8px 10px;
+        text-decoration: none;
+        font-size: 13px;
+    }
+
+    .setup-actions a:hover {
+        background: #ff6b00;
+    }
+
+    @media (max-width: 800px) {
+        .setup-header {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+
+<div class="setup-header">
+    <div class="setup-title">
+        <h1>Configuracion inicial</h1>
+        <p>Guia para levantar un establecimiento desde base vacia, manteniendo relaciones, permisos, trazabilidad, APPCC e ISO preparados para crecer.</p>
+        <div style="margin-top:14px;">
+            <a href="{{ url_for('configuracion_inicial_ia') }}" class="btn btn-success">
+                <i class="fas fa-wand-magic-sparkles"></i> Asistente IA para nuevo centro
+            </a>
+        </div>
+    </div>
+    <div class="setup-summary">
+        <strong>{{ progreso }}%</strong>
+        <span>{{ pendientes }} bloques pendientes de completar</span>
+    </div>
+</div>
+
+<div class="setup-grid">
+    {% for item in items %}
+    <section class="setup-card">
+        <div>
+            <div class="setup-card-top">
+                <span class="setup-icon"><i class="fas {{ item.icono }}"></i></span>
+                <div>
+                    <h2>{{ item.titulo }}</h2>
+                    <p>{{ item.detalle }}</p>
+                </div>
+                <span class="setup-state {{ item.estado }}">{{ item.estado }}</span>
+            </div>
+            <div class="setup-progress"><span style="width: {{ item.progreso }}%;"></span></div>
+            <div class="setup-metrics">
+                {% for nombre, valor in item.metricas %}
+                <span class="setup-metric">{{ nombre }} <strong>{{ valor }}</strong></span>
+                {% endfor %}
+            </div>
+        </div>
+        <div class="setup-actions">
+            {% for texto, href in item.acciones %}
+            <a href="{{ href }}">{{ texto }}</a>
+            {% endfor %}
+        </div>
+    </section>
+    {% endfor %}
+</div>
+{% endblock %}

@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="card">
+    <h2>Editar departamento</h2>
+
+    <form method="POST">
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px;">
+            <div>
+                <label>Nombre:</label>
+                <input type="text" name="nombre" value="{{ departamento.nombre }}" required style="width:100%;padding:8px;">
+            </div>
+            <div>
+                <label>Tipo operativo:</label>
+                <select name="tipo_operativo" class="form-control">
+                    {% for key,label in [('general','General'),('cocina','Cocina'),('restaurante','Restaurante'),('bar','Bar'),('mantenimiento','Mantenimiento'),('pisos','Pisos'),('recepcion','Recepcion'),('almacen','Almacen / economato')] %}
+                    <option value="{{ key }}" {% if (departamento.tipo_operativo or 'general') == key %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label>Centro / hotel:</label>
+                <select name="centro_id" class="form-control">
+                    <option value="">General empresa</option>
+                    {% for c in centros %}
+                    <option value="{{ c.id }}" {% if departamento.centro_id|string == c.id|string %}selected{% endif %}>{{ c.nombre }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label>Depende de:</label>
+                <select name="departamento_padre_id" class="form-control">
+                    <option value="">No depende de otro departamento</option>
+                    {% for d in departamentos %}
+                    <option value="{{ d.id }}" {% if departamento.departamento_padre_id|string == d.id|string %}selected{% endif %}>{{ d.nombre }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+
+        <div style="margin-top:15px;">
+            <label>Descripcion:</label>
+            <textarea name="descripcion" rows="4" style="width:100%;padding:8px;">{{ departamento.descripcion or '' }}</textarea>
+        </div>
+
+        <div style="margin-top:18px;background:#1e252b;padding:14px;border-radius:8px;">
+            <h3 style="margin-top:0;color:#ff6b00;">Capacidades</h3>
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;">
+                {% for key,label in capacidades %}
+                <label><input type="checkbox" name="{{ key }}" {% if departamento[key] %}checked{% endif %}> {{ label }}</label>
+                {% endfor %}
+            </div>
+            <label style="display:block;margin-top:14px;">
+                <input type="checkbox" name="crear_base_operativa">
+                Crear o completar base operativa segun capacidades actuales
+            </label>
+        </div>
+
+        <div style="margin-top:15px;">
+            <label>
+                <input type="checkbox" name="activo" {% if departamento.activo %}checked{% endif %}> Departamento activo
+            </label>
+        </div>
+
+        <button type="submit" class="btn btn-success">Guardar cambios</button>
+        <a href="/departamentos/{{ departamento.id }}" class="btn btn-red">Cancelar</a>
+    </form>
+</div>
+{% endblock %}

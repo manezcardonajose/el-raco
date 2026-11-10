@@ -1,0 +1,131 @@
+{% extends "base.html" %}
+{% block breadcrumb %}Contabilidad / Documento{% endblock %}
+{% block content %}
+
+<div class="card">
+    <div class="card-header">
+        <div>
+            <h2><i class="fas fa-file-invoice-dollar"></i> {{ documento.numero or ('Documento #' ~ documento.id) }}</h2>
+            <div style="font-size:13px;opacity:.8;">{{ documento.tipo }} · {{ documento.fecha_documento or '-' }}</div>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <a href="{{ url_for('contabilidad.documentos') }}" class="btn btn-secondary">Documentos</a>
+            <a href="{{ url_for('contabilidad.dashboard') }}" class="btn btn-primary">Panel</a>
+        </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px;margin-bottom:18px;">
+        <div><strong>Tercero:</strong><br>{{ documento.tercero_nombre or documento.proveedor_nombre or '-' }}</div>
+        <div><strong>NIF/CIF:</strong><br>{{ documento.tercero_nif or '-' }}</div>
+        <div><strong>Cuenta:</strong><br>{{ documento.cuenta_contable or documento.codigo_contable or '-' }}</div>
+        <div><strong>Estado:</strong><br><span class="badge {% if documento.estado == 'pagado' %}badge-success{% elif documento.estado == 'vencido' %}badge-danger{% else %}badge-warning{% endif %}">{{ documento.estado }}</span></div>
+        <div><strong>Vencimiento:</strong><br>{{ documento.fecha_vencimiento|fecha_es }}</div>
+        <div><strong>Departamento:</strong><br>{{ documento.departamento_nombre or documento.subdepartamento_nombre or documento.punto_venta_nombre or documento.centro_coste or '-' }}</div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin-bottom:18px;">
+        <div style="background:#20252a;border:1px solid #344150;border-radius:8px;padding:12px;">
+            <div style="font-size:12px;opacity:.75;">Base</div>
+            <div style="font-size:22px;font-weight:700;">{{ documento.base_imponible|euros }}</div>
+        </div>
+        <div style="background:#20252a;border:1px solid #344150;border-radius:8px;padding:12px;">
+            <div style="font-size:12px;opacity:.75;">Impuesto</div>
+            <div style="font-size:22px;font-weight:700;">{{ documento.impuesto_importe|euros }}</div>
+        </div>
+        <div style="background:#20252a;border:1px solid #344150;border-radius:8px;padding:12px;">
+            <div style="font-size:12px;opacity:.75;">Total</div>
+            <div style="font-size:22px;font-weight:700;">{{ documento.total|euros }}</div>
+        </div>
+        <div style="background:#20252a;border:1px solid #344150;border-radius:8px;padding:12px;">
+            <div style="font-size:12px;opacity:.75;">Pagado</div>
+            <div style="font-size:22px;font-weight:700;color:#51cf66;">{{ documento.pagado|euros }}</div>
+        </div>
+        <div style="background:#20252a;border:1px solid #344150;border-radius:8px;padding:12px;">
+            <div style="font-size:12px;opacity:.75;">Pendiente</div>
+            <div style="font-size:22px;font-weight:700;color:#ffb347;">{{ documento.pendiente|euros }}</div>
+        </div>
+    </div>
+
+    {% if documento.observaciones %}
+    <div style="background:#20252a;border:1px solid #344150;border-radius:8px;padding:12px;margin-bottom:18px;white-space:pre-wrap;">{{ documento.observaciones }}</div>
+    {% endif %}
+
+    <h3 style="color:#ff6b00;">Lineas</h3>
+    <div class="table-container">
+        <table class="table">
+            <thead><tr><th>Concepto</th><th style="text-align:right;">Cantidad</th><th style="text-align:right;">Base</th><th style="text-align:right;">Imp.</th><th style="text-align:right;">Total</th><th>Cuenta</th></tr></thead>
+            <tbody>
+                {% for l in lineas %}
+                <tr>
+                    <td>{{ l.concepto }}</td>
+                    <td style="text-align:right;">{{ l.cantidad|numero_es }}</td>
+                    <td style="text-align:right;">{{ l.base|euros }}</td>
+                    <td style="text-align:right;">{{ l.impuesto_importe|euros }}</td>
+                    <td style="text-align:right;">{{ l.total|euros }}</td>
+                    <td>{{ l.cuenta_contable or '-' }}</td>
+                </tr>
+                {% else %}
+                <tr><td colspan="6" style="text-align:center;padding:18px;">Sin lineas.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    {% if documento.estado not in ['pagado', 'facturado', 'pendiente_factura', 'cancelado'] %}
+    <h3 style="color:#ff6b00;">Registrar pago</h3>
+    <form method="POST" action="{{ url_for('contabilidad.registrar_pago', documento_id=documento.id) }}" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;align-items:end;margin-bottom:18px;">
+        <div>
+            <label class="form-label">Fecha</label>
+            <input type="date" name="fecha_pago" class="form-control">
+        </div>
+        <div>
+            <label class="form-label">Importe</label>
+            <input type="number" step="0.01" name="importe" class="form-control" value="{{ "%.2f"|format(documento.pendiente or 0) }}">
+        </div>
+        <div>
+            <label class="form-label">Metodo</label>
+            <select name="metodo" class="form-control">
+                <option value="transferencia">Transferencia</option>
+                <option value="tarjeta">Tarjeta</option>
+                <option value="efectivo">Efectivo</option>
+                <option value="domiciliacion">Domiciliacion</option>
+            </select>
+        </div>
+        <div>
+            <label class="form-label">Cuenta tesoreria</label>
+            <select name="cuenta_tesoreria" class="form-control">
+                <option value="572">572 Bancos</option>
+                <option value="570">570 Caja</option>
+            </select>
+        </div>
+        <div>
+            <label class="form-label">Referencia</label>
+            <input name="referencia" class="form-control">
+        </div>
+        <button class="btn btn-success">Registrar pago</button>
+    </form>
+    {% endif %}
+
+    <h3 style="color:#ff6b00;">Pagos</h3>
+    <div class="table-container">
+        <table class="table">
+            <thead><tr><th>Fecha</th><th>Metodo</th><th style="text-align:right;">Importe</th><th>Cuenta</th><th>Referencia</th><th>Usuario</th></tr></thead>
+            <tbody>
+                {% for p in pagos %}
+                <tr>
+                    <td>{{ p.fecha_pago|fecha_es }}</td>
+                    <td>{{ p.metodo }}</td>
+                    <td style="text-align:right;">{{ p.importe|euros }}</td>
+                    <td>{{ p.cuenta_tesoreria or '-' }}</td>
+                    <td>{{ p.referencia or '-' }}</td>
+                    <td>{{ p.usuario or '-' }}</td>
+                </tr>
+                {% else %}
+                <tr><td colspan="6" style="text-align:center;padding:18px;">Sin pagos registrados.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{% endblock %}

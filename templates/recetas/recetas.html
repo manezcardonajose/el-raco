@@ -1,0 +1,351 @@
+{% extends "base.html" %}
+
+{% block content %}
+<style>
+    .recetas-page {
+        max-width: none;
+        margin: 0;
+    }
+    .recetas-card {
+        padding: 18px 20px;
+    }
+    .recetas-card .card-header {
+        align-items: flex-start;
+        gap: 12px;
+        margin-bottom: 14px;
+    }
+    .recetas-card h2 {
+        font-size: 26px;
+    }
+    .recetas-actions {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+        max-width: 920px;
+    }
+    .recetas-actions .btn {
+        min-height: 34px;
+        padding: 7px 11px;
+        font-size: 13px;
+    }
+    .recetas-kpis {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(130px, 1fr));
+        gap: 8px;
+        margin-bottom: 14px;
+    }
+    .recetas-kpi {
+        border: 1px solid var(--border-color, #cbd5e1);
+        background: var(--surface-soft, #f8fafc);
+        border-radius: 7px;
+        padding: 10px 12px;
+        min-height: 64px;
+    }
+    .recetas-kpi span {
+        display: block;
+        color: var(--text-muted, #475569);
+        font-size: 12px;
+        margin-bottom: 6px;
+    }
+    .recetas-kpi strong {
+        font-size: 22px;
+        color: var(--text-color, #111827);
+    }
+    .recetas-filter {
+        display: grid;
+        grid-template-columns: minmax(260px, 1fr) minmax(160px, 220px) auto auto;
+        gap: 10px;
+        align-items: end;
+        margin-bottom: 10px;
+    }
+    .recetas-chips {
+        display: flex;
+        gap: 6px;
+        flex-wrap: wrap;
+        margin-bottom: 14px;
+    }
+    .chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 9px;
+        border-radius: 999px;
+        border: 1px solid var(--border-color, #cbd5e1);
+        background: var(--surface-bg, #fff);
+        color: var(--text-muted, #475569);
+        text-decoration: none;
+        font-size: 12px;
+        line-height: 1;
+    }
+    .chip.active {
+        background: var(--brand, #ff6b00);
+        border-color: var(--brand, #ff6b00);
+        color: #fff;
+        font-weight: 700;
+    }
+    .receta-name {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+    }
+    .receta-name strong {
+        color: var(--text-color, #111827);
+        line-height: 1.25;
+    }
+    .receta-muted {
+        color: var(--text-muted, #475569);
+        font-size: 12px;
+    }
+    .recetas-table {
+        table-layout: auto;
+        min-width: 980px;
+    }
+    .recetas-table th,
+    .recetas-table td {
+        padding: 12px 10px;
+        vertical-align: middle;
+        line-height: 1.35;
+    }
+    .recetas-table th {
+        letter-spacing: 0;
+        font-size: 11px;
+    }
+    .recetas-table th:nth-child(1) { width: 32%; }
+    .recetas-table th:nth-child(2) { width: 14%; }
+    .recetas-table th:nth-child(3) { width: 16%; }
+    .recetas-table th:nth-child(4) { width: 20%; }
+    .recetas-table th:nth-child(5) { width: 9%; }
+    .recetas-table th:nth-child(6) { width: 9%; }
+    .btn-icon {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 30px;
+        height: 30px;
+        border-radius: 6px;
+        background: var(--surface-bg, #fff);
+        color: var(--brand, #ff6b00);
+        border: 1px solid var(--border-color, #cbd5e1);
+        cursor: pointer;
+        text-decoration: none;
+    }
+    .btn-icon:hover {
+        background: var(--brand, #ff6b00);
+        color: #fff;
+    }
+    .btn-icon.danger {
+        color: var(--danger, #b42318);
+    }
+    .recetas-pages {
+        display: flex;
+        justify-content: center;
+        gap: 5px;
+        margin-top: 18px;
+        flex-wrap: wrap;
+    }
+    .btn-pagina {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 34px;
+        height: 32px;
+        border-radius: 6px;
+        background: var(--surface-bg, #fff);
+        border: 1px solid var(--border-color, #cbd5e1);
+        color: var(--text-color, #111827);
+        text-decoration: none;
+        font-size: 13px;
+    }
+    .btn-pagina.active {
+        background: var(--brand, #ff6b00);
+        border-color: var(--brand, #ff6b00);
+        color: #fff;
+        font-weight: 700;
+    }
+    .recetas-empty {
+        text-align: center;
+        padding: 34px;
+        color: var(--text-muted, #475569);
+        background: var(--surface-bg, #fff);
+    }
+    @media (max-width: 900px) {
+        .recetas-filter {
+            grid-template-columns: 1fr;
+        }
+        .recetas-kpis {
+            grid-template-columns: repeat(2, minmax(130px, 1fr));
+        }
+        .recetas-actions {
+            width: 100%;
+            justify-content: flex-start;
+        }
+        .recetas-actions .btn {
+            flex: 1;
+            justify-content: center;
+        }
+    }
+</style>
+
+<div class="recetas-page">
+    <div class="card recetas-card">
+        <div class="card-header">
+            <h2><i class="fas fa-utensils"></i> Recetas</h2>
+            <div class="recetas-actions">
+                {% if tiene_permiso('produccion_editar') %}
+                <a href="{{ url_for('recetas.nueva_receta') }}" class="btn btn-success">
+                    <i class="fas fa-plus"></i> Nueva
+                </a>
+                <a href="{{ url_for('recetas.rellenar_recetas_pruebas') }}" class="btn btn-warning">
+                    <i class="fas fa-magic"></i> Rellenar 4 raciones
+                </a>
+                <form method="POST" action="{{ url_for('recetas.recalcular_alergenos_recetas') }}" style="display:inline;">
+                    <button type="submit" class="btn btn-warning" onclick="return confirm('Inferir alergenos en recetas pendientes? Hay que revisarlos antes de publicar.');">
+                        <i class="fas fa-exclamation-triangle"></i> Inferir alergenos
+                    </button>
+                </form>
+                <a href="{{ url_for('recetas.analizar_mise_en_place') }}" class="btn btn-primary">
+                    <i class="fas fa-file-pdf"></i> Mise en place
+                </a>
+                <a href="{{ url_for('recetas.biblioteca_recetas') }}" class="btn btn-info">
+                    <i class="fas fa-book-open"></i> Biblioteca IA
+                </a>
+                <a href="{{ url_for('recetas.fuentes_externas_recetas') }}" class="btn btn-secondary">
+                    <i class="fas fa-link"></i> Fuentes externas
+                </a>
+                <a href="{{ url_for('utils.exportar', modulo='recetas') }}" class="btn btn-info">
+                    <i class="fas fa-file-excel"></i> Exportar
+                </a>
+                <a href="{{ url_for('importar.index') }}" class="btn btn-primary">
+                    <i class="fas fa-file-import"></i> Importar
+                </a>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="recetas-kpis">
+            <div class="recetas-kpi">
+                <span>Total recetas</span>
+                <strong>{{ estadisticas.total or 0 }}</strong>
+            </div>
+            <div class="recetas-kpi">
+                <span>Sin ingredientes</span>
+                <strong>{{ estadisticas.sin_ingredientes or 0 }}</strong>
+            </div>
+            <div class="recetas-kpi">
+                <span>Sin alergenos</span>
+                <strong>{{ estadisticas.sin_alergenos or 0 }}</strong>
+            </div>
+            <div class="recetas-kpi">
+                <span>Resultado filtro</span>
+                <strong>{{ total_registros or 0 }}</strong>
+            </div>
+        </div>
+
+        <form method="GET" action="{{ url_for('recetas.recetas') }}" class="recetas-filter">
+            <div>
+                <label class="form-label">Buscar</label>
+                <input type="text" name="buscar" class="form-control" placeholder="Nombre, categoria o descripcion" value="{{ buscar_actual }}">
+            </div>
+            <div>
+                <label class="form-label">Estado</label>
+                <select name="estado" class="form-control">
+                    <option value="" {% if not estado_actual %}selected{% endif %}>Todos</option>
+                    <option value="sin_ingredientes" {% if estado_actual == 'sin_ingredientes' %}selected{% endif %}>Sin ingredientes</option>
+                    <option value="con_ingredientes" {% if estado_actual == 'con_ingredientes' %}selected{% endif %}>Con ingredientes</option>
+                    <option value="sin_alergenos" {% if estado_actual == 'sin_alergenos' %}selected{% endif %}>Sin alergenos</option>
+                </select>
+            </div>
+            <input type="hidden" name="categoria" value="{{ categoria_actual }}">
+            <button type="submit" class="btn btn-primary"><i class="fas fa-search"></i> Filtrar</button>
+            <a href="{{ url_for('recetas.recetas') }}" class="btn btn-secondary"><i class="fas fa-times"></i> Limpiar</a>
+        </form>
+
+        <div class="recetas-chips">
+            <a href="{{ url_for('recetas.recetas', buscar=buscar_actual, estado=estado_actual) }}"
+               class="chip {% if not categoria_actual %}active{% endif %}">
+                Todas
+            </a>
+            {% for c in categorias %}
+            <a href="{{ url_for('recetas.recetas', categoria=c.categoria, buscar=buscar_actual, estado=estado_actual) }}"
+               class="chip {% if categoria_actual == c.categoria %}active{% endif %}">
+                {{ 'Sin categoria' if c.categoria == 'sin_categoria' else c.categoria }} <span>{{ c.total }}</span>
+            </a>
+            {% endfor %}
+        </div>
+
+        <div class="table-container">
+            <table class="recetas-table">
+                <thead>
+                    <tr>
+                        <th>Receta</th>
+                        <th>Categoria</th>
+                        <th>Base</th>
+                        <th>Alergenos</th>
+                        <th>Coste</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for r in recetas %}
+                    <tr>
+                        <td>
+                            <div class="receta-name">
+                                <strong>{{ r.nombre }}</strong>
+                                <span class="receta-muted">{{ r.descripcion or 'Sin descripcion' }}</span>
+                            </div>
+                        </td>
+                        <td>
+                            <span class="badge badge-secondary">{{ r.categoria or 'Sin categoria' }}</span>
+                        </td>
+                        <td>
+                            <div>{{ r.num_ingredientes or 0 }} ingredientes</div>
+                            <div class="receta-muted">{{ r.raciones_base or 4 }} raciones base</div>
+                        </td>
+                        <td>
+                            {% if r.alergenos %}
+                                {{ r.alergenos }}
+                            {% else %}
+                                <span class="badge badge-warning">Pendiente</span>
+                            {% endif %}
+                        </td>
+                        <td><strong>{{ (r.coste_total or 0)|euros }}</strong></td>
+                        <td style="white-space:nowrap;">
+                            <a href="{{ url_for('recetas.ver_receta', receta_id=r.id) }}" class="btn-icon" title="Ver"><i class="fas fa-eye"></i></a>
+                            {% if tiene_permiso('produccion_editar') %}
+                            <a href="{{ url_for('recetas.editar_receta', receta_id=r.id) }}" class="btn-icon" title="Editar"><i class="fas fa-edit"></i></a>
+                            {% endif %}
+                            <a href="{{ url_for('recetas.imprimir_receta', receta_id=r.id) }}" class="btn-icon" title="Imprimir" target="_blank"><i class="fas fa-print"></i></a>
+                            {% if tiene_permiso('produccion_editar') %}
+                            <form method="POST" action="{{ url_for('recetas.eliminar_receta', receta_id=r.id) }}" style="display:inline;" onsubmit="return confirm('Eliminar receta?');">
+                                <button type="submit" class="btn-icon danger" title="Eliminar"><i class="fas fa-trash"></i></button>
+                            </form>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="6" class="recetas-empty">
+                            <strong>No hay recetas con estos filtros.</strong><br>
+                            <span class="receta-muted">Cambia el estado, limpia la busqueda o importa recetas para este centro.</span>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        {% if total_paginas > 1 %}
+        <div class="recetas-pages">
+            {% for p in range(1, total_paginas + 1) %}
+                {% if p == pagina_actual %}
+                <span class="btn-pagina active">{{ p }}</span>
+                {% else %}
+                <a href="{{ url_for('recetas.recetas', pagina=p, categoria=categoria_actual, estado=estado_actual, buscar=buscar_actual) }}" class="btn-pagina">{{ p }}</a>
+                {% endif %}
+            {% endfor %}
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

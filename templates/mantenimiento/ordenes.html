@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;">
+        <h2 style="color:#ff6b00;margin:0;">Ordenes de trabajo</h2>
+        <a href="{{ url_for('mantenimiento.nueva_orden') }}" class="btn btn-success">Nueva orden</a>
+    </div>
+
+    <div style="background:#3a3f44;padding:15px;border-radius:4px;margin:20px 0;">
+        <form method="GET">
+            <div style="display:flex;gap:10px;flex-wrap:wrap;">
+                <select name="estado" class="form-control" style="flex:1;">
+                    <option value="">Todos los estados</option>
+                    {% for estado in ['abierta','asignada','en_proceso','completada','cancelada'] %}
+                    <option value="{{ estado }}" {% if request.args.get('estado') == estado %}selected{% endif %}>{{ estado }}</option>
+                    {% endfor %}
+                </select>
+                <select name="prioridad" class="form-control" style="flex:1;">
+                    <option value="">Todas las prioridades</option>
+                    {% for prioridad in ['baja','media','alta','urgente'] %}
+                    <option value="{{ prioridad }}" {% if request.args.get('prioridad') == prioridad %}selected{% endif %}>{{ prioridad }}</option>
+                    {% endfor %}
+                </select>
+                <button type="submit" class="btn btn-primary">Filtrar</button>
+                <a href="{{ url_for('mantenimiento.lista_ordenes') }}" class="btn btn-secondary">Limpiar</a>
+            </div>
+        </form>
+    </div>
+
+    <div class="table-container">
+        <table style="width:100%;">
+            <thead>
+                <tr>
+                    <th>Orden</th>
+                    <th>Equipo</th>
+                    <th>Ubicacion</th>
+                    <th>Origen</th>
+                    <th>Tipo</th>
+                    <th>Prioridad</th>
+                    <th>Estado</th>
+                    <th>Fecha</th>
+                    <th>Tecnico</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for o in ordenes %}
+                <tr>
+                    <td><strong>{{ o.numero_orden }}</strong></td>
+                    <td>{{ o.equipo_nombre }}</td>
+                    <td>
+                        {{ o.ubicacion or '-' }}
+                        {% if o.departamento_nombre %}<br><small>{{ o.departamento_nombre }}{% if o.subdepartamento_nombre %} / {{ o.subdepartamento_nombre }}{% endif %}</small>{% endif %}
+                        {% if o.punto_venta_nombre %}<br><small>{{ o.punto_venta_nombre }}</small>{% endif %}
+                    </td>
+                    <td>{{ o.origen_modulo or 'mantenimiento' }}{% if o.origen_tipo %}<br><small>{{ o.origen_tipo }} #{{ o.origen_id }}</small>{% endif %}</td>
+                    <td>{{ o.tipo }}</td>
+                    <td>{{ o.prioridad }}</td>
+                    <td>{{ o.estado }}</td>
+                    <td>{{ o.fecha_apertura[:10] if o.fecha_apertura else '-' }}</td>
+                    <td>{{ o.tecnico_asignado or '-' }}</td>
+                    <td><a href="{{ url_for('mantenimiento.ver_orden', orden_id=o.id) }}" class="btn btn-sm btn-info">Ver</a></td>
+                </tr>
+                {% else %}
+                <tr><td colspan="10" style="text-align:center;padding:30px;">No hay ordenes de trabajo.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

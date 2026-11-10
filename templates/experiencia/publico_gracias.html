@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="es">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{{ empresa.nombre }} | Gracias</title>
+    <link rel="icon" href="{{ url_for('static', filename='brand/el-raco-logo.svg') }}" type="image/svg+xml">
+    <style>
+        body { margin:0; font-family:Arial, Helvetica, sans-serif; background:#f6f8fb; color:#17202a; }
+        .wrap { max-width:720px; margin:0 auto; padding:42px 16px; }
+        .panel { background:#fff; border:1px solid #d9e2ec; border-radius:10px; padding:30px; text-align:center; box-shadow:0 6px 20px rgba(15,23,42,.06); }
+        img { width:62px; height:62px; object-fit:contain; }
+        h1 { color:#ff6b00; margin:18px 0 8px; }
+        p { color:#64748b; line-height:1.55; }
+    </style>
+</head>
+<body>
+    <main class="wrap">
+        <section class="panel">
+            <img src="{{ url_for('static', filename='brand/el-raco-logo.svg') }}" alt="{{ empresa.nombre }}">
+            <h1>Gracias, hemos recibido su mensaje</h1>
+            <p>El equipo de atencion al cliente lo revisara. Si el asunto es urgente, contacte tambien con recepcion para que podamos ayudarle al momento.</p>
+        </section>
+    </main>
+</body>
+</html>

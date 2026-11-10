@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+
+{% block title %}Informes de Compras{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h1 class="mb-4"> Informes de Compras</h1>
+    
+    <div class="row">
+        <div class="col-md-6 mb-4">
+            <div class="card h-100">
+                <div class="card-body text-center">
+                    <h5 class="card-title">
+                        <i class="fas fa-history fa-2x mb-3 text-primary"></i>
+                    </h5>
+                    <h4>Histrico de Compras</h4>
+                    <p class="card-text text-muted">
+                        Consulta el historial completo de compras con filtros por producto, 
+                        proveedor y fechas.
+                    </p>
+                    <a href="{{ url_for('informes.compras_historico') }}" class="btn btn-primary">
+                        Ver Histrico
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-6 mb-4">
+            <div class="card h-100">
+                <div class="card-body text-center">
+                    <h5 class="card-title">
+                        <i class="fas fa-chart-line fa-2x mb-3 text-success"></i>
+                    </h5>
+                    <h4>Comparativa de Precios</h4>
+                    <p class="card-text text-muted">
+                        Compara precios de un mismo producto entre diferentes proveedores 
+                        a lo largo del tiempo.
+                    </p>
+                    <a href="{{ url_for('informes.compras_comparativa') }}" class="btn btn-success">
+                        Ver Comparativa
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row mt-2">
+        <div class="col-12">
+            <a href="{{ url_for('home') }}" class="btn btn-secondary">
+                 Volver al Inicio
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+
+

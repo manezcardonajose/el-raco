@@ -1,0 +1,216 @@
+{% extends 'base.html' %}
+{% block title %}Herramientas seguridad{% endblock %}
+{% block breadcrumb %}Demo / Herramientas seguridad{% endblock %}
+{% block content %}
+<div class="card">
+  <div class="card-header">
+    <h2><i class="fas fa-shield-halved"></i> Herramientas de seguridad local</h2>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+      <a class="btn btn-secondary" href="{{ url_for('demo.sala_control') }}"><i class="fas fa-tower-observation"></i> Sala Control</a>
+      <a class="btn btn-secondary" href="{{ url_for('demo.dashboard') }}"><i class="fas fa-route"></i> Demo guiada</a>
+    </div>
+  </div>
+  <p class="muted">Primera capa tecnica: salud de base, backups trazados y restauracion de prueba por consola. No ejecuta restauraciones sobre la base activa.</p>
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;">
+    <div class="card"><h3>{{ estado.db.tamano_mb or 0 }} MB</h3><p>Base activa</p><small>{{ estado.db.ruta }}</small></div>
+    <div class="card"><h3>{{ estado.health.score or 0 }}</h3><p>Score salud</p><small>{{ estado.health.estado or '-' }}</small></div>
+    <div class="card"><h3>{{ estado.health.tablas or 0 }}</h3><p>Tablas</p><small>integrity: {{ estado.health.integrity_check or '-' }}</small></div>
+    <div class="card"><h3>{{ estado.health.incidencias or 0 }}</h3><p>Incidencias</p><small>{{ estado.health.criticas or 0 }} criticas / {{ estado.health.altas or 0 }} altas</small></div>
+    <div class="card"><h3>{{ estado.backups.total or 0 }}</h3><p>Backups locales</p><small>Carpeta backups/erp</small></div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header"><h2><i class="fas fa-fingerprint"></i> Seguridad de datos</h2></div>
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px;">
+    <div class="card"><h3>{{ estado.health.auditoria_seguridad.total or 0 }}</h3><p>Eventos auditados</p><small>login, logout y claves</small></div>
+    <div class="card"><h3>{{ estado.health.auditoria_seguridad.login_ok or 0 }}</h3><p>Logins correctos</p><small>accesos trazados</small></div>
+    <div class="card"><h3>{{ estado.health.auditoria_seguridad.login_fallido or 0 }}</h3><p>Logins fallidos</p><small>revisar si suben</small></div>
+    <div class="card"><h3>{{ estado.health.auditoria_seguridad.herramientas or 0 }}</h3><p>Acciones seguridad</p><small>salud, snapshots y errores</small></div>
+    <div class="card"><h3>{{ estado.health.auditoria_seguridad.denegados or 0 }}</h3><p>Accesos denegados</p><small>permisos o acciones bloqueadas</small></div>
+    <div class="card"><h3>{{ estado.health.inventario_db|length if estado.health.inventario_db else 0 }}</h3><p>Bases .db detectadas</p><small>activas, backups y pruebas</small></div>
+    <div class="card"><h3>{{ 'SI' if estado.health.entorno.secret_key_pruebas else 'NO' }}</h3><p>Clave de pruebas</p><small>permitido solo en local</small></div>
+    <div class="card"><h3>{{ estado.health.entorno.erp_host or '-' }}</h3><p>Escucha red</p><small>puerto {{ estado.health.entorno.erp_port or '-' }}</small></div>
+    <div class="card"><h3>{{ 'SI' if estado.health.entorno.erp_cookie_secure else 'NO' }}</h3><p>Cookie Secure</p><small>obligatorio con HTTPS publico</small></div>
+    <div class="card"><h3>{{ 'SI' if estado.network.puerto_responde else 'NO' }}</h3><p>Puerto responde</p><small>{{ estado.network.hostname or '-' }}</small></div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header"><h2><i class="fas fa-network-wired"></i> Diagnostico de red local</h2></div>
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;">
+    <div class="card"><h3>{{ estado.network.erp_host or '-' }}</h3><p>Host configurado</p><small>Puerto {{ estado.network.erp_port or '-' }}</small></div>
+    <div class="card"><h3>{{ estado.network.ips_locales|length if estado.network.ips_locales else 0 }}</h3><p>IPs locales</p><small>{{ (estado.network.ips_locales or [])|join(', ') }}</small></div>
+    <div class="card"><h3>{{ estado.network.listeners_erp|length if estado.network.listeners_erp else 0 }}</h3><p>Escuchas ERP</p><small>procesos en el puerto ERP</small></div>
+    <div class="card"><h3>{{ estado.network.issues|length if estado.network.issues else 0 }}</h3><p>Avisos red</p><small>firewall/VPN/proxy</small></div>
+  </div>
+  {% if estado.network.listeners_erp %}
+  <div class="table-container" style="margin-top:12px;">
+    <table>
+      <thead><tr><th>Local</th><th>Puerto</th><th>PID</th><th>Exposicion</th></tr></thead>
+      <tbody>
+      {% for row in estado.network.listeners_erp %}
+      <tr>
+        <td>{{ row.local }}</td>
+        <td>{{ row.puerto }}</td>
+        <td>{{ row.pid }}</td>
+        <td><span class="badge {{ 'badge-warning' if row.toda_red else 'badge-success' }}">{{ 'toda la red' if row.toda_red else 'local/especifica' }}</span></td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% endif %}
+</div>
+
+<div class="card">
+  <div class="card-header"><h2><i class="fas fa-toolbox"></i> Acciones seguras</h2></div>
+  <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;">
+    <form method="post" style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;">
+      <input type="hidden" name="accion" value="health">
+      <button class="btn btn-primary"><i class="fas fa-stethoscope"></i> Registrar salud</button>
+    </form>
+    <form method="post" style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;">
+      <input type="hidden" name="accion" value="network">
+      <button class="btn btn-primary"><i class="fas fa-network-wired"></i> Diagnostico red</button>
+    </form>
+    <form method="post" style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;">
+      <input type="hidden" name="accion" value="snapshot">
+      <div class="form-group" style="margin:0;">
+        <label class="form-label">Motivo snapshot</label>
+        <input class="form-control" name="motivo" value="snapshot manual desde ERP" style="min-width:260px;">
+      </div>
+      <button class="btn btn-success"><i class="fas fa-database"></i> Crear snapshot</button>
+    </form>
+  </div>
+  <p class="muted" style="margin-top:10px;">Restaurar una copia se mantiene fuera de esta pantalla de momento. Solo se permite restauracion de prueba por script para evitar pisar datos activos.</p>
+</div>
+
+{% if estado.health.issues %}
+<div class="card">
+  <div class="card-header"><h2><i class="fas fa-triangle-exclamation"></i> Incidencias de salud</h2></div>
+  <div class="table-container">
+    <table>
+      <thead><tr><th>Nivel</th><th>Codigo</th><th>Incidencia</th><th>Detalle</th></tr></thead>
+      <tbody>
+      {% for issue in estado.health.issues %}
+      <tr>
+        <td><span class="badge {{ 'badge-danger' if issue.severidad == 'critica' else 'badge-warning' if issue.severidad == 'alta' else 'badge-info' }}">{{ issue.severidad }}</span></td>
+        <td>{{ issue.codigo }}</td>
+        <td>{{ issue.titulo }}</td>
+        <td>{{ issue.detalle }}</td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
+
+<div class="card">
+  <div class="card-header"><h2><i class="fas fa-clock-rotate-left"></i> Historial de backups</h2></div>
+  <div class="table-container">
+    <table>
+      <thead><tr><th>Fecha</th><th>Archivo</th><th>Tamano</th><th>Estado</th><th>Motivo</th><th>SHA-256</th></tr></thead>
+      <tbody>
+      {% for row in estado.ultimos_backups %}
+      <tr>
+        <td>{{ row.fecha }}</td>
+        <td><small>{{ row.archivo }}</small></td>
+        <td>{{ row.tamano_bytes }}</td>
+        <td><span class="badge badge-success">{{ row.estado }}</span></td>
+        <td>{{ row.motivo }}</td>
+        <td><small>{{ row.sha256 }}</small></td>
+      </tr>
+      {% else %}
+      <tr><td colspan="6">Todavia no hay backups registrados.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header"><h2><i class="fas fa-user-shield"></i> Ultimos eventos de seguridad</h2></div>
+  <div class="table-container">
+    <table>
+      <thead><tr><th>Fecha</th><th>Usuario</th><th>Modulo</th><th>Accion</th><th>Resultado</th><th>IP</th><th>Detalle</th></tr></thead>
+      <tbody>
+      {% for row in estado.auditoria_seguridad %}
+      <tr>
+        <td>{{ row.fecha }}</td>
+        <td>{{ row.usuario_email or '-' }}</td>
+        <td>{{ row.modulo }}</td>
+        <td>{{ row.accion }}</td>
+        <td><span class="badge {{ 'badge-success' if row.resultado == 'ok' else 'badge-warning' }}">{{ row.resultado }}</span></td>
+        <td>{{ row.ip or '-' }}</td>
+        <td><small>{{ row.detalle or '-' }}</small></td>
+      </tr>
+      {% else %}
+      <tr><td colspan="7">Todavia no hay eventos de seguridad auditados.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header"><h2><i class="fas fa-database"></i> Inventario de bases detectadas</h2></div>
+  <div class="table-container">
+    <table>
+      <thead><tr><th>Archivo</th><th>Tamano</th><th>Modificado</th><th>Tipo</th></tr></thead>
+      <tbody>
+      {% for row in estado.health.inventario_db or [] %}
+      <tr>
+        <td><small>{{ row.ruta }}</small></td>
+        <td>{{ row.tamano_bytes }}</td>
+        <td>{{ row.modificado }}</td>
+        <td><span class="badge {{ 'badge-info' if row.es_backup else 'badge-warning' }}">{{ 'backup/prueba' if row.es_backup else 'operativa suelta' }}</span></td>
+      </tr>
+      {% else %}
+      <tr><td colspan="4">No se han detectado bases .db.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header"><h2><i class="fas fa-heart-pulse"></i> Historial de salud</h2></div>
+  <div class="table-container">
+    <table>
+      <thead><tr><th>Fecha</th><th>Score</th><th>Estado</th><th>Incidencias</th><th>Criticas</th><th>Altas</th></tr></thead>
+      <tbody>
+      {% for row in estado.ultimas_salud %}
+      <tr>
+        <td>{{ row.fecha }}</td>
+        <td><strong>{{ row.score }}</strong></td>
+        <td><span class="badge {{ 'badge-danger' if row.estado == 'critico' else 'badge-warning' if row.estado in ['riesgo','advertencia'] else 'badge-success' }}">{{ row.estado }}</span></td>
+        <td>{{ row.incidencias }}</td>
+        <td>{{ row.criticas }}</td>
+        <td>{{ row.altas }}</td>
+      </tr>
+      {% else %}
+      <tr><td colspan="6">Todavia no hay informes de salud registrados.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header"><h2><i class="fas fa-file-code"></i> Reportes JSON</h2></div>
+  <div class="table-container">
+    <table>
+      <thead><tr><th>Reporte</th><th>Modificado</th><th>Ruta</th></tr></thead>
+      <tbody>
+      {% for row in estado.reportes %}
+      <tr><td>{{ row.nombre }}</td><td>{{ row.modificado }}</td><td><small>{{ row.ruta }}</small></td></tr>
+      {% else %}
+      <tr><td colspan="3">Sin reportes de seguridad.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

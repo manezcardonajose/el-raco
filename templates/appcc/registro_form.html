@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+
+{% block title %}Registrar APPCC - El Raco ERP{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header">
+        <h2><i class="fas fa-clipboard-check"></i> Registrar control APPCC</h2>
+        <a href="{{ url_for('appcc.plan_appcc') }}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left"></i> Volver
+        </a>
+    </div>
+
+    <div style="background: #1e252b; border: 1px solid #2c3e50; border-radius: 8px; padding: 18px; margin-bottom: 20px;">
+        <h3 style="margin: 0 0 10px; color: #ff6b00;">
+            {{ control.codigo or ('CTRL-' ~ control.id) }} - {{ control.area }}
+        </h3>
+        <p><strong>Etapa:</strong> {{ control.etapa or '-' }}</p>
+        <p><strong>Tipo:</strong> {{ control.tipo_control or '-' }}</p>
+        <p><strong>Peligro:</strong> {{ control.peligro or '-' }}</p>
+        <p><strong>Limite / criterio:</strong> {{ control.limite_critico or '-' }}</p>
+        <p><strong>Accion correctiva prevista:</strong> {{ control.accion_correctiva or '-' }}</p>
+    </div>
+
+    <form method="POST">
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 18px;">
+            <div class="form-group">
+                <label class="form-label">Valor registrado</label>
+                <input type="text" name="valor" class="form-control" placeholder="Temperatura, lote, resultado, observacion...">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Resultado</label>
+                <select name="resultado" class="form-control">
+                    <option value="ok">OK</option>
+                    <option value="no_ok">No OK</option>
+                    <option value="pendiente">Pendiente</option>
+                    <option value="bloqueado">Bloqueado</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label class="form-label">Observaciones</label>
+            <textarea name="observaciones" class="form-control" rows="4"></textarea>
+        </div>
+        <div class="form-group">
+            <label class="form-label">Accion correctiva aplicada si procede</label>
+            <textarea name="accion_correctiva" class="form-control" rows="4"></textarea>
+        </div>
+
+        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+            <button type="submit" class="btn btn-success">
+                <i class="fas fa-save"></i> Guardar registro
+            </button>
+            <a href="{{ url_for('appcc.plan_appcc') }}" class="btn btn-secondary">Cancelar</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

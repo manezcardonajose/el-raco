@@ -1,0 +1,221 @@
+{% extends "base.html" %}
+
+{% block title %}Experiencia cliente{% endblock %}
+{% block breadcrumb %}Experiencia cliente{% endblock %}
+
+{% block content %}
+<style>
+    .xp-head {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 16px;
+        align-items: end;
+        margin-bottom: 18px;
+    }
+    .xp-head h1 {
+        margin: 0 0 6px;
+        color: #ff6b00;
+        font-size: 28px;
+    }
+    .xp-head p {
+        margin: 0;
+        color: var(--text-muted, #6b7280);
+        line-height: 1.45;
+        max-width: 920px;
+    }
+    .xp-filter {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        align-items: end;
+        justify-content: flex-end;
+    }
+    .xp-filter label {
+        display: block;
+        font-size: 12px;
+        color: var(--text-muted, #6b7280);
+        margin-bottom: 4px;
+    }
+    .xp-filter input, .xp-filter select, .xp-filter textarea {
+        min-height: 38px;
+        border: 1px solid var(--border-color, #d5dde7);
+        border-radius: 7px;
+        padding: 8px 10px;
+        background: var(--input-bg, #fff);
+        color: var(--text-color, #16202a);
+    }
+    .xp-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+        gap: 12px;
+        margin-bottom: 16px;
+    }
+    .xp-card, .xp-panel {
+        border: 1px solid var(--border-color, #d5dde7);
+        background: var(--card-bg, #fff);
+        border-radius: 8px;
+        box-shadow: 0 1px 2px rgba(0,0,0,.04);
+    }
+    .xp-card { padding: 14px; }
+    .xp-card span {
+        display: block;
+        color: var(--text-muted, #6b7280);
+        font-size: 12px;
+        margin-bottom: 7px;
+    }
+    .xp-card strong {
+        font-size: 24px;
+        color: var(--text-color, #16202a);
+    }
+    .xp-panel {
+        overflow: hidden;
+        margin-bottom: 16px;
+    }
+    .xp-panel h2 {
+        margin: 0;
+        padding: 14px 16px;
+        color: #ff6b00;
+        font-size: 18px;
+        border-bottom: 1px solid var(--border-color, #d5dde7);
+        background: rgba(255,107,0,.07);
+    }
+    .xp-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    .xp-table th, .xp-table td {
+        padding: 10px 12px;
+        border-bottom: 1px solid var(--border-color, #d5dde7);
+        text-align: left;
+        vertical-align: top;
+    }
+    .xp-table th {
+        color: #ff6b00;
+        font-size: 12px;
+        text-transform: uppercase;
+    }
+    .xp-badge {
+        display: inline-flex;
+        padding: 3px 8px;
+        border-radius: 999px;
+        color: #fff;
+        background: #2563eb;
+        font-size: 12px;
+        font-weight: 700;
+    }
+    .xp-badge.alta, .xp-badge.critica { background: #dc2626; }
+    .xp-badge.media { background: #ea580c; }
+    .xp-badge.baja { background: #16a34a; }
+    .xp-mini {
+        display: block;
+        margin-top: 4px;
+        color: var(--text-muted, #6b7280);
+        font-size: 12px;
+    }
+    @media (max-width: 900px) {
+        .xp-head { grid-template-columns: 1fr; }
+        .xp-filter { justify-content: stretch; }
+    }
+</style>
+
+<div class="xp-head">
+    <div>
+        <h1><i class="fas fa-user-tie"></i> Experiencia cliente / RRPP</h1>
+        <p>Quejas, sugerencias, comprobaciones, acciones y aprendizaje. La idea es investigar bien cada caso sin mezclar mantenimiento, APPCC o recepcion hasta que haga falta escalarlo.</p>
+    </div>
+    <form class="xp-filter" method="get" action="{{ url_for('experiencia.dashboard') }}">
+        <div>
+            <label>Desde</label>
+            <input type="date" name="desde" value="{{ desde }}">
+        </div>
+        <div>
+            <label>Hasta</label>
+            <input type="date" name="hasta" value="{{ hasta }}">
+        </div>
+        <button class="btn btn-primary" type="submit"><i class="fas fa-search"></i> Filtrar</button>
+        {% if puede_gestionar %}
+        <a class="btn btn-success" href="{{ url_for('experiencia.nueva_queja') }}"><i class="fas fa-plus"></i> Nueva queja</a>
+        {% endif %}
+    </form>
+</div>
+
+<div class="xp-grid">
+    <div class="xp-card"><span>Total periodo</span><strong>{{ resumen.total or 0 }}</strong></div>
+    <div class="xp-card"><span>Abiertas</span><strong>{{ resumen.abiertas or 0 }}</strong></div>
+    <div class="xp-card"><span>Altas / criticas</span><strong>{{ resumen.sensibles or 0 }}</strong></div>
+    <div class="xp-card"><span>Vencidas</span><strong>{{ resumen.vencidas or 0 }}</strong></div>
+    <div class="xp-card"><span>Cerradas</span><strong>{{ resumen.cerradas or 0 }}</strong></div>
+    <div class="xp-card"><span>Compensaciones</span><strong>{{ (resumen.compensaciones or 0)|euros }}</strong></div>
+</div>
+
+<section class="xp-panel">
+    <h2>Expedientes prioritarios</h2>
+    <div style="overflow-x:auto;">
+        <table class="xp-table">
+            <thead>
+                <tr>
+                    <th>Fecha</th>
+                    <th>Cliente</th>
+                    <th>Categoria</th>
+                    <th>Estado</th>
+                    <th>Detalle</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for q in recientes %}
+                <tr>
+                    <td>{{ q.fecha|fecha_es }}<span class="xp-mini">{{ q.canal }}</span></td>
+                    <td>
+                        <strong>{{ q.titular_nombre or '-' }}</strong>
+                        <span class="xp-mini">Hab. {{ q.habitacion or '-' }}</span>
+                    </td>
+                    <td>
+                        {{ q.categoria }}
+                        <span class="xp-mini">{{ q.subcategoria or '' }}</span>
+                    </td>
+                    <td>
+                        <span class="xp-badge {{ q.gravedad }}">{{ q.gravedad }}</span>
+                        <span class="xp-mini">{{ q.estado }}</span>
+                    </td>
+                    <td>{{ q.descripcion[:180] }}{% if q.descripcion|length > 180 %}...{% endif %}</td>
+                    <td><a class="btn btn-secondary" href="{{ url_for('experiencia.detalle_queja', queja_id=q.id) }}">Investigar</a></td>
+                </tr>
+                {% else %}
+                <tr><td colspan="6">No hay quejas en este periodo.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</section>
+
+<div class="xp-grid">
+    <section class="xp-panel">
+        <h2>Por categoria</h2>
+        <table class="xp-table">
+            <tbody>
+                {% for row in por_categoria %}
+                <tr><td>{{ row.categoria or 'sin categoria' }}</td><td><strong>{{ row.total }}</strong></td></tr>
+                {% else %}
+                <tr><td>Sin datos.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </section>
+    <section class="xp-panel">
+        <h2>Reincidencias 90 dias</h2>
+        <table class="xp-table">
+            <tbody>
+                {% for row in reincidencias %}
+                <tr>
+                    <td>{{ row.clave or '-' }}<span class="xp-mini">{{ row.categoria or '' }}</span></td>
+                    <td><strong>{{ row.total }}</strong></td>
+                </tr>
+                {% else %}
+                <tr><td>No hay reincidencias detectadas.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </section>
+</div>
+{% endblock %}

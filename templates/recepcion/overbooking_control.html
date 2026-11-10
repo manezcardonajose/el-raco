@@ -1,0 +1,156 @@
+{% extends 'base.html' %}
+{% block title %}Control overbooking{% endblock %}
+{% block breadcrumb %}Recepcion / Control overbooking{% endblock %}
+{% block content %}
+<style>
+  .ob-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin:12px 0 18px;}
+  .ob-kpi{border:1px solid var(--border-color,#334155);border-radius:8px;background:var(--card-bg,#111827);padding:12px;}
+  .ob-kpi span{display:block;color:var(--text-muted,#94a3b8);font-size:12px;}
+  .ob-kpi strong{display:block;font-size:26px;margin-top:4px;}
+  .ob-section{margin-top:18px;}
+  .ob-badge{display:inline-flex;align-items:center;border-radius:999px;padding:3px 8px;font-size:12px;font-weight:700;}
+  .ob-badge.critica,.ob-badge.critico{background:#7f1d1d;color:#fecaca;}
+  .ob-badge.alta,.ob-badge.alto{background:#78350f;color:#fde68a;}
+  .ob-badge.controlado{background:#064e3b;color:#bbf7d0;}
+  .ob-muted{color:var(--text-muted,#94a3b8);}
+  .ob-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:end;margin-bottom:14px;}
+  .ob-actions .form-group{min-width:160px;margin:0;}
+  .ob-table-wrap{overflow:auto;border:1px solid var(--border-color,#334155);border-radius:8px;}
+  .ob-table{width:100%;border-collapse:collapse;min-width:1100px;}
+  .ob-table th,.ob-table td{padding:9px;border-bottom:1px solid var(--border-color,#334155);vertical-align:top;}
+  .ob-table th{background:rgba(15,23,42,.72);text-align:left;color:var(--accent,#ff6b00);font-size:12px;text-transform:uppercase;}
+</style>
+
+<div class="card">
+  <div class="card-header">
+    <h2><i class="fas fa-shield-halved"></i> Control overbooking</h2>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+      <a class="btn btn-secondary" href="{{ url_for('recepcion.ocupacion', desde=desde, dias=dias) }}"><i class="fas fa-th"></i> Ocupacion</a>
+      <a class="btn btn-secondary" href="{{ url_for('recepcion.canales_reserva') }}"><i class="fas fa-cloud"></i> Canales</a>
+      <a class="btn btn-success" href="{{ url_for('recepcion.reserva_form') }}"><i class="fas fa-plus"></i> Nueva reserva</a>
+    </div>
+  </div>
+
+  <form class="ob-actions" method="get">
+    <div class="form-group"><label class="form-label">Desde</label><input class="form-control" type="date" name="desde" value="{{ desde }}"></div>
+    <div class="form-group"><label class="form-label">Dias</label><input class="form-control" type="number" min="1" max="120" name="dias" value="{{ dias }}"></div>
+    <button class="btn btn-primary" type="submit"><i class="fas fa-search"></i> Revisar</button>
+  </form>
+
+  <div class="ob-grid">
+    <div class="ob-kpi"><span>Conflictos</span><strong>{{ estado.resumen.conflictos }}</strong></div>
+    <div class="ob-kpi"><span>Doble venta</span><strong>{{ estado.resumen.solapes }}</strong></div>
+    <div class="ob-kpi"><span>Bloqueo pisa reserva</span><strong>{{ estado.resumen.bloqueos }}</strong></div>
+    <div class="ob-kpi"><span>Sin habitacion</span><strong>{{ estado.resumen.sin_asignar }}</strong></div>
+    <div class="ob-kpi"><span>Riesgos canal</span><strong>{{ estado.resumen.riesgos_canal }}</strong></div>
+    <div class="ob-kpi"><span>Criticos</span><strong>{{ estado.resumen.criticos }}</strong></div>
+    <div class="ob-kpi"><span>Colchon operativo</span><strong>{{ '%.1f'|format(estado.politica.colchon_pct or 0) }}%</strong><small>{{ estado.politica.colchon_min_habitaciones or 0 }} hab. min.</small></div>
+  </div>
+</div>
+
+<div class="card ob-section">
+  <div class="card-header"><h2><i class="fas fa-life-ring"></i> Margen de maniobra ante imprevistos</h2></div>
+  <p class="ob-muted">
+    Define habitaciones que no deben venderse automaticamente para absorber averias, inundaciones, cambios forzados,
+    upgrades de emergencia o clientes que no podemos desplazar.
+  </p>
+  <form class="ob-actions" method="post">
+    <input type="hidden" name="desde" value="{{ desde }}">
+    <input type="hidden" name="dias" value="{{ dias }}">
+    <div class="form-group">
+      <label class="form-label">Nombre</label>
+      <input class="form-control" name="nombre" value="{{ estado.politica.nombre or 'Politica operativa' }}">
+    </div>
+    <div class="form-group">
+      <label class="form-label">% colchon</label>
+      <input class="form-control" type="number" step="0.1" min="0" max="30" name="colchon_pct" value="{{ estado.politica.colchon_pct or 0 }}">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Minimo habitaciones</label>
+      <input class="form-control" type="number" min="0" max="20" name="colchon_min_habitaciones" value="{{ estado.politica.colchon_min_habitaciones or 0 }}">
+    </div>
+    <label style="display:flex;gap:6px;align-items:center;"><input type="checkbox" name="aplicar_canales" {% if estado.politica.aplicar_canales %}checked{% endif %}> Canales externos</label>
+    <label style="display:flex;gap:6px;align-items:center;"><input type="checkbox" name="aplicar_directo" {% if estado.politica.aplicar_directo %}checked{% endif %}> Venta directa</label>
+    <label style="display:flex;gap:6px;align-items:center;"><input type="checkbox" name="activo" {% if estado.politica.activo %}checked{% endif %}> Activa</label>
+    <div class="form-group" style="flex:1 1 280px;">
+      <label class="form-label">Observaciones</label>
+      <input class="form-control" name="observaciones" value="{{ estado.politica.observaciones or '' }}" placeholder="Ej. reservar margen por hotel lleno, mantenimiento viejo o temporada alta">
+    </div>
+    <button class="btn btn-success" type="submit">Guardar politica</button>
+  </form>
+</div>
+
+<div class="card ob-section">
+  <div class="card-header"><h2><i class="fas fa-route"></i> Conflictos y salida recomendada</h2></div>
+  {% if estado.conflictos %}
+  <div class="ob-table-wrap">
+    <table class="ob-table">
+      <thead><tr><th>Tipo</th><th>Fecha</th><th>Habitacion</th><th>Reserva</th><th>Conflicto</th><th>Estrategia</th><th>Destino</th><th>Accion</th><th>Coste</th></tr></thead>
+      <tbody>
+      {% for c in estado.conflictos %}
+      {% set r = c.row %}
+      {% set p = c.propuesta %}
+      <tr>
+        <td>{{ c.tipo }}</td>
+        <td>{{ r.fecha_entrada }}<br><span class="ob-muted">{{ r.fecha_salida }}</span></td>
+        <td>{{ r.habitacion_numero or r.habitacion_nombre or '-' }}</td>
+        <td>
+          {% if c.tipo == 'doble_venta' %}
+          <a href="{{ url_for('recepcion.reserva_detalle', id=r.reserva_1_id) }}">{{ r.reserva_1_codigo or r.reserva_1_id }}</a><br><span class="ob-muted">{{ r.reserva_1_titular or '-' }}</span>
+          {% else %}
+          <a href="{{ url_for('recepcion.reserva_detalle', id=r.reserva_id or r.id) }}">{{ r.reserva_codigo or r.codigo or r.id }}</a><br><span class="ob-muted">{{ r.titular_nombre or '-' }}</span>
+          {% endif %}
+        </td>
+        <td>
+          {% if c.tipo == 'doble_venta' %}
+          <a href="{{ url_for('recepcion.reserva_detalle', id=r.reserva_2_id) }}">{{ r.reserva_2_codigo or r.reserva_2_id }}</a><br><span class="ob-muted">{{ r.reserva_2_titular or '-' }}</span>
+          {% elif c.tipo == 'bloqueo_sobre_reserva' %}
+          Bloqueo #{{ r.bloqueo_id }}<br><span class="ob-muted">{{ r.motivo or r.descripcion or '-' }}</span>
+          {% else %}
+          Sin asignar
+          {% endif %}
+        </td>
+        <td><span class="ob-badge {{ p.prioridad }}">{{ p.estrategia }}</span></td>
+        <td>{{ p.destino }}</td>
+        <td>{{ p.accion }}</td>
+        <td>{{ '%.2f'|format(p.coste or 0) }} EUR</td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <p class="ob-muted">No hay conflictos vivos en el periodo revisado.</p>
+  {% endif %}
+</div>
+
+<div class="card ob-section">
+  <div class="card-header"><h2><i class="fas fa-cloud"></i> Riesgo por canal y cupo</h2></div>
+  {% if estado.riesgos_canal %}
+  <div class="ob-table-wrap">
+    <table class="ob-table">
+      <thead><tr><th>Fecha</th><th>Canal</th><th>Tipo habitacion</th><th>Total</th><th>Reservas</th><th>Bloq.</th><th>Disp.</th><th>Colchon</th><th>Venta segura</th><th>Riesgo</th><th>Accion</th></tr></thead>
+      <tbody>
+      {% for row in estado.riesgos_canal %}
+      <tr>
+        <td>{{ row.fecha }}</td>
+        <td>{{ row.canal.nombre }}<br><span class="ob-muted">{{ row.canal.codigo }} - {{ row.canal.tipo }}</span></td>
+        <td>{{ row.tipo.nombre }}<br><span class="ob-muted">{{ row.tipo.codigo }}</span></td>
+        <td>{{ row.total }}</td>
+        <td>{{ row.reservas }}</td>
+        <td>{{ row.bloqueadas }}</td>
+        <td>{{ row.disponibles }}</td>
+        <td>{{ row.colchon }}<br><span class="ob-muted">base {{ row.colchon_base }} / operativo {{ row.colchon_operativo }}</span></td>
+        <td>{{ row.venta_segura }}</td>
+        <td><span class="ob-badge {{ row.riesgo }}">{{ row.riesgo }}</span></td>
+        <td>{{ row.accion }}</td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <p class="ob-muted">No hay canales en riesgo para el periodo revisado.</p>
+  {% endif %}
+</div>
+{% endblock %}

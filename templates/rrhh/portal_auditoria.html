@@ -1,0 +1,87 @@
+{% extends 'base.html' %}
+{% block title %}Auditoria portal empleado{% endblock %}
+{% block breadcrumb %}RRHH / Auditoria portal{% endblock %}
+{% block content %}
+<style>
+  .audit-head{display:flex;justify-content:space-between;gap:14px;align-items:flex-start;margin-bottom:16px;}
+  .audit-head h2{margin:0;color:#ff6b00;display:flex;align-items:center;gap:10px;}
+  .audit-filters{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;align-items:end;margin-bottom:16px;}
+  .audit-table{width:100%;border-collapse:collapse;min-width:980px;}
+  .audit-table th{background:#151a20;color:#ff6b00;border-bottom:1px solid #34485d;padding:9px;text-align:left;font-size:12px;text-transform:uppercase;}
+  .audit-table td{border-bottom:1px solid #34485d;padding:10px;vertical-align:top;font-size:13px;}
+  .audit-detail{max-width:360px;white-space:normal;word-break:break-word;color:#cbd5e1;}
+  .muted{color:#9ca3af;}
+  .table-scroll{overflow-x:auto;}
+  @media(max-width:760px){.audit-head{display:block;}.audit-table{min-width:760px;}}
+</style>
+
+<div class="audit-head">
+  <h2><i class="fas fa-shield-alt"></i> Auditoria portal empleado</h2>
+  <a class="btn btn-secondary" href="{{ url_for('rrhh.panel_rrhh') }}"><i class="fas fa-arrow-left"></i> Panel RRHH</a>
+</div>
+
+<div class="card">
+  <form method="get" class="audit-filters">
+    <div class="form-group">
+      <label class="form-label">Empleado</label>
+      <select class="form-control" name="empleado_id">
+        <option value="">Todos</option>
+        {% for e in empleados %}
+          <option value="{{ e.id }}" {% if filtros.empleado_id|string == e.id|string %}selected{% endif %}>{{ e.nombre }} {{ e.apellidos or '' }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Accion</label>
+      <select class="form-control" name="accion">
+        <option value="">Todas</option>
+        {% for a in acciones %}
+          <option value="{{ a.accion }}" {% if filtros.accion == a.accion %}selected{% endif %}>{{ a.accion }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Desde</label>
+      <input class="form-control" type="date" name="desde" value="{{ filtros.desde }}">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Hasta</label>
+      <input class="form-control" type="date" name="hasta" value="{{ filtros.hasta }}">
+    </div>
+    <div class="form-group">
+      <button class="btn btn-primary" type="submit"><i class="fas fa-search"></i> Filtrar</button>
+      <a class="btn btn-secondary" href="{{ url_for('rrhh.auditoria_portal_empleado') }}"><i class="fas fa-times"></i></a>
+    </div>
+  </form>
+  <div class="table-scroll">
+    <table class="audit-table">
+      <thead>
+        <tr>
+          <th>Fecha</th>
+          <th>Empleado</th>
+          <th>Codigo</th>
+          <th>Accion</th>
+          <th>Detalle</th>
+          <th>IP</th>
+          <th>Dispositivo</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for a in accesos %}
+        <tr>
+          <td>{{ a.fecha }}</td>
+          <td><strong>{{ a.empleado_nombre or '-' }}</strong><br><span class="muted">{{ a.usuario_email or '' }}</span></td>
+          <td>{{ a.codigo_acceso or '-' }}</td>
+          <td><span class="badge badge-info">{{ a.accion }}</span></td>
+          <td class="audit-detail">{{ a.detalle or '-' }}</td>
+          <td>{{ a.ip or '-' }}</td>
+          <td class="audit-detail">{{ a.user_agent or '-' }}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="7" class="muted">No hay accesos registrados con estos filtros.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

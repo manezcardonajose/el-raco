@@ -1,0 +1,37 @@
+@app.route("/productos/informe-rapido")
+@login_required
+def informe_rapido_productos():
+    conn = get_db()
+    
+    # Obtener todos los productos
+    productos = conn.execute("""
+        SELECT * FROM productos 
+        ORDER BY familia, nombre
+    """).fetchall()
+    
+    # Calcular estadísticas
+    total_productos = len(productos)
+    stock_bajo = 0
+    agotados = 0
+    valor_total = 0
+    
+    for p in productos:
+        if p['cantidad'] <= p['stock_minimo'] and p['cantidad'] > 0:
+            stock_bajo += 1
+        if p['cantidad'] <= 0:
+            agotados += 1
+        valor_total += p['cantidad'] * p['precio']
+    
+    conn.close()
+    
+    return render_template('informes/rapido_productos.html',
+                         productos=productos,
+                         total_productos=total_productos,
+                         stock_bajo=stock_bajo,
+                         agotados=agotados,
+                         valor_total=valor_total,
+                         now=datetime.now,
+                         usuario=session.get('user_nombre', 'Usuario'))
+
+
+

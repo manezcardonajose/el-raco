@@ -1,0 +1,238 @@
+{% extends 'base.html' %}
+{% block title %}Recepcion{% endblock %}
+{% block breadcrumb %}Recepcion / Panel{% endblock %}
+{% block content %}
+<style>
+  .rx-summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(155px,1fr));gap:12px;margin-bottom:16px;}
+  .rx-box{border:1px solid var(--border,#cbd5e1);background:var(--card-bg,#fff);border-radius:8px;padding:14px;min-height:86px;}
+  .rx-box span{display:block;color:var(--text-muted,#64748b);font-size:12px;}
+  .rx-box strong{font-size:24px;line-height:1.25;}
+  .rx-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+  .pms-hero{display:grid;grid-template-columns:minmax(220px,.8fr) 1.2fr;gap:16px;margin:12px 0 18px;}
+  .pms-status{border:1px solid var(--border,#cbd5e1);background:var(--card-bg,#fff);border-radius:8px;padding:18px;}
+  .pms-status strong{font-size:44px;display:block;line-height:1;}
+  .pms-status small{color:var(--text-muted,#64748b);}
+  .pms-actions{display:grid;gap:10px;}
+  .pms-action{display:grid;grid-template-columns:92px 1fr auto;gap:12px;align-items:center;border:1px solid var(--border,#cbd5e1);background:var(--card-bg,#fff);border-radius:8px;padding:12px;text-decoration:none;color:inherit;}
+  .pms-action:hover{filter:brightness(.98);}
+  .pms-badge{border-radius:999px;padding:5px 9px;text-align:center;font-size:12px;font-weight:700;text-transform:uppercase;}
+  .pms-badge.critica{background:#fee2e2;color:#991b1b;}
+  .pms-badge.alta{background:#ffedd5;color:#9a3412;}
+  .pms-badge.media{background:#fef3c7;color:#92400e;}
+  .pms-badge.ok{background:#dcfce7;color:#166534;}
+  .pms-action-title{font-weight:700;}
+  .pms-action-detail{color:var(--text-muted,#64748b);font-size:13px;}
+  .pms-money strong{font-size:20px;}
+  .pms-agenda{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:10px;}
+  .pms-agenda-item{border:1px solid var(--border,#cbd5e1);border-radius:8px;padding:12px;background:var(--card-bg,#fff);display:grid;gap:6px;text-decoration:none;color:inherit;}
+  .pms-agenda-item:hover{filter:brightness(.98);}
+  .pms-agenda-top{display:flex;justify-content:space-between;gap:10px;align-items:center;}
+  .pms-agenda-title{font-weight:700;}
+  .pms-agenda-detail{font-size:13px;color:var(--text-muted,#64748b);}
+  @media(max-width:900px){.rx-summary,.rx-grid{grid-template-columns:1fr;}}
+  @media(max-width:900px){.pms-hero{grid-template-columns:1fr;}.pms-action{grid-template-columns:1fr;}}
+</style>
+
+<div class="card">
+  <div class="card-header">
+    <h2><i class="fas fa-concierge-bell"></i> Recepcion</h2>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+      <a class="btn btn-success" href="{{ url_for('recepcion.reserva_form') }}"><i class="fas fa-plus"></i> Nueva reserva</a>
+      <a class="btn btn-primary" href="{{ url_for('recepcion.ocupacion') }}"><i class="fas fa-th"></i> Ocupacion</a>
+      <a class="btn btn-info" href="{{ url_for('recepcion.prevision_servicios') }}"><i class="fas fa-utensils"></i> Prevision cocina</a>
+      <a class="btn btn-info" href="{{ url_for('recepcion.restaurante_reservas') }}"><i class="fas fa-chair"></i> Restaurante</a>
+      <a class="btn btn-secondary" href="{{ url_for('recepcion.registro_viajeros') }}"><i class="fas fa-id-card"></i> Registro viajeros</a>
+      <a class="btn btn-secondary" href="{{ url_for('recepcion.facturas') }}"><i class="fas fa-file-invoice-dollar"></i> Facturacion</a>
+      <a class="btn btn-secondary" href="{{ url_for('recepcion.caja_recepcion') }}"><i class="fas fa-cash-register"></i> Caja</a>
+      <a class="btn btn-warning" href="{{ url_for('recepcion.avisos') }}"><i class="fas fa-bell"></i> Avisos</a>
+      <a class="btn btn-secondary" href="{{ url_for('recepcion.bloqueos') }}"><i class="fas fa-ban"></i> Bloqueos</a>
+      <a class="btn btn-secondary" href="{{ url_for('recepcion.habitaciones') }}"><i class="fas fa-bed"></i> Habitaciones</a>
+    </div>
+  </div>
+
+  <div class="pms-hero">
+    <div class="pms-status">
+      <span>Ocupacion hoy</span>
+      <strong>{{ '%.1f'|format(pms_kpis.ocupacion_hoy_pct or 0) }}%</strong>
+      <small>{{ alojados }} alojados sobre {{ habitaciones }} habitaciones activas</small>
+    </div>
+    <div class="pms-actions">
+      {% for a in pms_acciones %}
+      <a class="pms-action" href="{{ a.url }}">
+        <span class="pms-badge {{ a.nivel }}">{{ a.nivel }}</span>
+        <span>
+          <span class="pms-action-title">{{ a.titulo }}</span><br>
+          <span class="pms-action-detail">{{ a.detalle }}</span>
+        </span>
+        <i class="fas fa-arrow-right"></i>
+      </a>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div class="rx-summary">
+    <div class="rx-box"><span>Hoy</span><strong>{{ hoy }}</strong></div>
+    <div class="rx-box"><span>Llegadas hoy</span><strong>{{ llegadas|length }}</strong><br><small>Manana {{ pms_kpis.llegadas_manana or 0 }}</small></div>
+    <div class="rx-box"><span>Salidas hoy</span><strong>{{ salidas|length }}</strong><br><small>Manana {{ pms_kpis.salidas_manana or 0 }}</small></div>
+    <div class="rx-box"><span>Sin habitacion</span><strong>{{ pms_kpis.reservas_sin_habitacion or 0 }}</strong><br><small>pendientes de asignar</small></div>
+    <div class="rx-box"><span>Habitaciones tensionadas</span><strong>{{ (pms_kpis.habitaciones_sucias or 0) + (pms_kpis.habitaciones_bloqueadas or 0) }}</strong><br><small>{{ pms_kpis.habitaciones_sucias or 0 }} limpieza/mant. / {{ pms_kpis.habitaciones_bloqueadas or 0 }} bloqueadas</small></div>
+    <div class="rx-box"><span>Overbooking 7 dias</span><strong>{{ pms_kpis.conflictos_overbooking or 0 }}</strong><br><small>{{ pms_kpis.dias_sin_disponibilidad or 0 }} dias sin disponibilidad</small></div>
+    <div class="rx-box"><span>Registro viajeros</span><strong>{{ viajeros_pendientes }}</strong><br><small>{{ alerta_registro_viajeros.incompletos }} incompletos / {{ alerta_registro_viajeros.reservas_sin_viajeros }} sin ficha</small></div>
+    <div class="rx-box pms-money"><span>Caja hoy</span><strong>{{ '%.2f'|format(pms_kpis.caja_hoy or 0) }} EUR</strong><br><small>Diferencia {{ '%.2f'|format(pms_kpis.caja_diferencia or 0) }} EUR</small></div>
+    <div class="rx-box pms-money"><span>Saldo vivo</span><strong>{{ '%.2f'|format(pms_kpis.saldo_pendiente or 0) }} EUR</strong><br><small>{{ pms_kpis.facturas_abiertas or 0 }} facturas abiertas</small></div>
+  </div>
+</div>
+
+<div class="card" style="margin-top:16px;">
+  <div class="card-header">
+    <h2><i class="fas fa-calendar-day"></i> Agenda PMS 48h</h2>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+      <a class="btn btn-primary" href="{{ url_for('recepcion.ocupacion', desde=hoy, dias=2) }}"><i class="fas fa-th"></i> Mapa 48h</a>
+      <a class="btn btn-warning" href="{{ url_for('recepcion.overbooking_control', desde=hoy, dias=7) }}"><i class="fas fa-shield-halved"></i> Riesgo 7 dias</a>
+    </div>
+  </div>
+  <div class="pms-agenda">
+    {% for item in pms_agenda %}
+    <a class="pms-agenda-item" href="{{ url_for('recepcion.reserva_detalle', id=item.reserva_id) }}">
+      <span class="pms-agenda-top">
+        <span class="pms-agenda-title">{{ item.titulo }}</span>
+        <span class="pms-badge {{ item.nivel }}">{{ item.nivel }}</span>
+      </span>
+      <span>{{ item.detalle }}</span>
+      <span class="pms-agenda-detail">{{ item.extra }}</span>
+    </a>
+    {% else %}
+    <div class="rx-box"><span>Agenda limpia</span><strong>OK</strong><br><small>No hay tareas criticas en las proximas 48 horas.</small></div>
+    {% endfor %}
+  </div>
+</div>
+
+<div class="card" style="margin-top:16px;">
+  <div class="card-header">
+    <h2><i class="fas fa-door-open"></i> Bloqueantes de check-in</h2>
+    <a class="btn btn-secondary" href="{{ url_for('recepcion.registro_viajeros') }}"><i class="fas fa-id-card"></i> Viajeros</a>
+  </div>
+  <div class="table-container">
+    <table>
+      <thead><tr><th>Nivel</th><th>Reserva</th><th>Cliente</th><th>Habitacion</th><th>Fecha</th><th>Motivo</th><th>Accion</th></tr></thead>
+      <tbody>
+        {% for b in pms_bloqueantes_checkin %}
+        <tr>
+          <td><span class="pms-badge {{ b.nivel }}">{{ b.nivel }}</span></td>
+          <td><a href="{{ url_for('recepcion.reserva_detalle', id=b.reserva_id) }}">{{ b.codigo }}</a></td>
+          <td>{{ b.cliente }}</td>
+          <td>{{ b.habitacion }}</td>
+          <td>{{ b.fecha }}</td>
+          <td>{{ b.motivos }}</td>
+          <td><a class="btn btn-sm btn-primary" href="{{ url_for('recepcion.reserva_detalle', id=b.reserva_id) }}">Resolver</a></td>
+        </tr>
+        {% else %}
+        <tr><td colspan="7">No hay bloqueantes de check-in en las proximas 48 horas.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="rx-grid">
+  <div class="card">
+    <div class="card-header"><h2><i class="fas fa-sign-in-alt"></i> Llegadas de hoy</h2></div>
+    <div class="table-container">
+      <table>
+        <thead><tr><th>Reserva</th><th>Habitacion</th><th>Cliente</th><th>Regimen</th><th>Estado</th><th>Accion</th></tr></thead>
+        <tbody>
+          {% for r in llegadas %}
+          <tr>
+            <td><a href="{{ url_for('recepcion.reserva_detalle', id=r.id) }}">{{ r.codigo or ('#' ~ r.id) }}</a></td>
+            <td>{{ r.habitacion_numero or r.habitacion_nombre or '-' }}</td>
+            <td>{{ r.titular_nombre or '-' }}</td>
+            <td>{{ r.regimen|replace('_',' ') }}</td>
+            <td>{{ r.estado }}</td>
+            <td>
+              {% if r.estado not in ['alojado','checkout','cancelada','no_show'] %}
+              <form method="post" action="{{ url_for('recepcion.checkin_reserva', id=r.id) }}"><button class="btn btn-sm btn-success" type="submit">Check-in</button></form>
+              {% else %}-{% endif %}
+            </td>
+          </tr>
+          {% else %}
+          <tr><td colspan="6">No hay llegadas hoy.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header"><h2><i class="fas fa-sign-out-alt"></i> Salidas de hoy</h2></div>
+    <div class="table-container">
+      <table>
+        <thead><tr><th>Reserva</th><th>Habitacion</th><th>Cliente</th><th>Saldo</th><th>Estado</th><th>Accion</th></tr></thead>
+        <tbody>
+          {% for r in salidas %}
+          <tr>
+            <td><a href="{{ url_for('recepcion.reserva_detalle', id=r.id) }}">{{ r.codigo or ('#' ~ r.id) }}</a></td>
+            <td>{{ r.habitacion_numero or r.habitacion_nombre or '-' }}</td>
+            <td>{{ r.titular_nombre or '-' }}</td>
+            <td>{{ '%.2f'|format(r.saldo or 0) }} &euro;</td>
+            <td>{{ r.estado }}</td>
+            <td>
+              {% if r.estado != 'checkout' %}
+              <form method="post" action="{{ url_for('recepcion.checkout_reserva', id=r.id) }}"><button class="btn btn-sm btn-warning" type="submit">Check-out</button></form>
+              {% else %}-{% endif %}
+            </td>
+          </tr>
+          {% else %}
+          <tr><td colspan="6">No hay salidas hoy.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div class="card" style="margin-top:16px;">
+  <div class="card-header">
+    <h2><i class="fas fa-chair"></i> Reservas de restaurante de hoy</h2>
+    <a class="btn btn-success" href="{{ url_for('recepcion.restaurante_reserva_form') }}">Nueva reserva restaurante</a>
+  </div>
+  <div class="table-container">
+    <table>
+      <thead><tr><th>Hora</th><th>Punto venta</th><th>Reserva</th><th>Cliente</th><th>Pax</th><th>Avisos</th><th>Estado</th></tr></thead>
+      <tbody>
+        {% for rr in restaurante_hoy %}
+        <tr>
+          <td>{{ rr.hora or '-' }}</td>
+          <td>{{ rr.punto_venta_nombre or '-' }}</td>
+          <td>{% if rr.reserva_id %}<a href="{{ url_for('recepcion.reserva_detalle', id=rr.reserva_id) }}">{{ rr.codigo or ('#' ~ rr.reserva_id) }}</a>{% else %}-{% endif %}</td>
+          <td>{{ rr.nombre_contacto or rr.titular_nombre or '-' }}<br><small>{{ rr.habitacion_numero or rr.habitacion_nombre or '' }}</small></td>
+          <td>{{ rr.personas or 0 }}</td>
+          <td>{{ rr.alergias_resumen or '-' }}</td>
+          <td>{{ rr.estado }}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="7">No hay reservas de restaurante hoy.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="card" style="margin-top:16px;">
+  <div class="card-header">
+    <h2><i class="fas fa-utensils"></i> Prevision real de servicios</h2>
+    <a class="btn btn-info" href="{{ url_for('recepcion.prevision_servicios', fecha=hoy) }}">Ver detalle</a>
+  </div>
+  <div class="table-container">
+    <table>
+      <thead><tr><th>Servicio</th><th>Reservas</th><th>Personas</th><th>Avisos cocina</th></tr></thead>
+      <tbody>
+        {% for s in resumen_servicios %}
+        <tr><td>{{ s.nombre }}</td><td>{{ s.reservas }}</td><td><strong>{{ s.personas }}</strong></td><td>{{ s.avisos }}</td></tr>
+        {% else %}
+        <tr><td colspan="4">No hay servicios contratados para hoy.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,159 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="card">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <h2 style="color: #ff6b00;">Mapeo de columnas</h2>
+        <a href="/importar/ia" class="btn btn-red">Volver</a>
+    </div>
+    
+    <div style="background: #3a3f44; padding: 20px; border-radius: 4px;">
+        <p><strong>Archivo:</strong> {{ filename }}</p>
+        
+        <h3>Sugerencia de IA</h3>
+        <p>El sistema ha analizado el archivo y sugiere este mapeo (modo manual por falta de crédito en OpenAI):</p>
+        
+        <form method="POST" action="/importar/procesar">
+            <table style="width: 100%;">
+                <thead>
+                    <tr>
+                        <th>Campo ERP</th>
+                        <th>Columna del archivo</th>
+                        <th>Ejemplo</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>Nombre receta</strong></td>
+                        <td>
+                            <select name="mapeo_nombre" style="width: 100%; padding: 5px;">
+                                <option value="">-- Seleccionar --</option>
+                                {% for col in columnas %}
+                                <option value="{{ col }}" {% if col == sugerencia.nombre_receta %}selected{% endif %}>
+                                    {{ col }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </td>
+                        <td>
+                            {% if sugerencia.nombre_receta and ejemplos[sugerencia.nombre_receta] %}
+                                {{ ejemplos[sugerencia.nombre_receta][0] }}
+                            {% endif %}
+                        </td>
+                    </tr>
+                    
+                    <tr>
+                        <td><strong>Categoría (opcional)</strong></td>
+                        <td>
+                            <select name="mapeo_categoria" style="width: 100%; padding: 5px;">
+                                <option value="">-- No usar --</option>
+                                {% for col in columnas %}
+                                <option value="{{ col }}">{{ col }}</option>
+                                {% endfor %}
+                            </select>
+                        </td>
+                        <td></td>
+                    </tr>
+                    
+                    <tr>
+                        <td><strong>Alérgenos (opcional)</strong></td>
+                        <td>
+                            <select name="mapeo_alergenos" style="width: 100%; padding: 5px;">
+                                <option value="">-- No usar --</option>
+                                {% for col in columnas %}
+                                <option value="{{ col }}" {% if col == sugerencia.alergenos %}selected{% endif %}>
+                                    {{ col }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </td>
+                        <td>
+                            {% if sugerencia.alergenos and ejemplos[sugerencia.alergenos] %}
+                                {{ ejemplos[sugerencia.alergenos][0] }}
+                            {% endif %}
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+            
+            <h4 style="margin-top: 30px;">Ingredientes</h4>
+            
+            <div style="background: #2b2f33; padding: 15px; border-radius: 4px;">
+                <label>
+                    <input type="radio" name="formato_ingredientes" value="unica" checked>
+                    Una columna con texto (ej: "Harina 500g, Huevos 3ud")
+                </label>
+                <br>
+                <label>
+                    <input type="radio" name="formato_ingredientes" value="separadas">
+                    Columnas separadas (nombre, cantidad, unidad)
+                </label>
+            </div>
+            
+            <div id="formato-unica" style="margin-top: 15px;">
+                <label>Columna con ingredientes:</label>
+                <select name="columna_ingredientes" style="width: 100%; padding: 5px;">
+                    <option value="">-- Seleccionar --</option>
+                    {% for col in columnas %}
+                    <option value="{{ col }}" {% if col == sugerencia.columna_ingredientes %}selected{% endif %}>
+                        {{ col }}
+                    </option>
+                    {% endfor %}
+                </select>
+                <p><small>Ejemplo: {{ ejemplos[sugerencia.columna_ingredientes][1] if sugerencia.columna_ingredientes and ejemplos[sugerencia.columna_ingredientes]|length > 1 else '' }}</small></p>
+            </div>
+            
+            <div id="formato-separadas" style="display: none; margin-top: 15px;">
+                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px;">
+                    <div>
+                        <label>Columna nombre:</label>
+                        <select name="columna_nombre" style="width: 100%; padding: 5px;">
+                            <option value="">--</option>
+                            {% for col in columnas %}
+                            <option value="{{ col }}">{{ col }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div>
+                        <label>Columna cantidad:</label>
+                        <select name="columna_cantidad" style="width: 100%; padding: 5px;">
+                            <option value="">--</option>
+                            {% for col in columnas %}
+                            <option value="{{ col }}">{{ col }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div>
+                        <label>Columna unidad:</label>
+                        <select name="columna_unidad" style="width: 100%; padding: 5px;">
+                            <option value="">--</option>
+                            {% for col in columnas %}
+                            <option value="{{ col }}">{{ col }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+            </div>
+            
+            <div style="margin-top: 30px;">
+                <button type="submit" class="btn btn-success">Importar recetas</button>
+                <a href="/importar/ia" class="btn btn-red">Cancelar</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    document.querySelectorAll('input[name="formato_ingredientes"]').forEach(radio => {
+        radio.addEventListener('change', function() {
+            if (this.value === 'unica') {
+                document.getElementById('formato-unica').style.display = 'block';
+                document.getElementById('formato-separadas').style.display = 'none';
+            } else {
+                document.getElementById('formato-unica').style.display = 'none';
+                document.getElementById('formato-separadas').style.display = 'block';
+            }
+        });
+    });
+</script>
+{% endblock %}

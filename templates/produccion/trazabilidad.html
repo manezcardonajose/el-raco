@@ -1,0 +1,165 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="card">
+    <div class="card-header" style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:flex-start;">
+        <div>
+            <h2><i class="fas fa-clipboard-check"></i> Trazabilidad APPCC de producción</h2>
+            <div style="font-size:13px;opacity:.8;">Elaboración, sobrantes, conservación, regeneración y lotes elaborados.</div>
+        </div>
+        <a href="{{ url_for('produccion.produccion_index') }}" class="btn btn-secondary">Volver</a>
+    </div>
+
+    <form method="GET" class="filters">
+        <div>
+            <label>Desde</label>
+            <input type="date" name="fecha_desde" value="{{ fecha_desde }}" class="form-control">
+        </div>
+        <div>
+            <label>Hasta</label>
+            <input type="date" name="fecha_hasta" value="{{ fecha_hasta }}" class="form-control">
+        </div>
+        <div>
+            <label>Destino</label>
+            <select name="destino" class="form-control">
+                <option value="">Todos</option>
+                <option value="sin_sobrante" {% if destino == 'sin_sobrante' %}selected{% endif %}>Sin sobrante</option>
+                <option value="merma_buffet" {% if destino == 'merma_buffet' %}selected{% endif %}>Merma buffet</option>
+                <option value="desecho" {% if destino == 'desecho' %}selected{% endif %}>Desecho</option>
+                <option value="reaprovechamiento" {% if destino == 'reaprovechamiento' %}selected{% endif %}>Reaprovechamiento</option>
+            </select>
+        </div>
+        <div>
+            <label>Conservación</label>
+            <select name="metodo" class="form-control">
+                <option value="">Todas</option>
+                <option value="servicio_directo" {% if metodo == 'servicio_directo' %}selected{% endif %}>Servicio directo</option>
+                <option value="caliente" {% if metodo == 'caliente' %}selected{% endif %}>Armario caliente</option>
+                <option value="abatido" {% if metodo == 'abatido' %}selected{% endif %}>Abatido</option>
+                <option value="frio" {% if metodo == 'frio' %}selected{% endif %}>Frío positivo</option>
+                <option value="congelado" {% if metodo == 'congelado' %}selected{% endif %}>Congelado</option>
+            </select>
+        </div>
+        <button class="btn btn-primary">Filtrar</button>
+    </form>
+
+    <div class="stats">
+        <div><span>Registros</span><strong>{{ resumen.registros }}</strong></div>
+        <div><span>Reaprovechamiento</span><strong>{{ resumen.reaprovechamiento }}</strong></div>
+        <div><span>Merma/desecho</span><strong>{{ resumen.merma }}</strong></div>
+        <div><span>Regeneración</span><strong>{{ resumen.regeneracion }}</strong></div>
+        <div><span>Lotes elaborados</span><strong>{{ resumen.lotes }}</strong></div>
+    </div>
+
+    <div class="table-container">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Fecha</th>
+                    <th>Servicio / zona</th>
+                    <th>Receta</th>
+                    <th>Elaboración</th>
+                    <th>Sobrante</th>
+                    <th>Conservación</th>
+                    <th>Regeneración</th>
+                    <th>Lote</th>
+                    <th>Responsable</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for r in rows %}
+                <tr>
+                    <td>{{ r.parte_fecha }}</td>
+                    <td>
+                        <strong>{{ r.turno or '-' }}</strong><br>
+                        <small>{{ r.subdepartamento_nombre }}</small>
+                    </td>
+                    <td>{{ r.receta_nombre }}</td>
+                    <td>
+                        {{ r.hora_inicio_elaboracion or '-' }}<br>
+                        {{ r.hora_fin_elaboracion or '-' }}<br>
+                        {% if r.temperatura_fin_elaboracion is not none %}<strong>{{ r.temperatura_fin_elaboracion }} ºC</strong>{% endif %}
+                    </td>
+                    <td>
+                        {{ r.destino_sobrante or '-' }}<br>
+                        {% if r.cantidad_sobrante %}{{ r.cantidad_sobrante }} {{ r.unidad_sobrante or '' }}{% endif %}
+                        {% if r.motivo_merma %}<br><small>{{ r.motivo_merma }}</small>{% endif %}
+                    </td>
+                    <td>
+                        {{ r.metodo_conservacion or '-' }}<br>
+                        {% if r.tipo_envase %}<small>{{ r.tipo_envase }}</small><br>{% endif %}
+                        {% if r.ubicacion_conservacion %}<small>{{ r.ubicacion_conservacion }}</small><br>{% endif %}
+                        {% if r.temperatura_inicio_conservacion is not none %}Ini {{ r.temperatura_inicio_conservacion }} ºC{% endif %}
+                        {% if r.temperatura_fin_conservacion is not none %} / Fin {{ r.temperatura_fin_conservacion }} ºC{% endif %}
+                        {% if r.fecha_envasado %}<br><small>Envasado {{ r.fecha_envasado }}</small>{% endif %}
+                        {% if r.dias_vida_util is not none %}<br><small>Vida útil {{ r.dias_vida_util }} días</small>{% endif %}
+                        {% if r.fecha_limite_uso %}<br><small>Uso hasta {{ r.fecha_limite_uso }}</small>{% endif %}
+                    </td>
+                    <td>
+                        {% if r.requiere_regeneracion %}
+                            Sí<br>
+                            {% if r.temperatura_regeneracion is not none %}{{ r.temperatura_regeneracion }} ºC{% endif %}
+                            {% if r.tiempo_regeneracion_min is not none %} · {{ r.tiempo_regeneracion_min }} min{% endif %}
+                            {% if r.temperatura_servicio is not none %}<br>Servicio {{ r.temperatura_servicio }} ºC{% endif %}
+                        {% else %}
+                            No
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if r.codigo_lote %}
+                            <strong>{{ r.codigo_lote }}</strong><br>
+                            <small>{{ r.lote_estado }}</small><br>
+                            <a href="{{ url_for('produccion.etiqueta_lote_elaborado', lote_id=r.lote_id) }}" class="btn-sm btn-info">Etiqueta</a>
+                        {% else %}
+                            -
+                        {% endif %}
+                    </td>
+                    <td>{{ r.responsable or '-' }}</td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="9" style="text-align:center;padding:25px;">No hay registros para este filtro.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<style>
+.filters {
+    display:flex;
+    flex-wrap:wrap;
+    gap:10px;
+    align-items:end;
+    padding:15px;
+}
+.filters label {
+    display:block;
+    font-size:12px;
+    opacity:.75;
+    margin-bottom:4px;
+}
+.stats {
+    display:grid;
+    grid-template-columns:repeat(auto-fit, minmax(150px, 1fr));
+    gap:10px;
+    margin:0 15px 15px;
+}
+.stats div {
+    border:1px solid #334155;
+    border-radius:6px;
+    padding:10px;
+    background:#111827;
+}
+.stats span {
+    display:block;
+    color:#9fb1c5;
+    font-size:12px;
+}
+.stats strong {
+    font-size:24px;
+}
+</style>
+
+{% endblock %}

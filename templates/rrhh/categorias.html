@@ -1,0 +1,10 @@
+{% extends 'base.html' %}
+{% block title %}Categorías laborales{% endblock %}
+{% block breadcrumb %}RRHH / Categorías{% endblock %}
+{% block content %}
+<div class="card"><div class="card-header"><h2><i class="fas fa-id-badge"></i> Categorías laborales</h2>{% if puede_editar %}<a class="btn btn-success" href="{{ url_for('rrhh.nueva_categoria') }}">Nueva categoría</a>{% endif %}</div>
+{% include 'rrhh/_herramientas_tabla.html' %}
+<div class="table-container"><table><thead><tr><th>Nombre</th><th>Convenio</th><th>Salario base</th><th>Descripción</th><th>Estado</th><th>Acciones</th></tr></thead><tbody>
+{% for c in categorias %}<tr><td>{{ c.nombre }}</td><td>{{ c.convenio or '-' }}</td><td>{{ '%.2f'|format(c.salario_base or 0) }} €</td><td>{{ c.descripcion or '-' }}</td><td>{% if c.activo %}<span class="badge badge-success">Activa</span>{% else %}<span class="badge badge-secondary">Inactiva</span>{% endif %}</td><td>{% if puede_editar %}<a class="btn btn-sm btn-primary" href="{{ url_for('rrhh.editar_categoria', id=c.id) }}">Editar</a> <form method="post" action="{{ url_for('rrhh.desactivar_categoria', id=c.id) }}" style="display:inline" onsubmit="return confirm('¿Desactivar categoría?')"><button class="btn btn-sm btn-warning">Desactivar</button></form>{% endif %}</td></tr>{% else %}<tr><td colspan="6">No hay categorías.</td></tr>{% endfor %}
+</tbody></table></div></div>
+{% endblock %}

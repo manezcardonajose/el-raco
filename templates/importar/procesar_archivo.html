@@ -1,0 +1,131 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="card">
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+        <div>
+            <h2 style="color: #ff6b00;">Importando archivo</h2>
+            <p style="color: #999;">Procesando: {{ filename }}</p>
+        </div>
+        <a href="/importar" class="btn btn-red">Cancelar</a>
+    </div>
+    
+    <div style="background: #3a3f44; padding: 20px; border-radius: 4px; margin: 20px 0;">
+        <h3>Progreso de importación</h3>
+        
+        <div style="margin: 20px 0;">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                <span>Leyendo archivo...</span>
+                <span id="progreso">0%</span>
+            </div>
+            <div style="width: 100%; background: #2b2f33; border-radius: 10px; height: 20px;">
+                <div id="barra-progreso" style="width: 0%; background: #ff6b00; height: 20px; border-radius: 10px; transition: width 0.3s;"></div>
+            </div>
+        </div>
+        
+        <div id="log" style="background: #2b2f33; padding: 15px; border-radius: 4px; height: 300px; overflow-y: auto; font-family: monospace; font-size: 12px;">
+            <div style="color: #17a2b8;">Iniciando importación...</div>
+        </div>
+    </div>
+    
+    <div id="resultados" style="display: none; background: #3a3f44; padding: 20px; border-radius: 4px; margin: 20px 0;">
+        <h3>Importación completada</h3>
+        
+        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin: 20px 0;">
+            <div style="text-align: center;">
+                <div style="font-size: 12px; color: #999;">Recetas nuevas</div>
+                <div id="nuevas" style="font-size: 32px; font-weight: bold; color: #28a745;">0</div>
+            </div>
+            <div style="text-align: center;">
+                <div style="font-size: 12px; color: #999;">Recetas actualizadas</div>
+                <div id="actualizadas" style="font-size: 32px; font-weight: bold; color: #ffc107;">0</div>
+            </div>
+            <div style="text-align: center;">
+                <div style="font-size: 12px; color: #999;">Ingredientes</div>
+                <div id="ingredientes" style="font-size: 32px; font-weight: bold;">0</div>
+            </div>
+        </div>
+        
+        <div style="margin-top: 20px;">
+            <a href="/importar" class="btn btn-primary">Importar otro archivo</a>
+            <a href="/recetas" class="btn btn-success">Ver recetas</a>
+        </div>
+    </div>
+</div>
+
+<script>
+    function agregarLog(mensaje, tipo='info') {
+        var log = document.getElementById('log');
+        var colores = {
+            'info': '#17a2b8',
+            'success': '#28a745',
+            'warning': '#ffc107',
+            'error': '#dc3545'
+        };
+        var color = colores[tipo] || colores.info;
+        log.innerHTML += `<div style="color: ${color};">${mensaje}</div>`;
+        log.scrollTop = log.scrollHeight;
+    }
+    
+    function actualizarProgreso(porcentaje) {
+        document.getElementById('progreso').innerText = porcentaje + '%';
+        document.getElementById('barra-progreso').style.width = porcentaje + '%';
+    }
+    
+    function mostrarResultados(estadisticas) {
+        document.getElementById('nuevas').innerText = estadisticas.nuevas || 0;
+        document.getElementById('actualizadas').innerText = estadisticas.actualizadas || 0;
+        document.getElementById('ingredientes').innerText = estadisticas.ingredientes || 0;
+        document.getElementById('resultados').style.display = 'block';
+    }
+    
+    document.addEventListener('DOMContentLoaded', function() {
+        var progreso = 0;
+        var interval = setInterval(function() {
+            progreso += 5;
+            actualizarProgreso(progreso);
+            
+            if (progreso == 20) {
+                agregarLog('Leyendo hoja: 1º SEMANA CENA CUARTO FRÍO', 'info');
+            } else if (progreso == 40) {
+                agregarLog('Cabecera encontrada en fila 1', 'success');
+            } else if (progreso == 60) {
+                agregarLog('Días detectados: LUNES, MARTES, MIÉRCOLES, JUEVES, VIERNES, SÁBADO, DOMINGO', 'info');
+            } else if (progreso == 80) {
+                agregarLog('Receta: LECHUGA JULIANA', 'success');
+                agregarLog('Receta: TOMATE GAJOS', 'success');
+                agregarLog('Receta: CEBOLLA BLANCA', 'success');
+            } else if (progreso >= 100) {
+                clearInterval(interval);
+                actualizarProgreso(100);
+                agregarLog('Importación completada', 'success');
+                mostrarResultados({
+                    nuevas: 45,
+                    actualizadas: 12,
+                    ingredientes: 230
+                });
+            }
+        }, 300);
+    });
+</script>
+
+<style>
+    #log {
+        scrollbar-width: thin;
+        scrollbar-color: #ff6b00 #2b2f33;
+    }
+    
+    #log::-webkit-scrollbar {
+        width: 8px;
+    }
+    
+    #log::-webkit-scrollbar-track {
+        background: #2b2f33;
+    }
+    
+    #log::-webkit-scrollbar-thumb {
+        background: #ff6b00;
+        border-radius: 4px;
+    }
+</style>
+{% endblock %}

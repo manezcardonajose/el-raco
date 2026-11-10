@@ -1,0 +1,412 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<style>
+    .rx-card {
+        border: 1px solid rgba(255,255,255,.12);
+        border-radius: 10px;
+        padding: 12px;
+        margin-bottom: 12px;
+        background: rgba(255,255,255,.035);
+    }
+    .rx-grid {
+        display: grid;
+        grid-template-columns: 1.4fr .55fr .45fr .65fr .75fr .8fr .35fr;
+        gap: 8px;
+        align-items: end;
+    }
+    .rx-grid.rx-con-precios {
+        grid-template-columns: 1.4fr .55fr .45fr .55fr .65fr .75fr .8fr .35fr;
+    }
+    .rx-label {
+        font-size: 12px;
+        opacity: .78;
+        margin-bottom: 3px;
+    }
+    .rx-leido {
+        font-size: 12px;
+        opacity: .82;
+        margin-top: 5px;
+        line-height: 1.25;
+    }
+    .rx-actions {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        align-items: center;
+    }
+    @media (max-width: 900px) {
+        .rx-grid {
+            grid-template-columns: 1fr 1fr;
+        }
+        .rx-grid > div:first-child {
+            grid-column: 1 / -1;
+        }
+    }
+    @media (max-width: 520px) {
+        .rx-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+
+<div class="card">
+    <div class="card-header" style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;">
+        <h3 style="margin:0;"><i class="fas fa-file-upload"></i> Recepción directa</h3>
+        <div class="rx-actions">
+            <a href="{{ url_for('compras.validar_recepciones') }}" class="btn btn-info btn-sm">
+                <i class="fas fa-euro-sign"></i> Validación económica
+            </a>
+            <a href="{{ url_for('compras.lista_pedidos') }}" class="btn btn-secondary btn-sm">
+                <i class="fas fa-arrow-left"></i> Pedidos
+            </a>
+        </div>
+    </div>
+
+    <form method="POST" enctype="multipart/form-data" id="form-recepcion-directa">
+        <input type="hidden" name="compra_rapida" value="{{ 1 if compra_rapida else 0 }}">
+        <input type="hidden" name="modo_tablet" value="{{ 1 if modo_tablet else 0 }}">
+        <div class="card-body">
+
+            <div class="alert alert-info" style="margin-bottom:14px;">
+                <strong>Flujo:</strong> leer albarán/foto → revisar líneas → asignar almacén/incidencias → guardar recepción.
+                El stock físico se actualiza al guardar. La validación económica queda para administración.
+            </div>
+
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin-bottom:14px;">
+                <div>
+                    <label class="form-label">Proveedor</label>
+                    <select name="proveedor_id" class="form-control">
+                        <option value="">Seleccionar proveedor</option>
+                        {% for p in proveedores %}
+                        <option value="{{ p.id }}" {% if form_cache and form_cache.proveedor_id|string == p.id|string %}selected{% endif %}>{{ p.nombre }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div>
+                    <label class="form-label">Departamento</label>
+                    <select name="departamento_id" class="form-control" required>
+                        <option value="">Seleccionar departamento</option>
+                        {% for d in departamentos %}<option value="{{ d.id }}" {% if form_cache and form_cache.departamento_id|string == d.id|string %}selected{% endif %}>{{ d.nombre }}</option>{% endfor %}
+                    </select>
+                </div>
+
+                <div>
+                    <label class="form-label">Nº albarán</label>
+                    <input type="text" name="numero_albaran" class="form-control" value="{{ form_cache.numero_albaran if form_cache else '' }}">
+                </div>
+
+                <div>
+                    <label class="form-label">Albarán / foto / PDF</label>
+                    <input type="file"
+                           name="documento_compra"
+                           class="form-control"
+                           accept="image/*,.pdf"
+                           capture="environment">
+                    <small>Leer no guarda recepción. Guardar sí registra la entrada física.</small>
+                </div>
+            </div>
+
+                <label style="display:flex;gap:8px;align-items:center;margin-top:24px;">
+                    <input type="checkbox" name="imprimir_etiquetas" value="1">
+                    Imprimir etiquetas al guardar
+                </label>
+
+            <div class="rx-actions" style="margin-bottom:14px;">
+                <button type="submit" name="accion" value="leer" class="btn btn-warning">
+                    <i class="fas fa-magic"></i> Leer / analizar archivo
+                </button>
+                {% if not compra_rapida %}
+                <a href="{{ url_for('compras.recepcion_directa', rapida=1, tablet=1 if modo_tablet else 0) }}" class="btn btn-info">
+                    <i class="fas fa-receipt"></i> Compra rapida / ticket
+                </a>
+                {% endif %}
+                <button type="button" onclick="window.print()" class="btn btn-light">
+                    <i class="fas fa-print"></i> Imprimir pantalla
+                </button>
+            </div>
+
+            {% if texto_ocr and not modo_tablet %}
+            <details style="margin-bottom:14px;">
+                <summary>Texto leído por OCR/IA</summary>
+                <pre style="white-space:pre-wrap;max-height:220px;overflow:auto;background:#111;padding:10px;border-radius:6px;">{{ texto_ocr }}</pre>
+            </details>
+            {% endif %}
+
+            <div style="margin-bottom:14px;">
+                <label class="form-label">Observaciones recepción</label>
+                <textarea name="observaciones" class="form-control" rows="2">{{ form_cache.observaciones if form_cache else '' }}</textarea>
+            </div>
+
+            <hr>
+            <h4 style="margin-bottom:4px;">Líneas de recepción</h4>
+            <small>Producto, cantidad, precio si lo lee, almacén e incidencia. Revisa antes de guardar.</small>
+
+            <div id="lineas-recepcion" style="margin-top:10px;">
+                {% for l in lineas_ocr %}
+                {% set idx = l.idx %}
+                <div class="rx-card linea-recepcion">
+                    <input type="hidden" name="linea_idx[]" value="{{ idx }}">
+                    <input type="hidden" name="descripcion_{{ idx }}" value="{{ l.descripcion }}">
+                    <input type="hidden" name="importe_{{ idx }}" value="{{ l.importe }}">
+
+                    <div class="rx-grid {% if ver_precios %}rx-con-precios{% endif %}">
+                        <div>
+                            <div class="rx-label">Producto</div>
+                            <select name="producto_id_{{ idx }}" class="form-control" required>
+                                <option value="">Seleccionar producto</option>
+                                {% for p in productos %}
+                                <option value="{{ p.id }}" {% if l.producto_id|string == p.id|string %}selected{% endif %}>
+                                    {{ p.nombre }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                            <div class="rx-leido"><strong>Leído:</strong> {{ l.descripcion }}</div>
+                        </div>
+
+                        <div>
+                            <div class="rx-label">Cantidad</div>
+                            <input type="number" step="0.001" min="0" name="cantidad_{{ idx }}" class="form-control" value="{{ l.cantidad }}">
+                        </div>
+
+                        <div>
+                            <div class="rx-label">Envases</div>
+                            <input type="number" step="1" min="1" name="envases_{{ idx }}" class="form-control" value="1">
+                        </div>
+
+                        {% if ver_precios %}
+                        <div>
+                            <div class="rx-label">Precio</div>
+                            <input type="number" step="0.0001" min="0" name="precio_{{ idx }}" class="form-control" value="{{ l.precio }}">
+                        </div>
+                        {% else %}
+                        <input type="hidden" name="precio_{{ idx }}" value="{{ l.precio }}">
+                        {% endif %}
+
+                        <div>
+                            <div class="rx-label">Estado / APPCC</div>
+                            <select name="estado_{{ idx }}" class="form-control incidencia-select" data-idx="{{ idx }}">
+                                <option value="ok">OK</option>
+                                <option value="falta_unidades">Falta unidades</option>
+                                <option value="falta_peso">Falta peso</option>
+                                <option value="rotura">Rotura</option>
+                                <option value="mal_estado">Mal estado</option>
+                                <option value="temperatura_incorrecta">Temperatura incorrecta</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <div class="rx-label">Almacén</div>
+                            <select name="almacen_id_{{ idx }}" class="form-control" required>
+                                <option value="">Seleccionar almacén</option>
+                                {% for a in almacenes %}
+                                <option value="{{ a.id }}" {% if l.almacen_id|string == a.id|string %}selected{% endif %}>{{ a.nombre }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div>
+                            <div class="rx-label">Lote / caducidad</div>
+                            <input name="lote_{{ idx }}" class="form-control" placeholder="Lote" value="{{ l.lote }}">
+                            <input type="date" name="caducidad_{{ idx }}" class="form-control" style="margin-top:4px;" value="{{ l.fecha_caducidad }}">
+                        </div>
+
+                        <div>
+                            <button type="button" class="btn btn-danger btn-sm" onclick="this.closest('.linea-recepcion').remove()">X</button>
+                        </div>
+                    </div>
+
+                    <div class="incidencia-box" id="incidencia_{{ idx }}" style="display:none;margin-top:8px;">
+                        <label class="form-label">Decisión / observación incidencia APPCC</label>
+                        <textarea name="incidencia_texto_{{ idx }}" class="form-control" rows="2" placeholder="Ej: se rechaza caja rota, falta 2 kg, temperatura incorrecta...">{{ l.incidencia_texto }}</textarea>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+
+            <div style="margin-top:14px;">
+                <label class="form-label">Añadir producto manual</label>
+                <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                    <input id="buscador-producto" class="form-control" placeholder="Escribe 2 letras" style="min-width:260px;flex:1;">
+                    <button type="button" class="btn btn-secondary" onclick="limpiarBusqueda()">Limpiar</button>
+                </div>
+                <div id="resultados-productos" class="list-group" style="margin-top:6px;"></div>
+            </div>
+        </div>
+
+        <div class="card-footer" style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;">
+            <a href="{{ url_for('compras.recepcion_pedido') }}" class="btn btn-secondary">Cancelar</a>
+            <button type="submit" name="accion" value="guardar" class="btn btn-primary">
+                <i class="fas fa-save"></i> Guardar recepción
+            </button>
+        </div>
+    </form>
+</div>
+
+<script id="productos-json" type="application/json">{{ productos|tojson|safe }}</script>
+<script id="almacenes-json" type="application/json">{{ almacenes|tojson|safe }}</script>
+
+<script>
+const productosRecepcion = JSON.parse(document.getElementById('productos-json').textContent || '[]');
+const almacenesRecepcion = JSON.parse(document.getElementById('almacenes-json').textContent || '[]');
+const puedeVerPrecios = {{ 'true' if ver_precios else 'false' }};
+const departamentoSelect = document.querySelector('select[name="departamento_id"]');
+let contadorManual = {{ (lineas_ocr|length) + 1000 }};
+
+function productoOptions(selectedId) {
+    let html = '<option value="">Seleccionar producto</option>';
+    productosRecepcion.forEach(p => {
+        const sel = String(selectedId || '') === String(p.id) ? 'selected' : '';
+        html += `<option value="${p.id}" ${sel}>${p.nombre}</option>`;
+    });
+    return html;
+}
+
+function almacenOptions() {
+    let html = '<option value="">Seleccionar almacén</option>';
+    almacenesRecepcion.forEach(a => {
+        html += `<option value="${a.id}">${a.nombre}</option>`;
+    });
+    return html;
+}
+
+function departamentoActual() {
+    return departamentoSelect ? String(departamentoSelect.value || '') : '';
+}
+
+function almacenOptions(selectedId) {
+    let html = '<option value="">Seleccionar almacen</option>';
+    let encontrados = 0;
+    const dep = departamentoActual();
+    almacenesRecepcion.forEach(a => {
+        if (dep && String(a.departamento_id || '') !== dep) return;
+        const sel = String(selectedId || '') === String(a.id) ? 'selected' : '';
+        html += `<option value="${a.id}" ${sel}>${a.nombre}</option>`;
+        encontrados += 1;
+    });
+    if (dep && encontrados === 0) {
+        html += '<option value="" disabled>No hay almacenes para este departamento</option>';
+    }
+    return html;
+}
+
+function refrescarAlmacenes() {
+    document.querySelectorAll('select[name^="almacen_id_"]').forEach(select => {
+        const seleccionado = select.value;
+        select.innerHTML = almacenOptions(seleccionado);
+        if (seleccionado && !Array.from(select.options).some(option => option.value === seleccionado)) {
+            select.value = '';
+        }
+    });
+}
+
+function engancharIncidencias(scope) {
+    (scope || document).querySelectorAll('.incidencia-select').forEach(sel => {
+        sel.addEventListener('change', function() {
+            const box = document.getElementById('incidencia_' + this.dataset.idx);
+            if (box) box.style.display = this.value === 'ok' ? 'none' : 'block';
+        });
+    });
+}
+
+function agregarProductoManual(producto) {
+    const idx = contadorManual++;
+    const cont = document.getElementById('lineas-recepcion');
+    const div = document.createElement('div');
+    div.className = 'rx-card linea-recepcion';
+    div.innerHTML = `
+        <input type="hidden" name="linea_idx[]" value="${idx}">
+        <input type="hidden" name="descripcion_${idx}" value="${producto.nombre || ''}">
+        <input type="hidden" name="importe_${idx}" value="">
+        <div class="rx-grid ${puedeVerPrecios ? 'rx-con-precios' : ''}">
+            <div>
+                <div class="rx-label">Producto</div>
+                <select name="producto_id_${idx}" class="form-control" required>${productoOptions(producto.id)}</select>
+                <div class="rx-leido"><strong>Manual:</strong> ${producto.nombre || ''}</div>
+            </div>
+            <div>
+                <div class="rx-label">Cantidad</div>
+                <input type="number" step="0.001" min="0" name="cantidad_${idx}" class="form-control" value="">
+            </div>
+            <div>
+                <div class="rx-label">Envases</div>
+                <input type="number" step="1" min="1" name="envases_${idx}" class="form-control" value="1">
+            </div>
+            ${puedeVerPrecios ? `
+                <div>
+                    <div class="rx-label">Precio</div>
+                    <input type="number" step="0.0001" min="0" name="precio_${idx}" class="form-control" value="${producto.precio || ''}">
+                </div>
+            ` : `<input type="hidden" name="precio_${idx}" value="">`}
+            <div>
+                <div class="rx-label">Estado / APPCC</div>
+                <select name="estado_${idx}" class="form-control incidencia-select" data-idx="${idx}">
+                    <option value="ok">OK</option>
+                    <option value="falta_unidades">Falta unidades</option>
+                    <option value="falta_peso">Falta peso</option>
+                    <option value="rotura">Rotura</option>
+                    <option value="mal_estado">Mal estado</option>
+                    <option value="temperatura_incorrecta">Temperatura incorrecta</option>
+                </select>
+            </div>
+            <div>
+                <div class="rx-label">Almacén</div>
+                <select name="almacen_id_${idx}" class="form-control">${almacenOptions()}</select>
+            </div>
+            <div>
+                <div class="rx-label">Lote / caducidad</div>
+                <input name="lote_${idx}" class="form-control" placeholder="Lote">
+                <input type="date" name="caducidad_${idx}" class="form-control" style="margin-top:4px;">
+            </div>
+            <div>
+                <button type="button" class="btn btn-danger btn-sm" onclick="this.closest('.linea-recepcion').remove()">X</button>
+            </div>
+        </div>
+        <div class="incidencia-box" id="incidencia_${idx}" style="display:none;margin-top:8px;">
+            <label class="form-label">Decisión / observación incidencia APPCC</label>
+            <textarea name="incidencia_texto_${idx}" class="form-control" rows="2"></textarea>
+        </div>
+    `;
+    cont.appendChild(div);
+    engancharIncidencias(div);
+    limpiarBusqueda();
+}
+
+function limpiarBusqueda() {
+    document.getElementById('buscador-producto').value = '';
+    document.getElementById('resultados-productos').innerHTML = '';
+}
+
+document.getElementById('buscador-producto').addEventListener('keyup', function() {
+    const v = this.value.toLowerCase().trim();
+    const c = document.getElementById('resultados-productos');
+    c.innerHTML = '';
+    if (v.length < 2) return;
+
+    productosRecepcion
+        .filter(p => (p.nombre || '').toLowerCase().includes(v) || (p.codigo || '').toLowerCase().includes(v) || (p.codigo_interno || '').toLowerCase().includes(v))
+        .slice(0, 20)
+        .forEach(p => {
+            const a = document.createElement('a');
+            a.href = '#';
+            a.className = 'list-group-item list-group-item-action';
+            a.textContent = p.nombre;
+            a.onclick = (e) => {
+                e.preventDefault();
+                agregarProductoManual(p);
+            };
+            c.appendChild(a);
+        });
+});
+
+if (departamentoSelect) {
+    departamentoSelect.addEventListener('change', refrescarAlmacenes);
+}
+
+engancharIncidencias(document);
+refrescarAlmacenes();
+</script>
+
+{% endblock %}

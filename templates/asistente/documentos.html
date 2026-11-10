@@ -1,0 +1,153 @@
+{% extends "base.html" %}
+
+{% block title %}Lectura documentos IA{% endblock %}
+{% block breadcrumb %}<a href="{{ url_for('asistente.dashboard') }}">Asistente El Raco</a> / Lectura documentos{% endblock %}
+
+{% block content %}
+<style>
+    .doc-head { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:18px; align-items:end; margin-bottom:18px; }
+    .doc-head h1 { margin:0 0 6px; color:#ff6b00; font-size:28px; }
+    .doc-head p, .doc-mini { color:var(--text-muted,#5f6b7a); }
+    .doc-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:12px; margin-bottom:16px; }
+    .doc-card, .doc-panel { border:1px solid var(--border-color,#d5dde7); background:var(--card-bg,#fff); border-radius:8px; box-shadow:0 1px 2px rgba(0,0,0,.04); }
+    .doc-card { padding:14px; }
+    .doc-card span { display:block; color:var(--text-muted,#5f6b7a); font-size:12px; margin-bottom:7px; }
+    .doc-card strong { display:block; font-size:24px; color:var(--text-color,#16202a); }
+    .doc-panel { overflow:hidden; margin-bottom:16px; }
+    .doc-panel h2 { margin:0; padding:14px 16px; color:#ff6b00; font-size:18px; border-bottom:1px solid var(--border-color,#d5dde7); background:rgba(255,107,0,.07); }
+    .doc-body { padding:14px 16px; }
+    .doc-form { display:grid; grid-template-columns:repeat(auto-fit,minmax(210px,1fr)); gap:10px; align-items:end; }
+    .doc-form label { display:block; font-size:12px; color:var(--text-muted,#5f6b7a); margin-bottom:4px; }
+    .doc-form input, .doc-form select, .doc-form textarea { width:100%; min-height:38px; border:1px solid var(--border-color,#d5dde7); border-radius:7px; padding:8px 10px; background:var(--input-bg,#fff); color:var(--text-color,#16202a); }
+    .doc-table { width:100%; border-collapse:collapse; }
+    .doc-table th, .doc-table td { padding:10px 12px; border-bottom:1px solid var(--border-color,#d5dde7); text-align:left; vertical-align:top; }
+    .doc-table th { color:#ff6b00; font-size:12px; text-transform:uppercase; }
+    .doc-badge { display:inline-flex; padding:3px 8px; border-radius:999px; color:#fff; font-size:12px; font-weight:700; background:#2563eb; }
+    .doc-badge.pendiente_ocr { background:#ea580c; }
+    .doc-badge.validado { background:#16a34a; }
+    .doc-badge.descartado { background:#64748b; }
+    .doc-mini { display:block; margin-top:4px; font-size:12px; }
+</style>
+
+<div class="doc-head">
+    <div>
+        <h1><i class="fas fa-file-import"></i> Lectura de documentos IA</h1>
+        <p>Bandeja para tickets, reservas, albaranes, facturas y escaneos. La IA extrae senales, pero los datos no se integran hasta que una persona los valida.</p>
+    </div>
+</div>
+
+<div class="doc-grid">
+    <div class="doc-card"><span>Pendiente revision</span><strong>{{ resumen.get('pendiente_revision', 0) }}</strong></div>
+    <div class="doc-card"><span>Pendiente OCR</span><strong>{{ resumen.get('pendiente_ocr', 0) }}</strong></div>
+    <div class="doc-card"><span>Validados</span><strong>{{ resumen.get('validado', 0) }}</strong></div>
+    <div class="doc-card"><span>Descartados</span><strong>{{ resumen.get('descartado', 0) }}</strong></div>
+</div>
+
+<section class="doc-panel">
+    <h2>Cargar documento</h2>
+    <div class="doc-body">
+        <form class="doc-form" method="post" enctype="multipart/form-data" action="{{ url_for('asistente.documentos_ia') }}">
+            <div>
+                <label>Documento</label>
+                <input type="file" name="archivo" accept=".pdf,.png,.jpg,.jpeg,.webp,.tif,.tiff,.txt,.csv" required>
+            </div>
+            <div>
+                <label>Titulo</label>
+                <input type="text" name="titulo" placeholder="Ej. Ticket bar piscina habitacion 205">
+            </div>
+            <div>
+                <label>Tipo</label>
+                <select name="tipo_documento">
+                    {% for value, label in tipos_documento %}
+                    <option value="{{ value }}">{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label>Modulo destino</label>
+                <select name="modulo_destino">
+                    {% for value, label in modulos_documento %}
+                    <option value="{{ value }}">{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <button class="btn btn-success" type="submit"><i class="fas fa-upload"></i> Leer y guardar</button>
+        </form>
+    </div>
+</section>
+
+<section class="doc-panel">
+    <h2>Documentos leidos</h2>
+    <div class="doc-body">
+        <form class="doc-form" method="get" action="{{ url_for('asistente.documentos_ia') }}" style="margin-bottom:12px;">
+            <div>
+                <label>Estado</label>
+                <select name="estado">
+                    <option value="">Todos</option>
+                    <option value="pendiente_revision" {% if filtros.estado == 'pendiente_revision' %}selected{% endif %}>Pendiente revision</option>
+                    <option value="pendiente_ocr" {% if filtros.estado == 'pendiente_ocr' %}selected{% endif %}>Pendiente OCR</option>
+                    <option value="validado" {% if filtros.estado == 'validado' %}selected{% endif %}>Validado</option>
+                    <option value="descartado" {% if filtros.estado == 'descartado' %}selected{% endif %}>Descartado</option>
+                </select>
+            </div>
+            <div>
+                <label>Modulo</label>
+                <select name="modulo">
+                    <option value="">Todos</option>
+                    {% for value, label in modulos_documento %}
+                    {% if value != 'auto' %}
+                    <option value="{{ value }}" {% if filtros.modulo == value %}selected{% endif %}>{{ label }}</option>
+                    {% endif %}
+                    {% endfor %}
+                </select>
+            </div>
+            <button class="btn btn-primary" type="submit">Filtrar</button>
+            <a class="btn btn-secondary" href="{{ url_for('asistente.documentos_ia') }}">Limpiar</a>
+        </form>
+    </div>
+    <div style="overflow-x:auto;">
+        <table class="doc-table">
+            <thead>
+                <tr>
+                    <th>Fecha</th>
+                    <th>Documento</th>
+                    <th>Lectura</th>
+                    <th>Propuesta</th>
+                    <th>Revision</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for d in documentos %}
+                <tr>
+                    <td>{{ d.fecha_creacion|fecha_es }}<span class="doc-mini">{{ d.usuario or '-' }}</span></td>
+                    <td>
+                        <strong>{{ d.titulo or d.archivo_nombre }}</strong>
+                        <span class="doc-mini">{{ d.tipo_documento }} / {{ d.modulo_destino }}</span>
+                        <span class="doc-mini">{{ d.archivo_nombre }}</span>
+                    </td>
+                    <td>
+                        <span class="doc-badge {{ d.estado }}">{{ d.estado }}</span>
+                        <span class="doc-mini">{{ (d.texto_extraido or '')[:260] }}{% if (d.texto_extraido or '')|length > 260 %}...{% endif %}</span>
+                    </td>
+                    <td>{{ d.propuesta or '-' }}</td>
+                    <td>
+                        <form method="post" action="{{ url_for('asistente.documento_estado', documento_id=d.id) }}" style="display:grid;gap:6px;min-width:210px;">
+                            <select name="estado">
+                                <option value="pendiente_revision" {% if d.estado == 'pendiente_revision' %}selected{% endif %}>Pendiente</option>
+                                <option value="validado" {% if d.estado == 'validado' %}selected{% endif %}>Validado</option>
+                                <option value="descartado" {% if d.estado == 'descartado' %}selected{% endif %}>Descartado</option>
+                                <option value="pendiente_ocr" {% if d.estado == 'pendiente_ocr' %}selected{% endif %}>Pendiente OCR</option>
+                            </select>
+                            <input type="text" name="observaciones" placeholder="Observacion">
+                            <button class="btn btn-secondary" type="submit">Actualizar</button>
+                        </form>
+                    </td>
+                </tr>
+                {% else %}
+                <tr><td colspan="5">No hay documentos en la bandeja.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</section>
+{% endblock %}

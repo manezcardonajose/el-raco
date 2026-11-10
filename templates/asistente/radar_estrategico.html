@@ -1,0 +1,160 @@
+{% extends "base.html" %}
+
+{% block title %}Radar estrategico{% endblock %}
+{% block breadcrumb %}<a href="{{ url_for('asistente.dashboard') }}">Asistente El Raco</a> / <a href="{{ url_for('asistente.centro_decision') }}">Centro de decision</a> / Radar{% endblock %}
+
+{% block content %}
+<style>
+    .radar-head { margin-bottom: 16px; }
+    .radar-head h1 { margin: 0 0 6px; color: #ff6b00; font-size: 28px; }
+    .radar-head p { margin: 0; max-width: 980px; color: var(--text-muted, #5f6b7a); line-height: 1.45; }
+    .radar-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 16px; }
+    .radar-card-actions { display:flex; gap:8px; flex-wrap:wrap; margin-top: 12px; }
+    .radar-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(155px, 1fr)); gap: 10px; margin-bottom: 16px; }
+    .radar-kpi, .radar-card {
+        border: 1px solid var(--border-color, #d5dde7);
+        border-radius: 8px;
+        background: var(--card-bg, #fff);
+        box-shadow: 0 1px 2px rgba(0,0,0,.04);
+    }
+    .radar-kpi { padding: 13px; }
+    .radar-kpi span { display:block; color: var(--text-muted, #5f6b7a); font-size: 12px; margin-bottom: 6px; }
+    .radar-kpi strong { display:block; font-size: 22px; color: var(--text-color, #16202a); }
+    .radar-list { display: grid; gap: 12px; }
+    .radar-card { padding: 15px; }
+    .radar-card h2 { margin: 8px 0; color: var(--text-color, #16202a); font-size: 19px; }
+    .radar-card p { color: var(--text-muted, #5f6b7a); line-height: 1.45; margin: 7px 0; }
+    .radar-meta { display:flex; gap:8px; flex-wrap:wrap; }
+    .radar-badge {
+        border: 1px solid var(--border-color, #d5dde7);
+        border-radius: 999px;
+        padding: 4px 9px;
+        font-size: 12px;
+        font-weight: 700;
+        color: var(--text-muted, #5f6b7a);
+        background: rgba(148,163,184,.08);
+    }
+    .radar-badge.alta { border-color:#f0a199; color:#b42318; }
+    .radar-badge.media { border-color:#f2c16d; color:#9a5b00; }
+    .radar-badge.info { border-color:#8fd3a2; color:#16803a; }
+    .radar-sources { margin-top: 10px; display: grid; gap: 6px; }
+    .radar-source {
+        border-top: 1px solid var(--border-color, #d5dde7);
+        padding-top: 7px;
+        color: var(--text-muted, #5f6b7a);
+        font-size: 13px;
+    }
+    .radar-pilot {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 8px;
+        margin-top: 12px;
+    }
+    .radar-pilot div {
+        border: 1px solid var(--border-color, #d5dde7);
+        border-radius: 8px;
+        padding: 9px;
+        background: rgba(148,163,184,.06);
+    }
+    .radar-pilot span {
+        display: block;
+        color: var(--text-muted, #5f6b7a);
+        font-size: 12px;
+        margin-bottom: 4px;
+        font-weight: 700;
+    }
+</style>
+
+<div class="radar-head">
+    <h1><i class="fas fa-satellite-dish"></i> Radar estrategico</h1>
+    <p>Convierte datos internos, fuentes sectoriales, memoria y escenarios en oportunidades de decision. No ejecuta nada: prioriza, pide contraste y te manda al simulador cuando toca.</p>
+</div>
+
+<div class="radar-actions">
+    <a class="btn btn-primary" href="{{ url_for('asistente.tendencias_estrategicas') }}"><i class="fas fa-wave-square"></i> Tendencias</a>
+    <a class="btn btn-primary" href="{{ url_for('asistente.chat_estrategico') }}"><i class="fas fa-comments"></i> Chat estrategico</a>
+    <a class="btn btn-primary" href="{{ url_for('asistente.simulador_decision') }}"><i class="fas fa-chart-line"></i> Simulador</a>
+    <a class="btn btn-secondary" href="{{ url_for('asistente.aprendizaje') }}"><i class="fas fa-link"></i> Fuentes</a>
+    <a class="btn btn-secondary" href="{{ url_for('asistente.centro_decision') }}"><i class="fas fa-compass"></i> Centro decision</a>
+</div>
+
+<div class="radar-grid">
+    <div class="radar-kpi"><span>Fuentes</span><strong>{{ resumen.fuentes }}</strong></div>
+    <div class="radar-kpi"><span>Memoria</span><strong>{{ resumen.memoria }}</strong></div>
+    <div class="radar-kpi"><span>Escenarios</span><strong>{{ resumen.escenarios }}</strong></div>
+    <div class="radar-kpi"><span>Margen aprox.</span><strong>{{ (resumen.margen or 0)|euros }}</strong></div>
+    <div class="radar-kpi"><span>Ocupacion</span><strong>{{ resumen.ocupacion_pct or 0 }}%</strong></div>
+    <div class="radar-kpi"><span>Quejas</span><strong>{{ resumen.quejas }}</strong></div>
+</div>
+
+<div class="radar-list">
+    {% for op in oportunidades %}
+    <article class="radar-card">
+        <div class="radar-meta">
+            <span class="radar-badge {{ op.prioridad }}">{{ op.prioridad|upper }}</span>
+            <span class="radar-badge">{{ op.area }}</span>
+            <span class="radar-badge">Confianza {{ op.confianza_pct }}%</span>
+        </div>
+        <h2>{{ op.titulo }}</h2>
+        <p><strong>Lectura:</strong> {{ op.lectura }}</p>
+        <p><strong>Siguiente movimiento:</strong> {{ op.accion }}</p>
+        {% if op.cruce_datos %}
+        <div class="radar-pilot">
+            <div><span>Idea generada</span>{{ op.cruce_datos.idea }}</div>
+            <div><span>Dato interno</span>{{ op.cruce_datos.dato_interno }}</div>
+            <div><span>Senal externa</span>{{ op.cruce_datos.senal_externa }}</div>
+            <div><span>Escenario sugerido</span>{{ op.cruce_datos.escenario_sugerido }}</div>
+            <div><span>Nivel de cruce</span>{{ op.cruce_datos.nivel }}</div>
+            <div><span>Riesgo de inventar</span>{{ op.cruce_datos.riesgo_inventar }}</div>
+        </div>
+        {% endif %}
+        {% if op.plan_piloto %}
+        <div class="radar-pilot">
+            <div><span>Hipotesis</span>{{ op.plan_piloto.hipotesis }}</div>
+            <div><span>Prueba</span>{{ op.plan_piloto.prueba }}</div>
+            <div><span>Metrica de exito</span>{{ op.plan_piloto.metrica_exito }}</div>
+            <div><span>Limite de parada</span>{{ op.plan_piloto.limite_parada }}</div>
+            <div><span>Duracion</span>{{ op.plan_piloto.duracion }}</div>
+            <div><span>Responsable</span>{{ op.plan_piloto.responsable }}</div>
+        </div>
+        {% endif %}
+        <form class="radar-card-actions" method="post" action="{{ url_for('asistente.guardar_oportunidad_radar') }}">
+            <input type="hidden" name="area" value="{{ op.area }}">
+            <input type="hidden" name="prioridad" value="{{ op.prioridad }}">
+            <input type="hidden" name="titulo" value="{{ op.titulo }}">
+            <input type="hidden" name="lectura" value="{{ op.lectura }}">
+            <input type="hidden" name="accion" value="{{ op.accion }}">
+            <input type="hidden" name="confianza_pct" value="{{ op.confianza_pct }}">
+            {% if op.cruce_datos %}
+            <input type="hidden" name="cruce_nivel" value="{{ op.cruce_datos.nivel }}">
+            <input type="hidden" name="cruce_idea" value="{{ op.cruce_datos.idea }}">
+            <input type="hidden" name="cruce_dato_interno" value="{{ op.cruce_datos.dato_interno }}">
+            <input type="hidden" name="cruce_senal_externa" value="{{ op.cruce_datos.senal_externa }}">
+            <input type="hidden" name="cruce_escenario_sugerido" value="{{ op.cruce_datos.escenario_sugerido }}">
+            <input type="hidden" name="cruce_riesgo_inventar" value="{{ op.cruce_datos.riesgo_inventar }}">
+            {% endif %}
+            {% if op.plan_piloto %}
+            <input type="hidden" name="hipotesis" value="{{ op.plan_piloto.hipotesis }}">
+            <input type="hidden" name="prueba" value="{{ op.plan_piloto.prueba }}">
+            <input type="hidden" name="metrica_exito" value="{{ op.plan_piloto.metrica_exito }}">
+            <input type="hidden" name="limite_parada" value="{{ op.plan_piloto.limite_parada }}">
+            <input type="hidden" name="duracion" value="{{ op.plan_piloto.duracion }}">
+            <input type="hidden" name="responsable" value="{{ op.plan_piloto.responsable }}">
+            {% endif %}
+            <button class="btn btn-success" type="submit"><i class="fas fa-save"></i> Guardar para seguimiento</button>
+            <a class="btn btn-secondary" href="{{ url_for('asistente.simulador_decision') }}"><i class="fas fa-flask"></i> Simular</a>
+        </form>
+        {% if op.fuentes %}
+        <div class="radar-sources">
+            {% for f in op.fuentes %}
+            <div class="radar-source">
+                <strong>{{ f.titulo }}</strong> - {{ f.tipo }} - {{ f.confianza_pct }}%
+                {% if f.url %}<br><a href="{{ f.url }}" target="_blank" rel="noopener noreferrer">{{ f.url }}</a>{% endif %}
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+    </article>
+    {% endfor %}
+</div>
+{% endblock %}

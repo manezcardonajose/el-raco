@@ -1,0 +1,33 @@
+{% extends 'base.html' %}
+{% block title %}Alta rapida habitaciones{% endblock %}
+{% block breadcrumb %}Recepcion / Habitaciones / Alta rapida{% endblock %}
+{% block content %}
+<div class="card">
+  <div class="card-header">
+    <h2><i class="fas fa-layer-group"></i> Alta rapida de habitaciones</h2>
+    <a class="btn btn-secondary" href="{{ url_for('recepcion.habitaciones') }}">Habitaciones</a>
+  </div>
+  <form method="post">
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:16px;">
+      <div class="form-group"><label class="form-label">Bloque / edificio</label><input class="form-control" name="bloque" placeholder="A"></div>
+      <div class="form-group"><label class="form-label">Planta desde</label><input class="form-control" name="planta_desde" placeholder="1"></div>
+      <div class="form-group"><label class="form-label">Planta hasta</label><input class="form-control" name="planta_hasta" placeholder="1"></div>
+      <div class="form-group"><label class="form-label">Prefijo numero</label><input class="form-control" name="prefijo" placeholder="vacio usa planta"><small>Admite {bloque} y {planta}.</small></div>
+      <div class="form-group"><label class="form-label">Habitacion desde</label><input class="form-control" type="number" name="desde" value="1"></div>
+      <div class="form-group"><label class="form-label">Habitacion hasta</label><input class="form-control" type="number" name="hasta" value="10"></div>
+      <div class="form-group"><label class="form-label">Digitos numero</label><input class="form-control" type="number" min="1" name="ancho" value="2"></div>
+      <div class="form-group"><label class="form-label">Tipo</label><select class="form-control" name="tipo_habitacion_id">
+        <option value="">Sin tipo</option>
+        {% for t in tipos %}
+        <option value="{{ t.id }}">{{ t.nombre }} ({{ t.codigo }})</option>
+        {% endfor %}
+      </select></div>
+      <div class="form-group"><label class="form-label">Capacidad</label><input class="form-control" type="number" min="1" name="capacidad" value="2"></div>
+      <div class="form-group"><label class="form-label">Nombre base</label><input class="form-control" name="nombre_base" placeholder="Doble planta 1"></div>
+    </div>
+    <div class="form-group"><label class="form-label">Observaciones</label><textarea class="form-control" name="observaciones" rows="3"></textarea></div>
+    <button class="btn btn-success" type="submit">Crear habitaciones</button>
+    <a class="btn btn-secondary" href="{{ url_for('recepcion.habitaciones') }}">Volver</a>
+  </form>
+</div>
+{% endblock %}

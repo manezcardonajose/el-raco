@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header">
+        <h2><i class="fas fa-chart-bar"></i> INFORMES APPCC</h2>
+    </div>
+
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px;">
+
+        <!-- Temperaturas -->
+        <div class="informe-card">
+            <div style="font-size: 48px; color: #17a2b8;">️</div>
+            <h3>Registros de Temperatura</h3>
+            <p>Informe de controles de temperatura por equipo y perodo.</p>
+            <a href="{{ url_for('appcc.lista_equipos') }}" class="btn btn-info">Ver informe</a>
+        </div>
+
+        <!-- Limpieza -->
+        <div class="informe-card">
+            <div style="font-size: 48px; color: #28a745;"></div>
+            <h3>Registros de Limpieza</h3>
+            <p>Informe de tareas de limpieza realizadas por rea.</p>
+            <a href="{{ url_for('appcc.plan_limpieza') }}" class="btn btn-success">Ver informe</a>
+        </div>
+
+        <!-- Caducidades -->
+        <div class="informe-card">
+            <div style="font-size: 48px; color: #ffc107;">⏰</div>
+            <h3>Control de Caducidades</h3>
+            <p>Lotes caducados y prximos a caducar.</p>
+            <a href="{{ url_for('appcc.control_caducidades') }}" class="btn btn-warning">Ver informe</a>
+        </div>
+
+        <!-- Descongelados -->
+        <div class="informe-card">
+            <div style="font-size: 48px; color: #6f42c1;">️</div>
+            <h3>Procesos de Descongelado</h3>
+            <p>Seguimiento de descongelados y controles realizados.</p>
+            <a href="{{ url_for('appcc.alertas_descongelados_appcc') }}" class="btn btn-primary">Ver informe</a>
+        </div>
+
+    </div>
+</div>
+
+<style>
+    .informe-card {
+        background: #1e252b;
+        padding: 25px;
+        border-radius: 8px;
+        text-align: center;
+        border-left: 4px solid #ff6b00;
+        transition: transform 0.2s;
+    }
+
+        .informe-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        }
+
+        .informe-card h3 {
+            color: #ff6b00;
+            margin: 15px 0 10px;
+        }
+
+        .informe-card p {
+            color: #999;
+            margin-bottom: 20px;
+        }
+</style>
+{% endblock %}
+
+
+
+

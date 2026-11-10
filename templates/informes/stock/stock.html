@@ -1,0 +1,170 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header">
+        <h2><i class="fas fa-boxes"></i> INFORME DE STOCK</h2>
+        <div>
+            <button onclick="window.print()" class="btn btn-info">
+                <i class="fas fa-print"></i> Imprimir
+            </button>
+            <a href="{{ url_for('informes.stock_exportar') }}" class="btn btn-success">
+                <i class="fas fa-file-excel"></i> Exportar Excel
+            </a>
+            <a href="{{ url_for('appcc.appcc_dashboard') }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Volver
+            </a>
+        </div>
+    </div>
+
+    <!-- Resumen general -->
+    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; margin-bottom: 30px;">
+        <div style="background: #1e252b; padding: 20px; border-radius: 8px;">
+            <div style="font-size: 14px; color: #999;">Total productos activos</div>
+            <div style="font-size: 36px; font-weight: bold;">{{ total_productos }}</div>
+        </div>
+        <div style="background: #1e252b; padding: 20px; border-radius: 8px;">
+            <div style="font-size: 14px; color: #999;">Valor total del stock</div>
+            <div style="font-size: 36px; font-weight: bold; color: #28a745;">{{ "%.2f"|format(valor_total) }} </div>
+        </div>
+    </div>
+
+    <!-- Stock bajo -->
+    {% if stock_bajo %}
+    <div style="margin-bottom: 30px;">
+        <h3 style="color: #ffc107;">️ Productos con stock bajo</h3>
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Producto</th>
+                        <th>Cdigo</th>
+                        <th>Stock actual</th>
+                        <th>Stock mnimo</th>
+                        <th>Unidad</th>
+                        <th>Almacenes</th>
+                        <th>Accin</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for p in stock_bajo %}
+                    <tr>
+                        <td><strong>{{ p.nombre }}</strong></td>
+                        <td>{{ p.codigo or '---' }}</td>
+                        <td style="color: #ffc107;">{{ "%.2f"|format(p.stock_actual) }}</td>
+                        <td>{{ p.stock_minimo }}</td>
+                        <td>{{ p.unidad }}</td>
+                        <td>{{ p.num_almacenes }}</td>
+                        <td>
+                            <a href="{{ url_for('stock.ajustar_stock', producto_id=p.id) }}" class="btn btn-sm btn-primary">Ajustar</a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Productos agotados -->
+    {% if agotados %}
+    <div style="margin-bottom: 30px;">
+        <h3 style="color: #dc3545;"> Productos agotados</h3>
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Producto</th>
+                        <th>Cdigo</th>
+                        <th>Stock actual</th>
+                        <th>Unidad</th>
+                        <th>ltimo movimiento</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for p in agotados %}
+                    <tr>
+                        <td><strong>{{ p.nombre }}</strong></td>
+                        <td>{{ p.codigo or '---' }}</td>
+                        <td style="color: #dc3545;">0</td>
+                        <td>{{ p.unidad }}</td>
+                        <td>---</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Stock por almacn -->
+    {% if stock_almacenes %}
+    <div>
+        <h3 style="color: #17a2b8;"> Stock por almacn</h3>
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Almacn</th>
+                        <th>Productos distintos</th>
+                        <th>Total items</th>
+                        <th>Valor total</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for a in stock_almacenes %}
+                    <tr>
+                        <td><strong>{{ a.almacen }}</strong></td>
+                        <td>{{ a.num_productos }}</td>
+                        <td>{{ "%.2f"|format(a.total_items) }}</td>
+                        <td>{{ "%.2f"|format(a.valor_total) }} </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+
+    {% if not stock_bajo and not agotados and not stock_almacenes %}
+    <div style="text-align: center; padding: 40px;">
+        <p style="color: #999;">No hay datos de stock para mostrar</p>
+    </div>
+    {% endif %}
+</div>
+
+<style>
+    .btn-sm {
+        padding: 4px 8px;
+        font-size: 12px;
+        border-radius: 4px;
+        text-decoration: none;
+        color: white;
+        background: #007bff;
+    }
+
+        .btn-sm:hover {
+            opacity: 0.8;
+        }
+
+    @media print {
+        .btn, .card-header a, .btn-sm {
+            display: none;
+        }
+
+        body {
+            background: white;
+            color: black;
+        }
+
+        .card {
+            box-shadow: none;
+            border: 1px solid #ddd;
+        }
+    }
+</style>
+{% endblock %}
+
+
+
+

@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="card">
+    <h2> ltimos Movimientos</h2>
+    
+    <table>
+        <thead>
+            <tr>
+                <th>Fecha</th>
+                <th>Producto</th>
+                <th>Almacn</th>
+                <th>Tipo</th>
+                <th>Cantidad</th>
+                <th>Motivo</th>
+                <th>Usuario</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for m in movimientos %}
+            <tr>
+                <td>{{ m.fecha }}</td>
+                <td>{{ m.producto }}</td>
+                <td>{{ m.almacen }}</td>
+                <td>
+                    {% if m.tipo == 'entrada' %}
+                        <span style="color: #28a745;">️ Entrada</span>
+                    {% elif m.tipo == 'salida' %}
+                        <span style="color: #dc3545;">️ Salida</span>
+                    {% elif m.tipo == 'ajuste' %}
+                        <span style="color: #ffc107;"> Ajuste</span>
+                    {% else %}
+                        {{ m.tipo }}
+                    {% endif %}
+                </td>
+                <td>{{ m.cantidad }}</td>
+                <td>{{ m.motivo or '---' }}</td>
+                <td>{{ m.usuario or '---' }}</td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="7" style="text-align: center;">No hay movimientos registrados</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}
+
+
+

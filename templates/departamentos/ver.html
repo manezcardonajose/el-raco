@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="card">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+        <div>
+            <h2 style="color:#ff6b00; margin:0;">{{ departamento.nombre }}</h2>
+            {% if departamento.descripcion %}
+            <p style="color:#999; margin-top:8px;">{{ departamento.descripcion }}</p>
+            {% endif %}
+            <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px;">
+                <span class="badge badge-info">{{ departamento.tipo_operativo or 'general' }}</span>
+                {% for key,label in capacidades %}
+                    {% if departamento[key] %}<span class="badge badge-success">{{ label }}</span>{% endif %}
+                {% endfor %}
+            </div>
+        </div>
+        <div style="display:flex; gap:10px;">
+            <a href="/departamentos/{{ departamento.id }}/editar" class="btn btn-primary">Editar</a>
+            <a href="/departamentos" class="btn btn-secondary">Volver</a>
+        </div>
+    </div>
+
+    <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr)); gap:20px;">
+        <div style="background:#1e252b; padding:18px; border-radius:8px;">
+            <h3 style="color:#ff6b00; margin-top:0;">Subdepartamentos</h3>
+            {% if subdepartamentos %}
+                <ul style="padding-left:18px;">
+                {% for s in subdepartamentos %}
+                    <li>{{ s.nombre }}</li>
+                {% endfor %}
+                </ul>
+            {% else %}
+                <p style="color:#999;">No hay subdepartamentos</p>
+            {% endif %}
+        </div>
+
+        <div style="background:#1e252b; padding:18px; border-radius:8px;">
+            <h3 style="color:#ff6b00; margin-top:0;">Puntos de venta</h3>
+            {% if puntos_venta %}
+                <ul style="padding-left:18px;">
+                {% for p in puntos_venta %}
+                    <li>
+                        <strong>{{ p.nombre }}</strong>
+                        {% if p.rol_operativo %} ({{ p.rol_operativo }}){% endif %}
+                        {% if p.subdepartamento_nombre %} - {{ p.subdepartamento_nombre }}{% endif %}
+                    </li>
+                {% endfor %}
+                </ul>
+            {% else %}
+                <p style="color:#999;">No hay puntos de venta</p>
+            {% endif %}
+        </div>
+
+        <div style="background:#1e252b; padding:18px; border-radius:8px;">
+            <h3 style="color:#ff6b00; margin-top:0;">Almacenes</h3>
+            {% if almacenes %}
+                <ul style="padding-left:18px;">
+                {% for a in almacenes %}
+                    <li>
+                        <strong>{{ a.nombre }}</strong>
+                        {% if a.subdepartamento_nombre %} - {{ a.subdepartamento_nombre }}{% endif %}
+                    </li>
+                {% endfor %}
+                </ul>
+            {% else %}
+                <p style="color:#999;">No hay almacenes</p>
+            {% endif %}
+        </div>
+
+        <div style="background:#1e252b; padding:18px; border-radius:8px;">
+            <h3 style="color:#ff6b00; margin-top:0;">APPCC propio</h3>
+            {% if controles_appcc %}
+                <ul style="padding-left:18px;">
+                {% for c in controles_appcc %}
+                    <li><strong>{{ c.etapa }}</strong> - {{ c.frecuencia or '-' }}</li>
+                {% endfor %}
+                </ul>
+            {% else %}
+                <p style="color:#999;">No hay controles APPCC asociados.</p>
+            {% endif %}
+            <a class="btn btn-secondary" href="{{ url_for('appcc.plan_appcc') }}">Ver APPCC</a>
+        </div>
+
+        <div style="background:#1e252b; padding:18px; border-radius:8px;">
+            <h3 style="color:#ff6b00; margin-top:0;">Mantenimiento</h3>
+            {% if equipos_mantenimiento %}
+                <ul style="padding-left:18px;">
+                {% for e in equipos_mantenimiento %}
+                    <li><strong>{{ e.nombre }}</strong>{% if e.ubicacion %} - {{ e.ubicacion }}{% endif %}</li>
+                {% endfor %}
+                </ul>
+            {% else %}
+                <p style="color:#999;">No hay equipos asociados.</p>
+            {% endif %}
+            <a class="btn btn-secondary" href="{{ url_for('mantenimiento.lista_equipos') }}">Ver equipos</a>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

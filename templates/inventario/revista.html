@@ -1,0 +1,113 @@
+{% extends "base.html" %}
+{% block title %}Revista inventario{% endblock %}
+{% block breadcrumb %}Revista inventario{% endblock %}
+{% block content %}
+<style>
+  .rev-panel{background:#252b33;border:1px solid #34465c;border-radius:8px;padding:16px;margin-bottom:14px}
+  .rev-panel h2,.rev-panel h3{margin:0 0 12px;color:#fff;letter-spacing:0}
+  .rev-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:end}
+  .rev-field label{display:block;font-weight:700;color:#cbd5e1;margin-bottom:4px}
+  .rev-field input,.rev-field select{background:#1d2530;border:1px solid #34465c;color:#fff;border-radius:6px;padding:9px;min-width:170px}
+  .rev-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px}
+  .rev-kpi{background:#111827;border:1px solid #34465c;border-radius:8px;padding:12px;color:#cbd5e1}
+  .rev-kpi strong{display:block;color:#fff;font-size:20px;margin-top:4px}
+  .rev-count{display:flex;gap:6px;align-items:center;justify-content:flex-end}
+  .rev-count input{width:95px;background:#111827;border:1px solid #34465c;color:#fff;border-radius:6px;padding:8px;text-align:right}
+  .rev-muted{color:#94a3b8;font-size:13px}
+  .rev-low{color:#fecaca;font-weight:800}
+  .rev-ok{color:#bbf7d0;font-weight:800}
+  .rev-tags{display:flex;gap:5px;flex-wrap:wrap;margin-top:5px}
+  .rev-tag{border:1px solid #34465c;border-radius:999px;padding:2px 7px;color:#cbd5e1;font-size:12px;background:#111827}
+  @media(max-width:900px){.rev-count{justify-content:flex-start}.rev-field input,.rev-field select{width:100%;min-width:0}}
+</style>
+
+<section class="rev-panel">
+  <h2><i class="fas fa-clipboard-check"></i> Revista de inventario</h2>
+  <form method="get" class="rev-actions">
+    <div class="rev-field"><label>Buscar</label><input name="buscar" value="{{ filtros.buscar }}" placeholder="Articulo, codigo, GN..."></div>
+    <div class="rev-field"><label>Familia</label><select name="familia"><option value="">Todas</option>{% for k,v in familias %}<option value="{{ k }}" {% if filtros.familia == k %}selected{% endif %}>{{ v }}</option>{% endfor %}</select></div>
+    <div class="rev-field"><label>Uso</label><select name="uso_operativo"><option value="">Todos</option>{% for k,v in usos_operativos %}<option value="{{ k }}" {% if filtros.uso_operativo == k %}selected{% endif %}>{{ v }}</option>{% endfor %}</select></div>
+    <label style="display:flex;gap:6px;align-items:center;color:#cbd5e1;font-weight:700;margin-bottom:8px;"><input type="checkbox" name="bajo_minimo" value="1" {% if filtros.bajo_minimo %}checked{% endif %}> Bajo minimo</label>
+    <button class="btn btn-primary" type="submit"><i class="fas fa-search"></i> Filtrar</button>
+    <a class="btn btn-secondary" href="{{ url_for('inventario.revista') }}">Limpiar</a>
+    <a class="btn btn-info" href="{{ url_for('inventario.revista_csv', buscar=filtros.buscar, familia=filtros.familia, uso_operativo=filtros.uso_operativo, estado=filtros.estado, bajo_minimo=1 if filtros.bajo_minimo else 0) }}"><i class="fas fa-file-csv"></i> CSV</a>
+    <a class="btn btn-secondary" href="{{ url_for('inventario.inventario') }}"><i class="fas fa-clipboard-list"></i> Inventario</a>
+  </form>
+</section>
+
+<section class="rev-panel">
+  <h3>Resumen del filtro</h3>
+  <div class="rev-kpis">
+    {% for bloque in resumen %}
+      <div class="rev-kpi">
+        {{ bloque.uso }} / {{ bloque.familia }}
+        <strong>{{ bloque.articulos }} articulos</strong>
+        <span>{{ "%.0f"|format(bloque.unidades or 0) }} uds · {{ "%.2f"|format(bloque.valor or 0) }} EUR</span>
+        {% if bloque.bajo_minimo %}
+          <div class="rev-low">{{ bloque.bajo_minimo }} bajo minimo</div>
+        {% endif %}
+      </div>
+    {% else %}
+      <div class="rev-kpi">Sin datos para este filtro<strong>0</strong></div>
+    {% endfor %}
+  </div>
+</section>
+
+<section class="rev-panel">
+  <h3>Conteo fisico</h3>
+  <div class="table-container">
+    <table>
+      <thead>
+        <tr>
+          <th>Articulo</th>
+          <th>Uso</th>
+          <th>Ubicacion</th>
+          <th style="text-align:right;">Sistema</th>
+          <th style="text-align:right;">Minimo</th>
+          <th style="text-align:right;">Conteo real</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in rows %}
+        <tr>
+          <td>
+            <strong>{{ r.codigo or '-' }} · {{ r.nombre }}</strong><br>
+            <span class="rev-muted">{{ r.categoria or '' }}</span>
+            <div class="rev-tags">
+              {% if r.material %}<span class="rev-tag">{{ r.material }}</span>{% endif %}
+              {% if r.formato %}<span class="rev-tag">{{ r.formato }}</span>{% endif %}
+              {% if r.capacidad %}<span class="rev-tag">{{ r.capacidad }}</span>{% endif %}
+            </div>
+          </td>
+          <td>{{ r.uso_operativo or 'otros' }}<br><span class="rev-muted">{{ r.familia }}</span></td>
+          <td>{{ r.ubicaciones_texto or '-' }}</td>
+          <td style="text-align:right;">
+            {{ "%.2f"|format(r.cantidad_total or 0) }} {{ r.unidad or 'ud' }}
+            {% if (r.stock_minimo or 0) > 0 and (r.cantidad_total or 0) < (r.stock_minimo or 0) %}
+              <div class="rev-low">bajo minimo</div>
+            {% else %}
+              <div class="rev-ok">ok</div>
+            {% endif %}
+          </td>
+          <td style="text-align:right;">{{ "%.2f"|format(r.stock_minimo or 0) }}</td>
+          <td>
+            {% if puede_gestionar %}
+            <form method="post" action="{{ url_for('inventario.ajustar_total_revista') }}" class="rev-count">
+              <input type="hidden" name="articulo_id" value="{{ r.id }}">
+              <input type="hidden" name="motivo" value="Revista fisica de inventario">
+              <input type="number" step="0.01" name="cantidad_real" value="{{ "%.2f"|format(r.cantidad_total or 0) }}">
+              <button class="btn btn-success" type="submit"><i class="fas fa-check"></i></button>
+            </form>
+            {% else %}
+              <span class="rev-muted">Solo consulta</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="6" style="text-align:center;padding:22px;">No hay articulos para revisar.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endblock %}

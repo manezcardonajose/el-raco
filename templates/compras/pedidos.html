@@ -1,0 +1,321 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="card">
+
+    <!-- CABECERA -->
+    <div class="card-header" style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;">
+        <div>
+            <h2 style="margin:0;"><i class="fas fa-shopping-cart"></i> Pedidos de compra</h2>
+            {% if centro_activo %}
+                <div style="font-size:13px;color:#64748b;margin-top:4px;">Centro seleccionado: <strong>{{ centro_activo.nombre }}</strong></div>
+            {% else %}
+                <div style="font-size:13px;color:#64748b;margin-top:4px;">Vista general de empresa</div>
+            {% endif %}
+        </div>
+
+        <div style="display:flex;gap:10px;flex-wrap:wrap;">
+            <a href="{{ url_for('compras.necesidades_compra') }}" class="btn btn-secondary">
+                <i class="fas fa-clipboard-check"></i> Necesidades
+            </a>
+            <a href="{{ url_for('compras.nuevo_pedido') }}" class="btn btn-primary">
+                <i class="fas fa-plus"></i> Nuevo pedido
+            </a>
+        </div>
+    </div>
+
+    {% set estados_panel = [
+        ('borrador', 'Borrador'),
+        ('pendiente_autorizacion', 'Pendientes'),
+        ('rechazado', 'Rechazados'),
+        ('autorizado', 'Autorizados'),
+        ('enviado', 'Enviados'),
+        ('recibido_parcial', 'Parciales'),
+        ('recibido', 'Recibidos'),
+        ('cerrado', 'Cerrados'),
+        ('cancelado', 'Cancelados')
+    ] %}
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:16px;">
+        <a href="{{ url_for('compras.lista_pedidos') }}" style="text-decoration:none;color:inherit;margin:0;padding:12px;border:1px solid #d1d5db;border-radius:8px;background:#fff;">
+            <div style="font-size:12px;color:#6b7280;">Total</div>
+            <div style="font-size:24px;font-weight:700;">{{ total_resumen_pedidos.total if total_resumen_pedidos else 0 }}</div>
+            <div style="font-size:12px;color:#6b7280;">{{ '%.2f'|format(total_resumen_pedidos.importe if total_resumen_pedidos else 0) }} EUR</div>
+        </a>
+        {% for estado_id, etiqueta in estados_panel %}
+            {% set dato = resumen_pedidos.get(estado_id, {}) if resumen_pedidos else {} %}
+            <a href="{{ url_for('compras.lista_pedidos', estado=estado_id) }}" style="text-decoration:none;color:inherit;margin:0;padding:12px;border:1px solid #d1d5db;border-radius:8px;background:#fff;">
+                <div style="font-size:12px;color:#6b7280;">{{ etiqueta }}</div>
+                <div style="font-size:24px;font-weight:700;">{{ dato.get('total', 0) }}</div>
+                <div style="font-size:12px;color:#6b7280;">{{ '%.2f'|format(dato.get('importe', 0) or 0) }} EUR</div>
+            </a>
+        {% endfor %}
+    </div>
+
+    {% if mostrar_laboratorio_hotel1 and resumen_simulacion_compras and resumen_simulacion_compras.total %}
+    <div class="alert alert-info" style="display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap;">
+        <div>
+            <strong>Simulacion Hotel 1 visible:</strong>
+            {{ resumen_simulacion_compras.total }} pedidos,
+            {{ resumen_simulacion_compras.recepciones or 0 }} recepciones,
+            {{ resumen_simulacion_compras.completados or 0 }} completados.
+            <br>
+            <small>
+                Periodo {{ resumen_simulacion_compras.fecha_desde or '-' }} / {{ resumen_simulacion_compras.fecha_hasta or '-' }}
+                · {{ '%.2f'|format(resumen_simulacion_compras.importe or 0) }} EUR
+            </small>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <a class="btn btn-primary btn-sm" href="{{ url_for('compras.lista_pedidos', simulacion='hotel1', fecha_desde=resumen_simulacion_compras.fecha_desde, fecha_hasta=resumen_simulacion_compras.fecha_hasta) }}">
+                Ver pedidos simulados
+            </a>
+            <a class="btn btn-secondary btn-sm" href="{{ url_for('compras.validar_recepciones', simulacion='hotel1', fecha_desde=resumen_simulacion_compras.fecha_desde, fecha_hasta=resumen_simulacion_compras.fecha_hasta) }}">
+                Ver recepciones simuladas
+            </a>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- FILTROS -->
+    <div class="card" style="margin-bottom:16px;">
+        <form method="get" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;align-items:end;">
+            <div>
+                <label>Buscar</label>
+                <input name="buscar" class="form-control" value="{{ filtros.buscar or '' }}" placeholder="Pedido, proveedor o departamento">
+            </div>
+            
+            <div>
+                <label>Proveedor</label>
+                <select name="proveedor" class="form-control">
+                    <option value="">Todos</option>
+                    {% for pr in proveedores %}
+                        <option value="{{ pr.id }}" {% if filtros.proveedor == pr.id|string %}selected{% endif %}>
+                            {{ pr.nombre }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div>
+                <label>Departamento</label>
+                <select name="departamento" class="form-control">
+                    <option value="">Todos</option>
+                    {% for d in departamentos %}
+                        <option value="{{ d.id }}" {% if filtros.departamento == d.id|string %}selected{% endif %}>
+                            {{ d.nombre }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div>
+                <label>Estado</label>
+                <select name="estado" class="form-control">
+                    <option value="">Todos</option>
+                    <option value="borrador" {% if filtros.estado == 'borrador' %}selected{% endif %}>Borrador</option>
+                    <option value="pendiente_autorizacion" {% if filtros.estado == 'pendiente_autorizacion' %}selected{% endif %}>Pendiente autorizacion</option>
+                    <option value="rechazado" {% if filtros.estado == 'rechazado' %}selected{% endif %}>Rechazado</option>
+                    <option value="autorizado" {% if filtros.estado == 'autorizado' %}selected{% endif %}>Autorizado</option>
+                    <option value="enviado" {% if filtros.estado == 'enviado' %}selected{% endif %}>Enviado</option>
+                    <option value="recibido_parcial" {% if filtros.estado == 'recibido_parcial' %}selected{% endif %}>Parcial</option>
+                    <option value="recibido" {% if filtros.estado == 'recibido' %}selected{% endif %}>Recibido</option>
+                    <option value="cerrado" {% if filtros.estado == 'cerrado' %}selected{% endif %}>Cerrado</option>
+                    <option value="cancelado" {% if filtros.estado == 'cancelado' %}selected{% endif %}>Cancelado</option>
+                </select>
+            </div>
+
+            <div>
+                <label>Origen</label>
+                <select name="tipo_pedido" class="form-control">
+                    <option value="">Todos</option>
+                    <option value="general" {% if filtros.tipo_pedido == 'general' %}selected{% endif %}>Compras generales</option>
+                    <option value="mantenimiento" {% if filtros.tipo_pedido == 'mantenimiento' %}selected{% endif %}>Mantenimiento</option>
+                </select>
+            </div>
+
+            <div>
+                <label>Simulacion</label>
+                <select name="simulacion" class="form-control">
+                    <option value="">Todas</option>
+                    {% if mostrar_laboratorio_hotel1 %}
+                    <option value="hotel1" {% if filtros.simulacion == 'hotel1' %}selected{% endif %}>Hotel 1</option>
+                    {% endif %}
+                </select>
+            </div>
+
+            <div>
+                <label>Fecha</label>
+                <select name="tipo_fecha" class="form-control">
+                    <option value="pedido" {% if filtros.tipo_fecha == 'pedido' %}selected{% endif %}>Pedido</option>
+                    <option value="entrega" {% if filtros.tipo_fecha == 'entrega' %}selected{% endif %}>Entrega</option>
+                </select>
+            </div>
+
+            <div>
+                <label>Desde</label>
+                <input type="date" name="fecha_desde" class="form-control" value="{{ filtros.fecha_desde or '' }}">
+            </div>
+
+            <div>
+                <label>Hasta</label>
+                <input type="date" name="fecha_hasta" class="form-control" value="{{ filtros.fecha_hasta or '' }}">
+            </div>
+
+            <div>
+                <button class="btn btn-primary">Filtrar</button>
+                <a href="{{ url_for('compras.lista_pedidos') }}" class="btn btn-secondary">Limpiar</a>
+            </div>
+
+        </form>
+    </div>
+
+    <!-- TABLA -->
+    {% if pedidos %}
+    <div style="overflow-x:auto;">
+        <table class="table" style="width:100%;min-width:1100px;">
+            <thead>
+                <tr>
+                    <th>Nº</th>
+                    <th>Proveedor</th>
+                    <th>Departamento</th>
+                    <th>Fecha</th>
+                    <th>Estado</th>
+                    <th>Total</th>
+                    <th style="min-width:420px;">Acciones</th>
+                </tr>
+            </thead>
+
+            <tbody>
+                {% for p in pedidos %}
+                <tr>
+
+                    <td>
+                        <strong>{{ p.numero_pedido }}</strong>
+                        {% if p.tipo_pedido == 'mantenimiento' %}
+                            <br><span class="badge bg-info text-dark">Mantenimiento</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ p.proveedor_nombre }}</td>
+                    <td>
+                        {{ p.departamento_nombre or '-' }}
+                        {% if p.tipo_pedido == 'mantenimiento' %}
+                            <br><small class="text-muted">OT / repuesto</small>
+                        {% endif %}
+                    </td>
+                    <td>{{ p.fecha_pedido or '-' }}</td>
+
+                    <!-- ESTADO -->
+                    <td>
+                        {% if p.estado == 'borrador' %}
+                            <span class="badge bg-secondary">Borrador</span>
+                        {% elif p.estado == 'pendiente_autorizacion' %}
+                            <span class="badge bg-warning text-dark">Pendiente autorizacion</span>
+                        {% elif p.estado == 'rechazado' %}
+                            <span class="badge bg-danger">Rechazado</span>
+                        {% elif p.estado == 'autorizado' %}
+                            <span class="badge bg-primary">Autorizado</span>
+                        {% elif p.estado == 'enviado' %}
+                            <span class="badge bg-info text-dark">Enviado</span>
+                        {% elif p.estado == 'recibido_parcial' %}
+                            <span class="badge bg-warning text-dark">Parcial</span>
+                        {% elif p.estado == 'recibido' %}
+                            <span class="badge bg-success">Recibido</span>
+                        {% elif p.estado == 'cerrado' %}
+                            <span class="badge bg-dark">Cerrado</span>
+                        {% elif p.estado == 'cancelado' %}
+                            <span class="badge bg-danger">Cancelado</span>
+                        {% endif %}
+                    </td>
+
+                    <td>{{ '%.2f'|format(p.total_pedido or 0) }} €</td>
+
+                    <!-- ACCIONES -->
+                    <td>
+                        <div style="display:flex;gap:6px;flex-wrap:wrap;">
+
+                            <!-- SIEMPRE -->
+                            <a href="{{ url_for('compras.ver_pedido', pedido_id=p.id) }}" class="btn btn-sm btn-secondary">Ver</a>
+
+                            <!-- BORRADOR -->
+                            {% if p.estado == 'borrador' %}
+                                <a href="{{ url_for('compras.editar_pedido', pedido_id=p.id) }}" class="btn btn-sm btn-primary">Editar</a>
+                                <form method="post" action="{{ url_for('compras.solicitar_autorizacion_pedido', pedido_id=p.id) }}" style="display:inline;">
+                                    <button type="submit" class="btn btn-sm btn-warning">Solicitar</button>
+                                </form>
+
+                                <form method="post" action="{{ url_for('compras.eliminar_pedido', pedido_id=p.id) }}" style="display:inline;">
+                                    <button class="btn btn-sm btn-danger">Eliminar</button>
+                                </form>
+                            {% endif %}
+
+                            {% if p.estado == 'pendiente_autorizacion' %}
+                                <form method="post" action="{{ url_for('compras.autorizar_pedido', pedido_id=p.id) }}" style="display:inline;">
+                                    <button type="submit" class="btn btn-sm btn-primary" onclick="return confirm('Autorizar este pedido?')">Autorizar</button>
+                                </form>
+                            {% endif %}
+
+                            {% if p.estado == 'rechazado' %}
+                                <a href="{{ url_for('compras.editar_pedido', pedido_id=p.id) }}" class="btn btn-sm btn-primary">Corregir</a>
+                                <form method="post" action="{{ url_for('compras.solicitar_autorizacion_pedido', pedido_id=p.id) }}" style="display:inline;">
+                                    <button type="submit" class="btn btn-sm btn-warning">Solicitar</button>
+                                </form>
+                            {% endif %}
+
+                            {% if p.estado == 'autorizado' %}
+                                <form method="post" action="{{ url_for('compras.enviar_pedido', pedido_id=p.id) }}" style="display:inline;">
+                                    <button type="submit" class="btn btn-sm btn-success" onclick="return confirm('Marcar este pedido como enviado?')">Enviar</button>
+                                </form>
+                                <form method="post" action="{{ url_for('compras.enviar_pedido_por_email', pedido_id=p.id) }}" style="display:inline;">
+                                    <button type="submit" class="btn btn-sm btn-outline-success" onclick="return confirm('Enviar email al proveedor?')">Email</button>
+                                </form>
+                            {% endif %}
+
+                            <!-- ENVIADO -->
+                            {% if p.estado == 'enviado' %}
+                                <a href="{{ url_for('compras.recibir_pedido', numero_pedido=p.numero_pedido) }}" class="btn btn-sm btn-success">Recepcionar</a>
+                            {% endif %}
+
+                            <!-- PARCIAL -->
+                            {% if p.estado == 'recibido_parcial' %}
+                                <a href="{{ url_for('compras.recibir_pedido', numero_pedido=p.numero_pedido) }}" class="btn btn-sm btn-warning">Continuar</a>
+                            {% endif %}
+
+                            <!-- RECIBIDO -->
+                            {% if p.estado == 'recibido' %}
+                                <form method="post" action="{{ url_for('compras.cerrar_pedido', pedido_id=p.id) }}" style="display:inline;">
+                                    <button type="submit" class="btn btn-sm btn-dark" onclick="return confirm('Cerrar este pedido?')">Cerrar</button>
+                                </form>
+
+                                <a href="{{ url_for('compras.hoja_conformidad', numero_pedido=p.numero_pedido) }}" target="_blank" class="btn btn-sm btn-outline-primary">
+                                    Conformidad
+                                </a>
+
+                                <a href="{{ url_for('compras.hoja_incidencias_recepcion', numero_pedido=p.numero_pedido) }}" target="_blank" class="btn btn-sm btn-outline-danger">
+                                    Incidencias
+                                </a>
+                            {% endif %}
+
+                            <!-- CERRADO -->
+                            {% if p.estado == 'cerrado' %}
+                                <span class="text-muted">✔ Cerrado</span>
+                            {% endif %}
+
+                            {% if p.estado == 'cancelado' %}
+                                <span class="text-muted">Cancelado</span>
+                            {% endif %}
+
+                        </div>
+                    </td>
+
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    {% else %}
+        <p>No hay pedidos.</p>
+    {% endif %}
+
+</div>
+
+{% endblock %}

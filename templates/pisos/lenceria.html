@@ -1,0 +1,68 @@
+{% extends 'base.html' %}
+{% block title %}Lenceria pisos{% endblock %}
+{% block breadcrumb %}Pisos / Lenceria{% endblock %}
+{% block content %}
+<style>
+  .px-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:12px 0 16px;}
+  .px-card{border:1px solid #334155;border-radius:6px;background:#111827;padding:10px;}
+  .px-card span{display:block;color:#94a3b8;font-size:12px;}
+  .px-card strong{display:block;font-size:22px;margin-top:3px;}
+  .px-filters{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;align-items:end;margin-bottom:16px;}
+  .px-actions{display:flex;gap:6px;flex-wrap:wrap;align-items:center;}
+  .px-note{color:#94a3b8;font-size:12px;line-height:1.35;}
+</style>
+
+<div class="card">
+  <div class="card-header">
+    <h2><i class="fas fa-tshirt"></i> Registro de lenceria</h2>
+    <div class="px-actions">
+      <a class="btn btn-secondary" href="{{ url_for('pisos.dashboard') }}"><i class="fas fa-list"></i> Parte diario</a>
+      <a class="btn btn-secondary" href="{{ url_for('pisos.lavanderia', desde=filtros.desde, hasta=filtros.hasta) }}"><i class="fas fa-soap"></i> Lavanderia</a>
+      <a class="btn btn-secondary" href="{{ url_for('pisos.configuracion') }}"><i class="fas fa-cog"></i> Reglas</a>
+      <a class="btn btn-secondary" target="_blank" href="{{ url_for('pisos.lenceria', desde=filtros.desde, hasta=filtros.hasta, imprimir=1) }}"><i class="fas fa-print"></i> Imprimir</a>
+    </div>
+  </div>
+
+  <form method="get" class="px-filters">
+    <div class="form-group"><label class="form-label">Desde</label><input class="form-control" type="date" name="desde" value="{{ filtros.desde }}"></div>
+    <div class="form-group"><label class="form-label">Hasta</label><input class="form-control" type="date" name="hasta" value="{{ filtros.hasta }}"></div>
+    <button class="btn btn-primary" type="submit"><i class="fas fa-search"></i> Ver</button>
+  </form>
+
+  <div class="px-grid">
+    <div class="px-card"><span>Sabanas</span><strong>{{ resumen.sabanas }}</strong></div>
+    <div class="px-card"><span>Toallas</span><strong>{{ resumen.toallas }}</strong></div>
+    <div class="px-card"><span>Alfombrines</span><strong>{{ resumen.alfombrines }}</strong></div>
+  </div>
+
+  <div class="table-container">
+    <table>
+      <thead><tr><th>Fecha</th><th>Habitacion</th><th>Reserva</th><th>Cantidades</th><th>Lavanderia</th><th>Usuario</th><th>Observaciones</th></tr></thead>
+      <tbody>
+        {% for m in movimientos %}
+        <tr>
+          <td>{{ m.fecha }}</td>
+          <td>{{ m.habitacion_numero or m.habitacion_nombre or '-' }}</td>
+          <td>{% if m.reserva_id %}{{ m.reserva_codigo or m.reserva_id }}<br><span class="px-note">{{ m.titular_nombre or '' }}</span>{% else %}-{% endif %}</td>
+          <td>S{{ m.sabanas or 0 }} T{{ m.toallas or 0 }} A{{ m.alfombrines or 0 }}</td>
+          <td>
+            {% if m.lote_lavanderia %}Lote {{ m.lote_lavanderia }}<br>{% endif %}
+            {% if m.circuito_lavanderia %}{{ m.circuito_lavanderia }} · {% endif %}
+            {% if m.estado_lavanderia %}{{ m.estado_lavanderia }}<br>{% endif %}
+            {% if m.proveedor_lavanderia %}{{ m.proveedor_lavanderia }}<br>{% endif %}
+            {% if m.fecha_salida %}<span class="px-note">Salida {{ m.fecha_salida }}</span><br>{% endif %}
+            {% if m.fecha_retorno %}<span class="px-note">Retorno {{ m.fecha_retorno }}</span><br>{% elif m.fecha_retorno_prevista %}<span class="px-note">Previsto {{ m.fecha_retorno_prevista }}</span><br>{% endif %}
+            {% if m.albaran_lavanderia %}<span class="px-note">Albaran {{ m.albaran_lavanderia }}</span><br>{% endif %}
+            {% if m.productos_lavado %}<span class="px-note">{{ m.productos_lavado }}</span>{% endif %}
+          </td>
+          <td>{{ m.usuario or '-' }}</td>
+          <td>{{ m.observaciones or '-' }}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="7">No hay movimientos de lenceria.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

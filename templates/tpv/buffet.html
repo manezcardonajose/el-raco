@@ -1,0 +1,133 @@
+{% extends 'base.html' %}
+{% block title %}Control buffet{% endblock %}
+{% block breadcrumb %}TPV / Buffet{% endblock %}
+{% block content %}
+<style>
+  .tpv-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
+  .tpv-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;align-items:end;}
+  .tpv-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-top:12px;}
+  .tpv-stat{border:1px solid #334155;border-radius:8px;background:#0f172a;padding:12px;}
+  .tpv-stat small{display:block;color:#94a3b8;}
+  .tpv-stat strong{font-size:24px;}
+  .tpv-note{color:#94a3b8;font-size:12px;line-height:1.35;}
+  .tpv-inline{display:flex;gap:6px;align-items:end;flex-wrap:wrap;}
+  .tpv-inline input{max-width:82px;}
+</style>
+
+<div class="card">
+  <div class="card-header">
+    <h2><i class="fas fa-utensils"></i> Control de buffet</h2>
+    <div class="tpv-actions">
+      {% if terminal %}
+      <a class="btn btn-primary" href="{{ url_for('tpv.terminal', terminal_id=terminal.id) }}"><i class="fas fa-cash-register"></i> Volver terminal</a>
+      {% endif %}
+      <a class="btn btn-secondary" href="{{ url_for('tpv.dashboard') }}"><i class="fas fa-cash-register"></i> TPV</a>
+      <a class="btn btn-primary" href="{{ url_for('tpv.acceso', terminal_id=terminal_id, punto_venta_id=punto_venta_id, fecha=fecha, servicio=servicio) }}"><i class="fas fa-door-open"></i> Acceso rapido</a>
+      <a class="btn btn-secondary" href="{{ url_for('tpv.catalogo', punto_venta_id=punto_venta_id) }}"><i class="fas fa-th-large"></i> Carta</a>
+    </div>
+  </div>
+  {% if terminal %}
+  <div class="tpv-note" style="margin-bottom:10px;">{{ terminal.nombre }} - {{ servicios.get(servicio, servicio) }} - {{ fecha }}</div>
+  {% endif %}
+
+  <form method="get" class="tpv-grid">
+    <input type="hidden" name="terminal_id" value="{{ terminal_id }}">
+    <div class="form-group"><label class="form-label">Punto de venta</label><select class="form-control" name="punto_venta_id">
+      {% for p in puntos %}<option value="{{ p.id }}" {% if punto_venta_id|string == p.id|string %}selected{% endif %}>{{ p.nombre }}</option>{% endfor %}
+    </select></div>
+    <div class="form-group"><label class="form-label">Fecha</label><input class="form-control" name="fecha" type="date" value="{{ fecha }}"></div>
+    <div class="form-group"><label class="form-label">Servicio</label><select class="form-control" name="servicio">
+      {% for key,label in servicios.items() %}<option value="{{ key }}" {% if servicio == key %}selected{% endif %}>{{ label }}</option>{% endfor %}
+    </select></div>
+    <button class="btn btn-primary" type="submit"><i class="fas fa-search"></i> Ver</button>
+  </form>
+
+  <div class="tpv-stats">
+    <div class="tpv-stat"><small>Previstos</small><strong>{{ totales.previstos }}</strong></div>
+    <div class="tpv-stat"><small>Adultos previstos</small><strong>{{ totales.previstos_adultos }}</strong></div>
+    <div class="tpv-stat"><small>Menores previstos</small><strong>{{ totales.previstos_menores }}</strong></div>
+    <div class="tpv-stat"><small>Ya entraron</small><strong>{{ totales.entrados }}</strong></div>
+    <div class="tpv-stat"><small>Faltan</small><strong>{{ totales.faltan }}</strong></div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header"><h2><i class="fas fa-door-open"></i> Entradas de reservas</h2></div>
+  <div class="table-container">
+    <table>
+      <thead><tr><th>Habitacion</th><th>Reserva</th><th>Regimen</th><th>Pax</th><th>Entrados</th><th>Faltan</th><th>Registrar</th></tr></thead>
+      <tbody>
+        {% for item in detalle %}
+        <tr>
+          <td><strong>{{ item.habitacion }}</strong></td>
+          <td>
+            <strong>{{ item.reserva.codigo }}</strong>
+            <div class="tpv-note">{{ item.reserva.titular_nombre or '-' }}</div>
+          </td>
+          <td>{{ regimenes.get(item.reserva.regimen, item.reserva.regimen or '-') }}</td>
+          <td>{{ item.previstos }}<div class="tpv-note">{{ item.adultos }} adultos / {{ item.menores }} menores</div></td>
+          <td>{{ item.entrados }}<div class="tpv-note">{{ item.entrados_adultos }} adultos / {{ item.entrados_menores }} menores</div></td>
+          <td><strong>{{ item.faltan }}</strong></td>
+          <td>
+            <form method="post" class="tpv-inline">
+              <input type="hidden" name="terminal_id" value="{{ terminal_id }}">
+              <input type="hidden" name="punto_venta_id" value="{{ punto_venta_id }}">
+              <input type="hidden" name="fecha" value="{{ fecha }}">
+              <input type="hidden" name="servicio" value="{{ servicio }}">
+              <input type="hidden" name="reserva_id" value="{{ item.reserva.id }}">
+              <input class="form-control" name="adultos" type="number" min="0" value="{{ item.adultos_pendientes }}">
+              <input class="form-control" name="menores" type="number" min="0" value="{{ item.menores_pendientes }}">
+              <button class="btn btn-sm btn-success" type="submit">Entrar</button>
+            </form>
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="7">No hay reservas previstas para este servicio.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header"><h2><i class="fas fa-plus-circle"></i> Entrada manual</h2></div>
+  <form method="post" class="tpv-grid">
+    <input type="hidden" name="terminal_id" value="{{ terminal_id }}">
+    <input type="hidden" name="punto_venta_id" value="{{ punto_venta_id }}">
+    <input type="hidden" name="fecha" value="{{ fecha }}">
+    <input type="hidden" name="servicio" value="{{ servicio }}">
+    <div class="form-group"><label class="form-label">Habitacion / referencia</label><input class="form-control" name="habitacion"></div>
+    <div class="form-group"><label class="form-label">Titular</label><input class="form-control" name="titular" placeholder="Entrada manual"></div>
+    <div class="form-group"><label class="form-label">Regimen</label><select class="form-control" name="regimen">
+      {% for key,label in regimenes.items() %}<option value="{{ key }}">{{ label }}</option>{% endfor %}
+    </select></div>
+    <div class="form-group"><label class="form-label">Adultos</label><input class="form-control" name="adultos" type="number" min="0" value="1"></div>
+    <div class="form-group"><label class="form-label">Menores</label><input class="form-control" name="menores" type="number" min="0" value="0"></div>
+    <div class="form-group"><label class="form-label">Observaciones</label><input class="form-control" name="observaciones"></div>
+    <button class="btn btn-primary" type="submit"><i class="fas fa-check"></i> Registrar</button>
+  </form>
+</div>
+
+<div class="card">
+  <div class="card-header"><h2><i class="fas fa-history"></i> Ultimos registros</h2></div>
+  <div class="table-container">
+    <table>
+      <thead><tr><th>Hora</th><th>Habitacion</th><th>Titular</th><th>Pax</th><th>Usuario</th><th>Notas</th></tr></thead>
+      <tbody>
+        {% for r in registros %}
+        <tr>
+          <td>{{ r.fecha_registro }}</td>
+          <td>{{ r.habitacion or '-' }}</td>
+          <td>{{ r.titular or '-' }}</td>
+          <td>{{ (r.adultos or 0) + (r.menores or 0) }}</td>
+          <td>{{ r.usuario or '-' }}</td>
+          <td>{{ r.observaciones or '-' }}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="6">Sin entradas registradas para el filtro.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

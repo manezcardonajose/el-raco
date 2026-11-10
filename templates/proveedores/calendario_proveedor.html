@@ -1,0 +1,162 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="card">
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+        <div>
+            <h2 style="color: #ff6b00;"> {{ proveedor.nombre }}</h2>
+            <p style="color: #999;">Calendario de pedidos y entregas</p>
+        </div>
+        <div>
+            <a href="/proveedores/calendario" class="btn btn-info"> Volver a calendario</a>
+            <a href="/proveedores" class="btn btn-red"> Proveedores</a>
+        </div>
+    </div>
+    
+    <!-- Seccin: Reglas de calendario -->
+    <h3 style="margin-top: 30px;"> Reglas de calendario</h3>
+    
+    <table style="width: 100%;">
+        <thead>
+            <tr>
+                <th>Tipo</th>
+                <th>Da semana</th>
+                <th>Da mes</th>
+                <th>Hora</th>
+                <th>Acciones</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for r in reglas %}
+            <tr>
+                <td>
+                    {% if r.tipo == 'pedido' %} Pedido
+                    {% elif r.tipo == 'entrega' %} Entrega
+                    {% elif r.tipo == 'visita' %} Visita
+                    {% else %}{{ r.tipo }}
+                    {% endif %}
+                </td>
+                <td>
+                    {% if r.dia_semana == 0 %}Lunes
+                    {% elif r.dia_semana == 1 %}Martes
+                    {% elif r.dia_semana == 2 %}Mircoles
+                    {% elif r.dia_semana == 3 %}Jueves
+                    {% elif r.dia_semana == 4 %}Viernes
+                    {% elif r.dia_semana == 5 %}Sbado
+                    {% elif r.dia_semana == 6 %}Domingo
+                    {% else %}---
+                    {% endif %}
+                </td>
+                <td>{{ r.dia_mes or '---' }}</td>
+                <td>{{ r.hora or '---' }}</td>
+                <td>
+                    <form method="POST" action="/proveedores/calendario/regla/{{ r.id }}/eliminar" style="display: inline;" onsubmit="return confirm('Eliminar esta regla?');">
+                        <button type="submit" class="btn-small btn-red">️</button>
+                    </form>
+                </td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="5" style="text-align: center;">No hay reglas de calendario</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    
+    <div style="margin-top: 20px;">
+        <a href="/proveedores/{{ proveedor.id }}/calendario/regla/nueva" class="btn btn-success"> Aadir regla</a>
+    </div>
+    
+    <!-- Seccin: Pedidos programados -->
+    <h3 style="margin-top: 40px;"> Pedidos programados</h3>
+    
+    <table style="width: 100%;">
+        <thead>
+            <tr>
+                <th>Producto</th>
+                <th>Periodicidad</th>
+                <th>Da</th>
+                <th>Cantidad</th>
+                <th>ltimo pedido</th>
+                <th>Acciones</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for p in programados %}
+            <tr>
+                <td>{{ p.producto_nombre or 'Producto no especificado' }}</td>
+                <td>{{ p.periodicidad }}</td>
+                <td>
+                    {% if p.dia_semana is not none %}
+                        {% if p.dia_semana == 0 %}Lunes
+                        {% elif p.dia_semana == 1 %}Martes
+                        {% elif p.dia_semana == 2 %}Mircoles
+                        {% elif p.dia_semana == 3 %}Jueves
+                        {% elif p.dia_semana == 4 %}Viernes
+                        {% elif p.dia_semana == 5 %}Sbado
+                        {% elif p.dia_semana == 6 %}Domingo
+                        {% endif %}
+                    {% elif p.dia_mes %}
+                        Da {{ p.dia_mes }}
+                    {% endif %}
+                </td>
+                <td>{{ p.cantidad }}</td>
+                <td>{{ p.ultimo_pedido or '---' }}</td>
+                <td>
+                    <a href="#" class="btn-small btn-primary">️</a>
+                </td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="6" style="text-align: center;">No hay pedidos programados</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    
+    <!-- Seccin: Excepciones -->
+    <h3 style="margin-top: 40px;">️ Excepciones</h3>
+    
+    <table style="width: 100%;">
+        <thead>
+            <tr>
+                <th>Fecha</th>
+                <th>Motivo</th>
+                <th>Tipo</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for e in excepciones %}
+            <tr>
+                <td>{{ e.fecha }}</td>
+                <td>{{ e.motivo or '---' }}</td>
+                <td>
+                    {% if e.tipo == 'no_laborable' %} No laborable
+                    {% elif e.tipo == 'festivo' %} Festivo
+                    {% elif e.tipo == 'cierre' %} Cierre
+                    {% endif %}
+                </td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="3" style="text-align: center;">No hay excepciones</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<style>
+    .btn-small {
+        padding: 3px 8px;
+        border-radius: 3px;
+        border: none;
+        cursor: pointer;
+    }
+    .btn-red { background: #dc3545; color: white; }
+    .btn-primary { background: #007bff; color: white; }
+</style>
+{% endblock %}
+
+
+

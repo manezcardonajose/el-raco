@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="card">
+
+<h2>Editar parte #{{ parte.id }}</h2>
+
+<form method="POST">
+
+<label>Fecha</label>
+<input type="date" name="fecha" value="{{ parte.fecha }}" class="form-control">
+
+<label>Turno</label>
+<input type="text" name="turno" value="{{ parte.turno }}" class="form-control">
+
+<label>Responsable</label>
+<input type="text" name="responsable" value="{{ parte.responsable }}" class="form-control">
+
+<hr>
+
+<h3>Líneas</h3>
+
+<div id="lineas">
+{% for l in lineas %}
+<div>
+    <select name="receta_id[]">
+        {% for r in recetas %}
+        <option value="{{ r.id }}" {% if r.id == l.receta_id %}selected{% endif %}>
+            {{ r.nombre }}
+        </option>
+        {% endfor %}
+    </select>
+
+    <input type="number" name="cantidad[]" value="{{ l.cantidad_planificada }}">
+</div>
+{% endfor %}
+</div>
+
+<button type="submit" class="btn btn-success">Guardar</button>
+
+</form>
+
+</div>
+
+{% endblock %}

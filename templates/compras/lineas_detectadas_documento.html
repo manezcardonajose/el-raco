@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<div class="card">
+    <div class="card-header" style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;">
+        <div>
+            <h3 style="margin:0;">Lineas OCR detectadas</h3>
+            <small>Asocia cada texto del albaran con un producto ERP. La ERP lo recordara para proximas lecturas.</small>
+        </div>
+
+        <a href="{{ url_for('compras.validar_recepciones') }}" class="btn btn-secondary btn-sm">
+            Volver a validaciones
+        </a>
+    </div>
+
+    <div class="card-body">
+
+        <p><strong>Archivo:</strong> {{ documento.nombre_archivo }}</p>
+
+        {% if lineas %}
+        <form method="POST" action="{{ url_for('compras.asociar_lineas_detectadas', documento_id=documento.id) }}">
+            <div style="overflow-x:auto;">
+                <table class="table" style="width:100%;min-width:1000px;">
+                    <thead>
+                        <tr>
+                            <th>Descripcion detectada</th>
+                            <th>Cantidad</th>
+                            <th>Precio OCR</th>
+                            <th>Producto ERP</th>
+                            <th>Estado</th>
+                            <th>Observaciones</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+                        {% for l in lineas %}
+                        <tr>
+                            <td>
+                                {{ l.descripcion_detectada }}
+                                <input type="hidden" name="linea_id[]" value="{{ l.id }}">
+                            </td>
+                            <td>{{ l.cantidad_detectada }}</td>
+                            <td>{{ l.precio_detectado or '-' }}</td>
+                            <td style="min-width:280px;">
+                                <select name="producto_id_{{ l.id }}" class="form-control">
+                                    <option value="">Sin asociar</option>
+                                    {% for p in productos %}
+                                    <option value="{{ p.id }}" {% if p.id == l.producto_id %}selected{% endif %}>
+                                        {{ p.codigo_interno or '' }} {{ p.nombre }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                            </td>
+                            <td>
+                                {% if l.producto_id %}
+                                    <span class="badge bg-success">{{ l.estado or 'asociado' }}</span>
+                                {% else %}
+                                    <span class="badge bg-warning text-dark">{{ l.estado or 'pendiente_producto' }}</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ l.observaciones or '' }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <div style="display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap;margin-top:12px;">
+                <button type="submit" class="btn btn-success">
+                    <i class="fas fa-link"></i> Guardar asociaciones OCR
+                </button>
+            </div>
+        </form>
+        {% else %}
+            <p>No hay lineas detectadas.</p>
+        {% endif %}
+
+    </div>
+</div>
+
+{% endblock %}

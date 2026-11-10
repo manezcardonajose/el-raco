@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+
+{% block title %}Reportes contenido IA{% endblock %}
+{% block breadcrumb %}<a href="{{ url_for('asistente.dashboard') }}">Asistente El Raco</a> / Reportes contenido IA{% endblock %}
+
+{% block content %}
+<style>
+    .rep-head { display:flex; justify-content:space-between; gap:14px; align-items:end; margin-bottom:16px; flex-wrap:wrap; }
+    .rep-head h1 { margin:0 0 6px; color:#ff6b00; font-size:28px; }
+    .rep-head p { margin:0; color:var(--text-muted,#5f6b7a); line-height:1.4; max-width:900px; }
+    .rep-filters { display:flex; gap:8px; flex-wrap:wrap; }
+    .rep-list { display:grid; gap:12px; }
+    .rep-card { border:1px solid var(--border-color,#d5dde7); border-radius:8px; background:var(--card-bg,#fff); padding:14px; }
+    .rep-meta { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:10px; }
+    .rep-pill { border:1px solid var(--border-color,#d5dde7); border-radius:999px; padding:4px 8px; font-size:12px; font-weight:700; color:var(--text-muted,#5f6b7a); }
+    .rep-pill.warn { border-color:#f59e0b; color:#a15c00; background:rgba(245,158,11,.1); }
+    .rep-content { white-space:pre-wrap; border-left:3px solid #ff6b00; background:rgba(148,163,184,.08); padding:9px 10px; color:var(--text-color,#16202a); line-height:1.4; max-height:220px; overflow:auto; }
+    .rep-form { display:grid; grid-template-columns:160px minmax(220px,1fr) auto; gap:8px; margin-top:10px; align-items:end; }
+    .rep-form select, .rep-form input { min-height:34px; border:1px solid var(--border-color,#d5dde7); border-radius:7px; padding:6px 8px; background:var(--input-bg,#fff); color:var(--text-color,#16202a); }
+    @media(max-width:800px){ .rep-form{ grid-template-columns:1fr; } }
+</style>
+
+<div class="rep-head">
+    <div>
+        <h1><i class="fas fa-flag"></i> Reportes de contenido IA</h1>
+        <p>Cola interna para revisar respuestas generadas por IA que puedan ser inapropiadas, falsas, peligrosas o poco fiables.</p>
+    </div>
+    <div class="rep-filters">
+        <a class="btn btn-secondary" href="{{ url_for('asistente.reportes_contenido_ia', estado='pendiente') }}">Pendientes {{ resumen.get('pendiente', 0) }}</a>
+        <a class="btn btn-secondary" href="{{ url_for('asistente.reportes_contenido_ia', estado='revisado') }}">Revisados {{ resumen.get('revisado', 0) }}</a>
+        <a class="btn btn-secondary" href="{{ url_for('asistente.reportes_contenido_ia', estado='descartado') }}">Descartados {{ resumen.get('descartado', 0) }}</a>
+        <a class="btn btn-secondary" href="{{ url_for('asistente.reportes_contenido_ia', estado='todos') }}">Todos</a>
+    </div>
+</div>
+
+<div class="rep-list">
+    {% for reporte in reportes %}
+    <article class="rep-card">
+        <div class="rep-meta">
+            <span class="rep-pill warn">{{ reporte.estado }}</span>
+            <span class="rep-pill">{{ reporte.motivo }}</span>
+            <span class="rep-pill">{{ reporte.modulo }}</span>
+            <span class="rep-pill">{{ reporte.fecha_creacion|fecha_es }}</span>
+            <span class="rep-pill">{{ reporte.usuario_nombre or 'usuario' }}</span>
+            <span class="rep-pill">{{ reporte.dispositivo or 'dispositivo no indicado' }}</span>
+        </div>
+        {% if reporte.comentario %}
+        <p><strong>Comentario:</strong> {{ reporte.comentario }}</p>
+        {% endif %}
+        <p><strong>Origen:</strong> {{ reporte.origen or reporte.url_origen or '-' }}</p>
+        <div class="rep-content">{{ reporte.contenido or 'Sin contenido capturado.' }}</div>
+        <form class="rep-form" method="post" action="{{ url_for('asistente.reportes_contenido_ia_estado', reporte_id=reporte.id, estado=estado) }}">
+            <select name="estado">
+                <option value="revisado" {% if reporte.estado == 'revisado' %}selected{% endif %}>Revisado</option>
+                <option value="pendiente" {% if reporte.estado == 'pendiente' %}selected{% endif %}>Pendiente</option>
+                <option value="descartado" {% if reporte.estado == 'descartado' %}selected{% endif %}>Descartado</option>
+            </select>
+            <input name="resultado_revision" value="{{ reporte.resultado_revision or '' }}" placeholder="Resultado de revision">
+            <button class="btn btn-primary" type="submit"><i class="fas fa-save"></i> Guardar</button>
+        </form>
+    </article>
+    {% else %}
+    <article class="rep-card">
+        <p>No hay reportes de contenido IA con este filtro.</p>
+    </article>
+    {% endfor %}
+</div>
+{% endblock %}

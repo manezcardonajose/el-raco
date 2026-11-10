@@ -1,0 +1,113 @@
+{% extends "base.html" %}
+
+{% block title %}Histrico de Compras{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h1 class="mb-4"> Histrico de Compras</h1>
+    
+    <!-- Filtros -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5>Filtros</h5>
+        </div>
+        <div class="card-body">
+            <form method="GET" class="row g-3">
+                <div class="col-md-3">
+                    <label class="form-label">Producto</label>
+                    <select name="producto_id" class="form-select">
+                        <option value="">Todos los productos</option>
+                        {% for producto in productos %}
+                        <option value="{{ producto.id }}" {% if filtros.producto_id|int == producto.id %}selected{% endif %}>
+                            {{ producto.nombre }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div class="col-md-3">
+                    <label class="form-label">Proveedor</label>
+                    <select name="proveedor_id" class="form-select">
+                        <option value="">Todos los proveedores</option>
+                        {% for proveedor in proveedores %}
+                        <option value="{{ proveedor.id }}" {% if filtros.proveedor_id|int == proveedor.id %}selected{% endif %}>
+                            {{ proveedor.nombre }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div class="col-md-2">
+                    <label class="form-label">Fecha Desde</label>
+                    <input type="date" name="fecha_desde" class="form-control" value="{{ filtros.fecha_desde }}">
+                </div>
+                
+                <div class="col-md-2">
+                    <label class="form-label">Fecha Hasta</label>
+                    <input type="date" name="fecha_hasta" class="form-control" value="{{ filtros.fecha_hasta }}">
+                </div>
+                
+                <div class="col-md-2 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary w-100">Filtrar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Resultados -->
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5>Resultados</h5>
+            <span class="badge bg-info">{{ compras|length }} compras encontradas</span>
+        </div>
+        <div class="card-body">
+            {% if compras %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Fecha</th>
+                            <th>Proveedor</th>
+                            <th>Producto</th>
+                            <th>Cantidad</th>
+                            <th>Precio Unit.</th>
+                            <th>Subtotal</th>
+                            <th>Total Compra</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for compra in compras %}
+                            {% for detalle in compra.detalles %}
+                            <tr>
+                                <td>{{ compra.fecha.strftime('%d/%m/%Y') }}</td>
+                                <td>{{ compra.proveedor.nombre }}</td>
+                                <td>{{ detalle.producto.nombre }}</td>
+                                <td class="text-end">{{ detalle.cantidad }}</td>
+                                <td class="text-end">${{ "%.2f"|format(detalle.precio_unitario) }}</td>
+                                <td class="text-end">${{ "%.2f"|format(detalle.subtotal) }}</td>
+                                <td class="text-end">${{ "%.2f"|format(compra.total) }}</td>
+                            </tr>
+                            {% endfor %}
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <p class="text-muted text-center my-4">No se encontraron compras con los filtros seleccionados.</p>
+            {% endif %}
+        </div>
+    </div>
+    
+    <div class="row mt-3">
+        <div class="col-12">
+            <a href="{{ url_for('informes.compras') }}" class="btn btn-secondary">
+                 Volver al Men
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+
+
+

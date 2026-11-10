@@ -1,0 +1,140 @@
+{% extends "base.html" %}
+
+{% block title %}Vision temporada{% endblock %}
+{% block breadcrumb %}<a href="{{ url_for('asistente.dashboard') }}">Asistente El Raco</a> / <a href="{{ url_for('asistente.centro_decision') }}">Centro de decision</a> / Vision temporada{% endblock %}
+
+{% block content %}
+<style>
+    .temp-head{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:16px;align-items:end;margin-bottom:16px;}
+    .temp-head h1{margin:0 0 6px;color:#ff6b00;font-size:28px;}
+    .temp-head p{margin:0;color:var(--text-muted,#5f6b7a);line-height:1.45;max-width:980px;}
+    .temp-filter,.temp-actions{display:flex;gap:10px;flex-wrap:wrap;align-items:end;}
+    .temp-filter label,.temp-form label{display:block;font-size:12px;color:var(--text-muted,#5f6b7a);margin-bottom:4px;}
+    .temp-filter input,.temp-filter select,.temp-form input,.temp-form select,.temp-form textarea{
+        min-height:38px;border:1px solid var(--border-color,#d5dde7);border-radius:7px;padding:8px 10px;
+        background:var(--input-bg,#fff);color:var(--text-color,#16202a);width:100%;
+    }
+    .temp-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin-bottom:16px;}
+    .temp-card,.temp-panel,.temp-rec{border:1px solid var(--border-color,#d5dde7);border-radius:8px;background:var(--card-bg,#fff);box-shadow:0 1px 2px rgba(0,0,0,.04);}
+    .temp-card{padding:14px;}
+    .temp-card span{display:block;color:var(--text-muted,#5f6b7a);font-size:12px;margin-bottom:7px;}
+    .temp-card strong{display:block;font-size:23px;color:var(--text-color,#16202a);}
+    .temp-panel{padding:15px;margin-bottom:16px;}
+    .temp-panel h2{margin:0 0 12px;color:#ff6b00;font-size:19px;}
+    .temp-table{width:100%;border-collapse:collapse;}
+    .temp-table th,.temp-table td{border-bottom:1px solid var(--border-color,#d5dde7);padding:8px;text-align:left;vertical-align:top;}
+    .temp-table th{color:var(--text-muted,#5f6b7a);font-size:12px;}
+    .temp-rec{padding:13px;margin-bottom:10px;}
+    .temp-rec h3{margin:6px 0;color:var(--text-color,#16202a);font-size:17px;}
+    .temp-rec p{margin:6px 0;color:var(--text-muted,#5f6b7a);line-height:1.4;}
+    .temp-badge{display:inline-flex;border:1px solid var(--border-color,#d5dde7);border-radius:999px;padding:4px 8px;font-size:12px;color:var(--text-muted,#5f6b7a);}
+    .temp-badge.alta,.temp-badge.critico{border-color:#f0a199;color:#b42318;}
+    .temp-badge.media,.temp-badge.alto{border-color:#f2c16d;color:#9a5b00;}
+    .temp-badge.info,.temp-badge.bajo{border-color:#8fd3a2;color:#16803a;}
+    .temp-layout{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(310px,.65fr);gap:16px;align-items:start;}
+    .temp-form{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+    .temp-form .full{grid-column:1/-1;}
+    @media(max-width:980px){.temp-head,.temp-layout{grid-template-columns:1fr}.temp-filter{justify-content:stretch}.temp-form{grid-template-columns:1fr}}
+</style>
+
+<div class="temp-head">
+    <div>
+        <h1><i class="fas fa-calendar-alt"></i> Vision temporada</h1>
+        <p>Mirada larga para verano, invierno o cualquier campana: reservas futuras, pickup, canales, ocupacion, ingresos previstos e indicadores externos que luego la IA comparara contra decisiones reales.</p>
+    </div>
+    <form class="temp-filter" method="get" action="{{ url_for('asistente.vision_temporada') }}">
+        <div><label>Temporada</label><select name="temporada"><option value="verano" {% if temporada == 'verano' %}selected{% endif %}>Verano</option><option value="invierno" {% if temporada == 'invierno' %}selected{% endif %}>Invierno</option></select></div>
+        <div><label>Desde</label><input type="date" name="fecha_desde" value="{{ fecha_desde }}"></div>
+        <div><label>Hasta</label><input type="date" name="fecha_hasta" value="{{ fecha_hasta }}"></div>
+        <button class="btn btn-primary" type="submit"><i class="fas fa-search"></i> Analizar</button>
+    </form>
+</div>
+
+<div class="temp-actions" style="margin-bottom:16px;">
+    <a class="btn btn-secondary" href="{{ url_for('asistente.centro_decision') }}"><i class="fas fa-compass"></i> Centro decision</a>
+    <a class="btn btn-secondary" href="{{ url_for('asistente.simulador_decision') }}"><i class="fas fa-chart-line"></i> Simulador</a>
+</div>
+
+<div class="temp-grid">
+    <div class="temp-card"><span>Habitaciones</span><strong>{{ metricas.habitaciones }}</strong></div>
+    <div class="temp-card"><span>Pickup 14 dias</span><strong>{{ metricas.pickup_14 }}</strong></div>
+    <div class="temp-card"><span>Meses analizados</span><strong>{{ meses|length }}</strong></div>
+    <div class="temp-card"><span>Indicadores externos</span><strong>{{ indicadores|length }}</strong></div>
+</div>
+
+<div class="temp-layout">
+    <div>
+        <section class="temp-panel">
+            <h2>Curva de reservas por mes</h2>
+            <table class="temp-table">
+                <thead><tr><th>Mes</th><th>Reservas</th><th>Noches</th><th>Ocup.</th><th>Ingresos</th><th>ADR</th><th>Canal dominante</th></tr></thead>
+                <tbody>
+                {% for m in meses %}
+                    <tr>
+                        <td>{{ m.label }}</td>
+                        <td>{{ m.reservas }}</td>
+                        <td>{{ m.noches }}</td>
+                        <td>{{ m.ocupacion }}%</td>
+                        <td>{{ m.ingresos|euros }}</td>
+                        <td>{{ m.adr|euros }}</td>
+                        <td>{{ m.canal_top }}</td>
+                    </tr>
+                {% else %}
+                    <tr><td colspan="7">No hay reservas futuras para este periodo.</td></tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </section>
+
+        <section class="temp-panel">
+            <h2>Recomendaciones de temporada</h2>
+            {% for rec in recomendaciones %}
+            <article class="temp-rec">
+                <span class="temp-badge {{ rec.prioridad }}">{{ rec.prioridad|upper }}</span>
+                <h3>{{ rec.titulo }}</h3>
+                <p>{{ rec.detalle }}</p>
+                <p><strong>Accion:</strong> {{ rec.accion }}</p>
+            </article>
+            {% endfor %}
+        </section>
+    </div>
+
+    <div>
+        <section class="temp-panel">
+            <h2>Guardar indicador externo</h2>
+            <form class="temp-form" method="post" action="{{ url_for('asistente.vision_temporada') }}">
+                <input type="hidden" name="accion" value="indicador">
+                <input type="hidden" name="temporada" value="{{ temporada }}">
+                <input type="hidden" name="fecha_desde" value="{{ fecha_desde }}">
+                <input type="hidden" name="fecha_hasta" value="{{ fecha_hasta }}">
+                <div><label>Periodo</label><input name="periodo" value="{{ fecha_desde }} / {{ fecha_hasta }}"></div>
+                <div><label>Mercado</label><input name="mercado" placeholder="UK, nacional, nordico..."></div>
+                <div class="full"><label>Indicador</label><input name="indicador" required placeholder="Busqueda vuelos, ocupacion destino, articulo, prevision..."></div>
+                <div><label>Valor</label><input type="number" step="0.01" name="valor" value="0"></div>
+                <div><label>Unidad</label><input name="unidad" placeholder="%, pax, EUR, indice"></div>
+                <div><label>Impacto</label><select name="impacto"><option value="bajo">Bajo</option><option value="medio" selected>Medio</option><option value="alto">Alto</option><option value="critico">Critico</option></select></div>
+                <div><label>Fuente</label><input name="fuente" placeholder="URL, informe, proveedor..."></div>
+                <div class="full"><label>Lectura</label><textarea name="lectura" placeholder="Que significa para El Raco"></textarea></div>
+                <div class="full"><button class="btn btn-success" type="submit"><i class="fas fa-save"></i> Guardar senal externa</button></div>
+            </form>
+        </section>
+
+        <section class="temp-panel">
+            <h2>Senales externas guardadas</h2>
+            {% if indicadores %}
+                {% for i in indicadores %}
+                <article class="temp-rec">
+                    <span class="temp-badge {{ i.impacto }}">{{ i.impacto|upper }}</span>
+                    <h3>{{ i.indicador }}</h3>
+                    <p>{{ i.mercado or 'Mercado general' }} · {{ i.periodo or '-' }} · {{ i.valor }} {{ i.unidad or '' }}</p>
+                    {% if i.lectura %}<p>{{ i.lectura }}</p>{% endif %}
+                    {% if i.fuente %}<p><strong>Fuente:</strong> {{ i.fuente }}</p>{% endif %}
+                </article>
+                {% endfor %}
+            {% else %}
+                <p>No hay indicadores externos guardados todavia.</p>
+            {% endif %}
+        </section>
+    </div>
+</div>
+{% endblock %}

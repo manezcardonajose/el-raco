@@ -1,0 +1,397 @@
+{% extends "base.html" %}
+{% block content %}
+
+<style>
+    .cp-head {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        align-items: center;
+        flex-wrap: wrap;
+        margin-bottom: 14px;
+    }
+    .cp-head h2 {
+        margin: 0;
+        color: #ff6b00;
+    }
+    .cp-muted {
+        color: #9ca3af;
+        font-size: 13px;
+    }
+    .cp-actions {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+    }
+    .cp-kpis {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+        gap: 10px;
+        margin-bottom: 14px;
+    }
+    .cp-kpi {
+        border: 1px solid rgba(255,255,255,.14);
+        background: rgba(255,255,255,.04);
+        border-radius: 8px;
+        padding: 12px;
+    }
+    .cp-kpi span {
+        display: block;
+        font-size: 12px;
+        opacity: .75;
+    }
+    .cp-kpi strong {
+        display: block;
+        font-size: 28px;
+        margin-top: 4px;
+    }
+    .cp-section {
+        border: 1px solid rgba(255,255,255,.12);
+        border-radius: 8px;
+        margin-bottom: 16px;
+        overflow: hidden;
+        background: rgba(255,255,255,.025);
+    }
+    .cp-section h3,
+    .cp-section summary {
+        margin: 0;
+        padding: 12px 14px;
+        background: rgba(0,0,0,.18);
+        color: #ff6b00;
+        font-size: 18px;
+        font-weight: 700;
+    }
+    .cp-section summary {
+        cursor: pointer;
+        list-style-position: inside;
+    }
+    .cp-table-wrap {
+        overflow-x: auto;
+    }
+    .cp-table {
+        width: 100%;
+        min-width: 900px;
+        border-collapse: collapse;
+        table-layout: fixed;
+    }
+    .cp-table th,
+    .cp-table td {
+        padding: 9px;
+        border-bottom: 1px solid rgba(255,255,255,.08);
+        vertical-align: top;
+        overflow-wrap: anywhere;
+    }
+    .cp-table th {
+        color: #ff6b00;
+        font-size: 12px;
+        text-align: left;
+        text-transform: uppercase;
+    }
+    .cp-product strong {
+        display: block;
+    }
+    .cp-product small {
+        color: #9ca3af;
+    }
+    .cp-form,
+    .cp-control-form {
+        display: grid;
+        gap: 6px;
+        align-items: center;
+    }
+    .cp-form {
+        grid-template-columns: 86px 76px minmax(140px, 1fr) 72px;
+    }
+    .cp-control-form {
+        grid-template-columns: 76px 110px minmax(150px, 1fr) 78px;
+    }
+    .cp-form input,
+    .cp-control-form input,
+    .cp-control-form select,
+    .cp-search input {
+        min-width: 0;
+        padding: 6px 7px;
+        border-radius: 4px;
+        border: 1px solid rgba(255,255,255,.18);
+        background: #121820;
+        color: #fff;
+    }
+    .cp-badge {
+        display: inline-flex;
+        border-radius: 999px;
+        padding: 3px 8px;
+        font-size: 12px;
+        font-weight: 700;
+    }
+    .cp-badge-warn {
+        background: rgba(255,193,7,.2);
+        color: #ffd866;
+    }
+    .cp-badge-ok {
+        background: rgba(40,167,69,.22);
+        color: #72e39a;
+    }
+    .cp-empty {
+        padding: 18px;
+        color: #9ca3af;
+    }
+    .cp-search {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        padding: 12px 14px;
+        align-items: center;
+    }
+    @media (max-width: 980px) {
+        .cp-table {
+            min-width: 0;
+        }
+        .cp-table,
+        .cp-table tbody,
+        .cp-table tr,
+        .cp-table td {
+            display: block;
+            width: 100%;
+        }
+        .cp-table thead {
+            display: none;
+        }
+        .cp-table tr {
+            padding: 10px;
+            border-bottom: 1px solid rgba(255,255,255,.12);
+        }
+        .cp-table td {
+            border-bottom: 0;
+            padding: 5px 0;
+        }
+        .cp-table td::before {
+            content: attr(data-label);
+            display: block;
+            color: #ff6b00;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            margin-bottom: 3px;
+        }
+        .cp-form,
+        .cp-control-form {
+            grid-template-columns: 1fr 1fr;
+        }
+    }
+</style>
+
+<div class="cp-head">
+    <div>
+        <h2><i class="fas fa-snowflake"></i> Congelados de produccion</h2>
+        <div class="cp-muted">Sacar lo previsto, ver la cámara de descongelación y cerrar APPCC desde una sola pantalla.</div>
+    </div>
+    <div class="cp-actions">
+        <a href="{{ url_for('produccion.produccion_index') }}" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Producción</a>
+        <a href="{{ url_for('appcc.appcc_dashboard') }}" class="btn btn-info"><i class="fas fa-shield-alt"></i> APPCC</a>
+    </div>
+</div>
+
+<div class="cp-kpis">
+    <div class="cp-kpi"><span>Para sacar por producción</span><strong>{{ alertas|length }}</strong></div>
+    <div class="cp-kpi"><span>En cámara / aptos</span><strong>{{ en_curso|length }}</strong></div>
+    <div class="cp-kpi"><span>Lotes manuales disponibles</span><strong>{{ disponibles|length }}</strong></div>
+</div>
+
+<section class="cp-section">
+    <form method="GET" class="cp-search">
+        <select name="departamento_id">
+            <option value="">Todos los departamentos</option>
+            {% for d in departamentos %}
+            <option value="{{ d.id }}" {% if departamento_id|string == d.id|string %}selected{% endif %}>{{ d.nombre }}</option>
+            {% endfor %}
+        </select>
+        <select name="subdepartamento_id">
+            <option value="">Todos los subdepartamentos</option>
+            {% for s in subdepartamentos %}
+            <option value="{{ s.id }}" data-departamento="{{ s.departamento_id or '' }}" {% if subdepartamento_id|string == s.id|string %}selected{% endif %}>{{ s.nombre }}</option>
+            {% endfor %}
+        </select>
+        <select name="almacen_id">
+            <option value="">Todos los almacenes</option>
+            {% for a in almacenes %}
+            <option value="{{ a.id }}" data-departamento="{{ a.departamento_id or '' }}" data-subdepartamento="{{ a.subdepartamento_id or '' }}" {% if almacen_id|string == a.id|string %}selected{% endif %}>{{ a.nombre }}</option>
+            {% endfor %}
+        </select>
+        <input type="text" name="q" value="{{ buscar }}" placeholder="Buscar producto o lote">
+        <button type="submit" class="btn btn-primary btn-sm">Filtrar</button>
+        <a href="{{ url_for('lotes.panel_carnes_pescados') }}" class="btn btn-secondary btn-sm">Limpiar</a>
+    </form>
+</section>
+
+<section class="cp-section">
+    <h3>Para sacar del congelador</h3>
+    {% if alertas %}
+    <div class="cp-table-wrap">
+        <table class="cp-table">
+            <thead>
+                <tr>
+                    <th>Producto</th>
+                    <th>Lote</th>
+                    <th>Servicio</th>
+                    <th>Necesario</th>
+                    <th>Sacar</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for a in alertas %}
+                <tr>
+                    <td data-label="Producto" class="cp-product">
+                        <strong>{{ a.producto_nombre }}</strong>
+                        <small>{{ a.proveedor_nombre or '-' }}</small>
+                    </td>
+                    <td data-label="Lote">
+                        {{ a.codigo_lote }}<br>
+                        <small class="cp-muted">Stock {{ '%.3f'|format(a.cantidad_actual or 0) }} {{ a.unidad or '' }}</small>
+                    </td>
+                    <td data-label="Servicio">
+                        {{ a.fecha_produccion or '-' }}<br>
+                        <small class="cp-muted">Aviso {{ a.fecha_alerta[:16] if a.fecha_alerta else '-' }}</small>
+                    </td>
+                    <td data-label="Necesario">
+                        <strong>{{ '%.3f'|format(a.cantidad_necesaria or a.cantidad_sugerida or 0) }}</strong> {{ a.unidad or '' }}
+                    </td>
+                    <td data-label="Sacar">
+                        <form method="POST" action="{{ url_for('lotes.iniciar_descongelado', lote_id=a.lote_id) }}" class="cp-form">
+                            <input type="hidden" name="alerta_id" value="{{ a.id }}">
+                            <input type="hidden" name="volver_panel" value="1">
+                            <input type="hidden" name="next" value="{{ url_for('lotes.panel_carnes_pescados') }}">
+                            <input type="number" step="0.001" min="0.001" max="{{ a.cantidad_actual or 0 }}" name="cantidad" value="{{ a.cantidad_sugerida or a.cantidad_actual or 0 }}" title="Cantidad prevista">
+                            <input type="number" step="0.1" name="temperatura" placeholder="Temp C" required title="Temperatura de salida">
+                            <input type="text" name="ubicacion_destino" value="Camara de descongelacion" title="Destino">
+                            <button type="submit" class="btn btn-success btn-sm">Sacar</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="cp-empty">No hay necesidades con lote pendiente para sacar en los próximos 7 días.</div>
+    {% endif %}
+</section>
+
+<section class="cp-section">
+    <h3>Cámara de descongelación</h3>
+    {% if en_curso %}
+    <div class="cp-table-wrap">
+        <table class="cp-table">
+            <thead>
+                <tr>
+                    <th>Producto</th>
+                    <th>Lote</th>
+                    <th>Estado</th>
+                    <th>Control APPCC</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for l in en_curso %}
+                <tr>
+                    <td data-label="Producto" class="cp-product">
+                        <strong>{{ l.producto_nombre }}</strong>
+                        <small>{{ l.proveedor_nombre or '-' }}</small>
+                    </td>
+                    <td data-label="Lote">
+                        {{ l.codigo_lote }}<br>
+                        <small class="cp-muted">{{ '%.3f'|format(l.cantidad_actual or 0) }} {{ l.unidad or '' }}</small>
+                    </td>
+                    <td data-label="Estado">
+                        {% if l.estado_descongelado == 'apto' %}
+                            <span class="cp-badge cp-badge-ok">Apto</span>
+                        {% else %}
+                            <span class="cp-badge cp-badge-warn">En curso</span>
+                        {% endif %}
+                        <br>
+                        <small class="cp-muted">{{ l.fecha_descongelado[:16] if l.fecha_descongelado else '-' }} · {{ l.ubicacion_actual or '-' }}</small>
+                    </td>
+                    <td data-label="Control APPCC">
+                        {% if l.estado_descongelado == 'en_curso' %}
+                        <form method="POST" action="{{ url_for('lotes.control_descongelado', lote_id=l.id) }}" class="cp-control-form">
+                            <input type="hidden" name="next" value="{{ url_for('lotes.panel_carnes_pescados') }}">
+                            <input type="hidden" name="aspecto" value="">
+                            <input type="hidden" name="olfativo" value="">
+                            <input type="number" step="0.1" name="temperatura" placeholder="Temp C" required>
+                            <select name="decision" required>
+                                <option value="observacion">En curso</option>
+                                <option value="apto">Apto</option>
+                                <option value="no_apto">No apto</option>
+                            </select>
+                            <input type="text" name="observaciones" placeholder="Observaciones">
+                            <button type="submit" class="btn btn-success btn-sm">Guardar</button>
+                        </form>
+                        {% else %}
+                        <span class="cp-muted">Listo para producción.</span>
+                        {% endif %}
+                    </td>
+                    <td data-label="Acciones">
+                        <div class="cp-actions">
+                            <a href="{{ url_for('lotes.etiqueta_lote', lote_id=l.id, next=url_for('lotes.panel_carnes_pescados')) }}" class="btn btn-info btn-sm" target="_blank">Etiqueta</a>
+                            <a href="{{ url_for('lotes.historial_lote', lote_id=l.id, next=url_for('lotes.panel_carnes_pescados')) }}" class="btn btn-secondary btn-sm">Historial</a>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="cp-empty">No hay lotes en cámara de descongelación.</div>
+    {% endif %}
+</section>
+
+<details class="cp-section">
+    <summary>Sacar manualmente un lote sin previsión</summary>
+    <form method="GET" class="cp-search">
+        <input type="text" name="q" value="{{ buscar }}" placeholder="Buscar producto o lote">
+        <button type="submit" class="btn btn-primary btn-sm">Filtrar</button>
+        <a href="{{ url_for('lotes.panel_carnes_pescados') }}" class="btn btn-secondary btn-sm">Limpiar</a>
+    </form>
+    {% if disponibles %}
+    <div class="cp-table-wrap">
+        <table class="cp-table">
+            <thead>
+                <tr>
+                    <th>Producto</th>
+                    <th>Lote</th>
+                    <th>Caducidad</th>
+                    <th>Stock</th>
+                    <th>Sacar manual</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for l in disponibles %}
+                <tr>
+                    <td data-label="Producto" class="cp-product">
+                        <strong>{{ l.producto_nombre }}</strong>
+                        <small>{{ l.proveedor_nombre or '-' }}</small>
+                    </td>
+                    <td data-label="Lote">{{ l.codigo_lote }}</td>
+                    <td data-label="Caducidad">{{ l.fecha_caducidad or '-' }}</td>
+                    <td data-label="Stock">{{ '%.3f'|format(l.cantidad_actual or 0) }} {{ l.unidad or '' }}</td>
+                    <td data-label="Sacar manual">
+                        <form method="POST" action="{{ url_for('lotes.iniciar_descongelado', lote_id=l.id) }}" class="cp-form">
+                            <input type="hidden" name="volver_panel" value="1">
+                            <input type="hidden" name="next" value="{{ url_for('lotes.panel_carnes_pescados') }}">
+                            <input type="number" step="0.001" min="0.001" max="{{ l.cantidad_actual or 0 }}" name="cantidad" value="" placeholder="Cantidad" title="Cantidad">
+                            <input type="number" step="0.1" name="temperatura" placeholder="Temp C" required title="Temperatura de salida">
+                            <input type="text" name="ubicacion_destino" value="Camara de descongelacion" title="Destino">
+                            <button type="submit" class="btn btn-success btn-sm">Sacar</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="cp-empty">No hay lotes disponibles con este filtro.</div>
+    {% endif %}
+</details>
+
+{% endblock %}

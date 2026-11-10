@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="card">
+    <div class="card-header">
+        <h2><i class="fas fa-file-import"></i> Importar menus de otro centro</h2>
+        <a href="{{ url_for('menus.lista_menus_principal') }}" class="btn btn-secondary">Volver</a>
+    </div>
+
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;margin-bottom:18px;">
+        <div style="border:1px solid var(--border,#d5dde8);border-radius:8px;padding:10px;background:var(--card-bg,#fff);">
+            <div style="font-size:12px;color:var(--text-muted,#64748b);">Destino</div>
+            <strong>{{ centro_destino.nombre if centro_destino else 'Centro activo' }}</strong>
+        </div>
+        <div style="border:1px solid var(--border,#d5dde8);border-radius:8px;padding:10px;background:var(--card-bg,#fff);">
+            <div style="font-size:12px;color:var(--text-muted,#64748b);">Origen</div>
+            <strong>{{ centro_origen.nombre if centro_origen else 'Pendiente de seleccionar' }}</strong>
+        </div>
+    </div>
+
+    <form method="GET" class="form-grid" style="display:grid;grid-template-columns:1fr auto;gap:12px;align-items:end;margin-bottom:18px;">
+        <div class="form-group">
+            <label class="form-label">Centro origen</label>
+            <select name="centro_origen_id" class="form-control" required>
+                <option value="">Selecciona centro</option>
+                {% for c in centros %}
+                    {% if c.id != centro_destino_id %}
+                    <option value="{{ c.id }}" {% if centro_origen_id == c.id %}selected{% endif %}>{{ c.nombre }}</option>
+                    {% endif %}
+                {% endfor %}
+            </select>
+        </div>
+        <button class="btn btn-primary" type="submit">Ver contenido</button>
+    </form>
+
+    {% if resumen_origen %}
+    <div style="display:grid;grid-template-columns:repeat(3,minmax(160px,1fr));gap:10px;margin-bottom:18px;">
+        <div class="stat-card"><span>Menus fijos</span><strong>{{ resumen_origen.fijos }}</strong></div>
+        <div class="stat-card"><span>Menus diarios</span><strong>{{ resumen_origen.diarios }}</strong></div>
+        <div class="stat-card"><span>Recetas</span><strong>{{ resumen_origen.recetas }}</strong></div>
+    </div>
+
+    <form method="POST">
+        <input type="hidden" name="centro_origen_id" value="{{ centro_origen_id }}">
+        <label style="display:block;margin-bottom:10px;">
+            <input type="checkbox" name="importar_fijos" value="1" {% if importar_fijos %}checked{% endif %}>
+            Importar menus fijos
+        </label>
+        <label style="display:block;margin-bottom:10px;">
+            <input type="checkbox" name="importar_diarios" value="1" {% if importar_diarios %}checked{% endif %}>
+            Importar menus diarios
+        </label>
+        <label style="display:block;margin-bottom:18px;">
+            <input type="checkbox" name="importar_recetas" value="1" {% if importar_recetas %}checked{% endif %}>
+            Importar recetas asociadas para alergenos
+        </label>
+        <label style="display:block;margin-bottom:18px;padding:10px;border:1px solid #f59e0b;border-radius:8px;background:rgba(245,158,11,.08);">
+            <input type="checkbox" name="confirmar_importacion" value="1" required>
+            Confirmo que quiero copiar datos desde <strong>{{ centro_origen.nombre if centro_origen else 'el centro origen' }}</strong>
+            hacia <strong>{{ centro_destino.nombre if centro_destino else 'el centro actual' }}</strong>.
+        </label>
+        <button type="submit" class="btn btn-success">
+            <i class="fas fa-copy"></i> Importar al centro actual
+        </button>
+    </form>
+    {% else %}
+    <p style="color:#9ca3af;">Selecciona un centro origen para revisar cuantos menus se pueden importar.</p>
+    {% endif %}
+</div>
+{% endblock %}

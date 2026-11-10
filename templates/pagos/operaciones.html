@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block title %}Operaciones de pago{% endblock %}
+{% block breadcrumb %}Pagos / Operaciones{% endblock %}
+
+{% block content %}
+<div class="card">
+  <div class="card-header" style="display:flex;justify-content:space-between;gap:12px;align-items:center;">
+    <h2><i class="fas fa-list"></i> Operaciones de pago</h2>
+    <a class="btn btn-primary" href="{{ url_for('pagos.prueba') }}">Probar cobro</a>
+  </div>
+  <div class="table-responsive">
+    <table class="table">
+      <thead><tr><th>Referencia</th><th>Proveedor</th><th>Metodo</th><th>Importe</th><th>Estado</th><th>Cliente</th><th>Origen</th><th>Fecha</th><th></th></tr></thead>
+      <tbody>
+        {% for op in operaciones %}
+        <tr>
+          <td>{{ op.referencia_interna }}</td>
+          <td>{{ op.proveedor }}</td>
+          <td>{{ op.metodo or '-' }}</td>
+          <td>{{ op.importe|euros }}</td>
+          <td><span class="badge badge-info">{{ op.estado }}</span></td>
+          <td>{{ op.cliente_nombre or op.cliente_email or '-' }}</td>
+          <td>{{ op.origen_modulo or '-' }} / {{ op.origen_tipo or '-' }}</td>
+          <td>{{ op.fecha_creacion }}</td>
+          <td><a class="btn btn-sm btn-secondary" href="{{ url_for('pagos.operacion_detalle', operation_id=op.id) }}">Ver</a></td>
+        </tr>
+        {% else %}
+        <tr><td colspan="9" style="text-align:center;padding:24px;">Sin operaciones.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

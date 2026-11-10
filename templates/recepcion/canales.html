@@ -1,0 +1,194 @@
+{% extends 'base.html' %}
+{% block title %}Canales de reserva{% endblock %}
+{% block breadcrumb %}Recepcion / Canales{% endblock %}
+{% block content %}
+<div class="card">
+  <div class="card-header">
+    <h2><i class="fas fa-cloud"></i> Canales y plataformas</h2>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+      <a class="btn btn-secondary" href="{{ url_for('recepcion.reservas') }}">Reservas</a>
+      <a class="btn btn-info" href="{{ url_for('recepcion.plantilla_canal_csv') }}">Plantilla CSV</a>
+      <a class="btn btn-info" href="{{ url_for('recepcion.plantilla_canal_ics') }}">Plantilla iCal</a>
+    </div>
+  </div>
+
+  <form method="post" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;align-items:end;margin-bottom:18px;">
+    <input type="hidden" name="accion" value="canal">
+    <div class="form-group"><label class="form-label">Codigo</label><input class="form-control" name="codigo" placeholder="booking, web, agencia" required></div>
+    <div class="form-group"><label class="form-label">Nombre</label><input class="form-control" name="nombre" required></div>
+    <div class="form-group"><label class="form-label">Tipo</label><select class="form-control" name="tipo">
+      <option value="directo">Directo</option>
+      <option value="ota">OTA</option>
+      <option value="agencia">Agencia</option>
+      <option value="channel_manager">Channel manager</option>
+    </select></div>
+    <div class="form-group"><label class="form-label">Comision %</label><input class="form-control" type="number" step="0.01" name="comision_pct" value="0"></div>
+    <label style="display:flex;gap:6px;align-items:center;"><input type="checkbox" name="activo" checked> Activo</label>
+    <div class="form-group" style="grid-column:1/-1;"><label class="form-label">Configuracion tecnica futura</label><textarea class="form-control" name="config_json" rows="2" placeholder="Aqui se podran guardar claves, endpoints o reglas del channel manager cuando toque conectar API."></textarea></div>
+    <button class="btn btn-success" type="submit">Anadir canal</button>
+  </form>
+
+  <div class="alert alert-info">
+    Importa reservas desde Booking, Expedia, agencias o un channel manager usando CSV. Cabeceras aceptadas:
+    localizador, fecha_entrada, fecha_salida, habitacion, titular, email, telefono, regimen, adultos, menores, precio_total,
+    comision, estado, alergias y observaciones.
+    Tambien puedes importar calendarios iCal/ICS por habitacion para bloquear disponibilidad desde plataformas externas.
+  </div>
+
+  <form method="get" action="{{ url_for('recepcion.exportar_inventario_canales') }}" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;align-items:end;margin-bottom:18px;border:1px solid #334155;border-radius:8px;padding:12px;">
+    <div class="form-group"><label class="form-label">Inventario desde</label><input class="form-control" type="date" name="desde" value="{{ inventario_form.desde }}"></div>
+    <div class="form-group"><label class="form-label">Inventario hasta</label><input class="form-control" type="date" name="hasta" value="{{ inventario_form.hasta }}"></div>
+    <div class="form-group"><label class="form-label">Canal</label><select class="form-control" name="canal_id">
+      <option value="">Inventario general</option>
+      {% for c in canales %}
+      <option value="{{ c.id }}">{{ c.nombre }}</option>
+      {% endfor %}
+    </select></div>
+    <div class="form-group"><label class="form-label">Regimen</label><select class="form-control" name="regimen">
+      <option value="">Todos</option>
+      {% for key,label in regimenes.items() %}<option value="{{ key }}">{{ label }}</option>{% endfor %}
+    </select></div>
+    <button class="btn btn-warning" type="submit">Exportar disponibilidad y precios</button>
+  </form>
+
+  <div class="table-container">
+    <table>
+      <thead><tr><th>Codigo</th><th>Nombre</th><th>Tipo</th><th>Comision</th><th>Activo</th><th>Ultima sync</th><th>Importar</th><th>Acciones</th></tr></thead>
+      <tbody>
+        {% for c in canales %}
+        <tr>
+          <td><strong>{{ c.codigo }}</strong></td>
+          <td>{{ c.nombre }}</td>
+          <td>{{ c.tipo }}</td>
+          <td>{{ '%.2f'|format(c.comision_pct or 0) }}%</td>
+          <td>{% if c.activo %}Si{% else %}No{% endif %}</td>
+          <td>
+            {{ c.ultima_sincronizacion or '-' }}
+            {% if c.estado_sincronizacion %}
+              <br><small>{{ c.estado_sincronizacion }}</small>
+            {% endif %}
+          </td>
+          <td>
+            <form method="post" enctype="multipart/form-data" action="{{ url_for('recepcion.importar_canal_csv', id=c.id) }}" style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+              <input class="form-control" type="file" name="archivo_csv" accept=".csv,text/csv" required style="max-width:220px;">
+              <button class="btn btn-sm btn-primary" type="submit">Importar</button>
+            </form>
+            <form method="post" enctype="multipart/form-data" action="{{ url_for('recepcion.importar_canal_ics', id=c.id) }}" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:6px;align-items:end;margin-top:8px;min-width:420px;">
+              <select class="form-control" name="habitacion_id" required>
+                <option value="">Habitacion iCal</option>
+                {% for h in habitaciones %}
+                <option value="{{ h.id }}">{{ h.numero }}{% if h.nombre %} - {{ h.nombre }}{% endif %}</option>
+                {% endfor %}
+              </select>
+              <input class="form-control" type="file" name="archivo_ics" accept=".ics,text/calendar">
+              <input class="form-control" name="url_ics" placeholder="URL iCal opcional">
+              <label style="display:flex;gap:6px;align-items:center;"><input type="checkbox" name="cancelar_no_presentes" value="1"> Cancelar ausentes</label>
+              <button class="btn btn-sm btn-info" type="submit">Importar iCal</button>
+            </form>
+          </td>
+          <td>
+            <form method="post" action="{{ url_for('recepcion.toggle_canal_reserva', id=c.id) }}">
+              <button class="btn btn-sm {% if c.activo %}btn-warning{% else %}btn-success{% endif %}" type="submit">{% if c.activo %}Desactivar{% else %}Activar{% endif %}</button>
+            </form>
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="8">No hay canales configurados.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header">
+    <h2><i class="fas fa-chart-pie"></i> Cupos por canal</h2>
+  </div>
+  <div class="alert alert-info">
+    Usa estos cupos para repartir disponibilidad por plataforma. Si hay habitaciones fijas, manda ese numero; si no, se calcula por porcentaje sobre el tipo de habitacion.
+  </div>
+  <form method="post" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;align-items:end;margin-bottom:18px;">
+    <input type="hidden" name="accion" value="cupo">
+    <div class="form-group"><label class="form-label">Canal</label><select class="form-control" name="canal_id" required>
+      <option value="">Seleccionar</option>
+      {% for c in canales %}
+      <option value="{{ c.id }}">{{ c.nombre }}</option>
+      {% endfor %}
+    </select></div>
+    <div class="form-group"><label class="form-label">Tipo habitacion</label><select class="form-control" name="tipo_habitacion_id">
+      <option value="">Todos los tipos</option>
+      {% for tipo in tipos_habitacion %}
+      <option value="{{ tipo.id }}">{{ tipo.codigo }} - {{ tipo.nombre }}</option>
+      {% endfor %}
+    </select></div>
+    <div class="form-group"><label class="form-label">Desde</label><input class="form-control" type="date" name="fecha_inicio" value="{{ inventario_form.desde }}" required></div>
+    <div class="form-group"><label class="form-label">Hasta</label><input class="form-control" type="date" name="fecha_fin" value="{{ inventario_form.hasta }}" required></div>
+    <div class="form-group"><label class="form-label">% cupo</label><input class="form-control" type="number" step="0.01" min="0" max="100" name="porcentaje" placeholder="80"></div>
+    <div class="form-group"><label class="form-label">Habitaciones fijas</label><input class="form-control" type="number" min="0" name="habitaciones" placeholder="0"></div>
+    <div class="form-group"><label class="form-label">Release dias</label><input class="form-control" type="number" min="0" name="release_dias" value="0"></div>
+    <div class="form-group"><label class="form-label">Prioridad</label><input class="form-control" type="number" min="1" name="prioridad" value="100"></div>
+    <label style="display:flex;gap:6px;align-items:center;"><input type="checkbox" name="activo" checked> Activo</label>
+    <button class="btn btn-success" type="submit">Guardar cupo</button>
+  </form>
+
+  <div class="table-container">
+    <table>
+      <thead><tr><th>Canal</th><th>Tipo</th><th>Fechas</th><th>Cupo</th><th>Release</th><th>Prioridad</th><th>Activo</th><th>Acciones</th></tr></thead>
+      <tbody>
+        {% for cupo in cupos %}
+        <tr>
+          <td><strong>{{ cupo.canal_nombre }}</strong><br><small>{{ cupo.canal_codigo }}</small></td>
+          <td>{% if cupo.tipo_nombre %}{{ cupo.tipo_codigo }} - {{ cupo.tipo_nombre }}{% else %}Todos{% endif %}</td>
+          <td>{{ cupo.fecha_inicio }} / {{ cupo.fecha_fin }}</td>
+          <td>
+            {% if cupo.habitaciones %}{{ cupo.habitaciones }} hab.{% endif %}
+            {% if cupo.porcentaje %}{% if cupo.habitaciones %}<br>{% endif %}{{ '%.2f'|format(cupo.porcentaje or 0) }}%{% endif %}
+          </td>
+          <td>{{ cupo.release_dias or 0 }} dias</td>
+          <td>{{ cupo.prioridad or 100 }}</td>
+          <td>{% if cupo.activo %}Si{% else %}No{% endif %}</td>
+          <td>
+            <form method="post" action="{{ url_for('recepcion.toggle_cupo_canal', id=cupo.id) }}">
+              <button class="btn btn-sm {% if cupo.activo %}btn-warning{% else %}btn-success{% endif %}" type="submit">{% if cupo.activo %}Desactivar{% else %}Activar{% endif %}</button>
+            </form>
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="8">No hay cupos configurados.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header">
+    <h2><i class="fas fa-history"></i> Ultimas sincronizaciones</h2>
+  </div>
+  <div class="table-container">
+    <table>
+      <thead>
+        <tr><th>Fecha</th><th>Canal</th><th>Archivo</th><th>Estado</th><th>Filas</th><th>Nuevas</th><th>Actualizadas</th><th>Omitidas</th><th>Errores</th><th>Resumen</th></tr>
+      </thead>
+      <tbody>
+        {% for s in sincronizaciones %}
+        <tr>
+          <td>{{ s.fecha_creacion }}</td>
+          <td>{{ s.canal_nombre }}</td>
+          <td>{{ s.archivo or '-' }}</td>
+          <td>{{ s.estado }}</td>
+          <td>{{ s.total_filas or 0 }}</td>
+          <td>{{ s.creadas or 0 }}</td>
+          <td>{{ s.actualizadas or 0 }}</td>
+          <td>{{ s.omitidas or 0 }}</td>
+          <td>{{ s.errores or 0 }}</td>
+          <td>{{ s.resumen or '-' }}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="10">Todavia no hay sincronizaciones.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

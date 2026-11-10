@@ -1,0 +1,141 @@
+{% extends "base.html" %}
+
+{% block title %}Informe ejecutivo{% endblock %}
+{% block breadcrumb %}Informes / Ejecutivo{% endblock %}
+
+{% block content %}
+<style>
+  .exec-head{display:flex;justify-content:space-between;gap:16px;align-items:end;flex-wrap:wrap;margin-bottom:16px;}
+  .exec-head h1{margin:0;color:#ff6b00;font-size:28px;}
+  .exec-head p{margin:6px 0 0;color:var(--text-muted);}
+  .exec-filter{display:flex;gap:10px;align-items:end;flex-wrap:wrap;}
+  .exec-filter label{display:block;font-size:12px;color:var(--text-muted);margin-bottom:4px;}
+  .exec-filter input{min-height:38px;border:1px solid var(--border-color);border-radius:7px;padding:8px 10px;background:var(--input-bg);color:var(--input-text);}
+  .exec-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px;margin-bottom:16px;}
+  .exec-kpi{border:1px solid var(--border-color);background:var(--surface-bg);border-radius:8px;padding:14px;box-shadow:var(--shadow-soft);}
+  .exec-kpi span{display:block;color:var(--text-muted);font-size:12px;margin-bottom:6px;}
+  .exec-kpi strong{display:block;font-size:24px;}
+  .exec-kpi small{display:block;color:var(--text-muted);margin-top:6px;line-height:1.35;}
+  .exec-layout{display:grid;grid-template-columns:minmax(300px,.9fr) minmax(420px,1.3fr);gap:16px;}
+  .exec-card{border:1px solid var(--border-color);background:var(--surface-bg);border-radius:8px;padding:16px;margin-bottom:16px;box-shadow:var(--shadow-soft);}
+  .exec-card h2{margin:0 0 12px;color:#ff6b00;font-size:19px;}
+  .exec-rec{border-left:4px solid #64748b;padding:10px 12px;background:var(--surface-soft);border-radius:6px;margin-bottom:10px;}
+  .exec-rec.critica{border-left-color:#dc2626;}
+  .exec-rec.alta{border-left-color:#ea580c;}
+  .exec-rec.media{border-left-color:#2563eb;}
+  .exec-rec.info{border-left-color:#64748b;}
+  .exec-rec strong{display:block;margin-bottom:4px;}
+  .exec-table{width:100%;border-collapse:collapse;}
+  .exec-table th,.exec-table td{border-bottom:1px solid var(--border-color);padding:9px 8px;text-align:left;vertical-align:top;}
+  .exec-table th{font-size:12px;text-transform:uppercase;color:#ff6b00;background:var(--table-head-bg);}
+  .exec-badge{display:inline-flex;border-radius:999px;padding:3px 8px;font-size:12px;font-weight:700;background:#64748b;color:#fff;}
+  .exec-badge.ok,.exec-badge.mantener{background:#16803a;}
+  .exec-badge.vacio,.exec-badge.simplificar,.exec-badge.ordenar{background:#9a5b00;}
+  .exec-badge.separar,.exec-badge.sin_tabla{background:#0369a1;}
+  .exec-muted{color:var(--text-muted);}
+  @media(max-width:1000px){.exec-layout{grid-template-columns:1fr;}}
+</style>
+
+<div class="exec-head">
+  <div>
+    <h1><i class="fas fa-chart-line"></i> Informe ejecutivo</h1>
+    <p>Lectura limpia para direccion: datos, alertas y que parte de la IA conviene ordenar.</p>
+  </div>
+  <form class="exec-filter" method="get" action="{{ url_for('informes.ejecutivo') }}">
+    <div>
+      <label>Desde</label>
+      <input type="date" name="desde" value="{{ fecha_desde }}">
+    </div>
+    <div>
+      <label>Hasta</label>
+      <input type="date" name="hasta" value="{{ fecha_hasta }}">
+    </div>
+    <button class="btn btn-primary" type="submit"><i class="fas fa-search"></i> Analizar</button>
+  </form>
+</div>
+
+<div class="exec-grid">
+  {% for kpi in kpis %}
+  <div class="exec-kpi">
+    <span>{{ kpi.titulo }}</span>
+    <strong>{{ kpi.valor }}</strong>
+    <small>{{ kpi.detalle }}</small>
+  </div>
+  {% endfor %}
+  {% if compras %}
+  <div class="exec-kpi"><span>Compras/contabilidad</span><strong>{{ compras.documentos or 0 }}</strong><small>Documentos economicos del periodo.</small></div>
+  <div class="exec-kpi"><span>Pendiente pago</span><strong>{{ "%.2f"|format(compras.pendiente or 0) }} EUR</strong><small>Pagos no cerrados en contabilidad.</small></div>
+  {% endif %}
+</div>
+
+<div class="exec-layout">
+  <div>
+    <section class="exec-card">
+      <h2><i class="fas fa-bullseye"></i> Decisiones sugeridas</h2>
+      {% for rec in recomendaciones %}
+      <div class="exec-rec {{ rec.prioridad }}">
+        <span class="exec-badge {{ rec.prioridad }}">{{ rec.prioridad|upper }}</span>
+        <strong>{{ rec.area }} - {{ rec.titulo }}</strong>
+        <div>{{ rec.detalle }}</div>
+      </div>
+      {% endfor %}
+    </section>
+
+    <section class="exec-card">
+      <h2><i class="fas fa-brain"></i> Repaso IA</h2>
+      <table class="exec-table">
+        <thead><tr><th>Bloque</th><th>Estado</th><th>Lectura</th></tr></thead>
+        <tbody>
+          {% for item in diagnostico_ia %}
+          <tr>
+            <td><strong>{{ item.bloque }}</strong></td>
+            <td><span class="exec-badge {{ item.estado }}">{{ item.estado }}</span></td>
+            <td>{{ item.lectura }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </section>
+  </div>
+
+  <div>
+    <section class="exec-card">
+      <h2><i class="fas fa-database"></i> Cobertura de datos</h2>
+      <table class="exec-table">
+        <thead><tr><th>Modulo</th><th>Registros</th><th>Estado</th><th>Lectura</th></tr></thead>
+        <tbody>
+          {% for row in cobertura %}
+          <tr>
+            <td><strong>{{ row.modulo }}</strong><br><span class="exec-muted">{{ row.tabla }}</span></td>
+            <td>{{ row.registros }}</td>
+            <td><span class="exec-badge {{ row.estado }}">{{ row.estado }}</span></td>
+            <td>{{ row.lectura }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </section>
+
+    <section class="exec-card">
+      <h2><i class="fas fa-triangle-exclamation"></i> Alertas recientes</h2>
+      {% if top_alertas %}
+      <table class="exec-table">
+        <thead><tr><th>Fecha</th><th>Modulo</th><th>Sev.</th><th>Alerta</th></tr></thead>
+        <tbody>
+          {% for alerta in top_alertas %}
+          <tr>
+            <td>{{ alerta.fecha_simulada }}</td>
+            <td>{{ alerta.modulo }}</td>
+            <td><span class="exec-badge {{ alerta.severidad }}">{{ alerta.severidad }}</span></td>
+            <td><strong>{{ alerta.tipo }}</strong><br>{{ alerta.descripcion }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <p class="exec-muted">Sin alertas registradas en el periodo.</p>
+      {% endif %}
+    </section>
+  </div>
+</div>
+{% endblock %}

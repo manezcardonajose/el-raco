@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header" style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;">
+        <div>
+            <h2 style="margin:0;color:#ff6b00;"><i class="fas fa-tools"></i> Aviso a mantenimiento</h2>
+            <small>Para comunicar averias o necesidades desde cualquier departamento.</small>
+        </div>
+        {% if tiene_permiso('mantenimiento_ver') or tiene_permiso('mantenimiento_gestionar') %}
+        <a href="{{ url_for('mantenimiento.lista_ordenes') }}" class="btn btn-secondary">Ver ordenes</a>
+        {% endif %}
+    </div>
+
+    {% if creado %}
+    <div class="alert alert-success">
+        Aviso enviado correctamente. Orden {{ creado }}.
+        {% if orden_id and (tiene_permiso('mantenimiento_ver') or tiene_permiso('mantenimiento_gestionar')) %}
+        <a href="{{ url_for('mantenimiento.ver_orden', orden_id=orden_id) }}">Abrir OT</a>
+        {% endif %}
+    </div>
+    {% endif %}
+
+    <form method="POST">
+        <div style="display:grid;grid-template-columns:repeat(2,minmax(240px,1fr));gap:16px;">
+            <div class="form-group">
+                <label class="form-label">Equipo si se conoce</label>
+                <select class="form-control" name="equipo_id">
+                    <option value="">No lo se / ubicacion general</option>
+                    {% for e in equipos %}
+                    <option value="{{ e.id }}">{{ e.codigo or ('EQ-' ~ e.id) }} - {{ e.nombre }}{% if e.ubicacion %} ({{ e.ubicacion }}){% endif %}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Ubicacion</label>
+                <input class="form-control" name="ubicacion" placeholder="Ej: Habitacion 005, buffet, recepcion, oficina direccion">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Departamento origen</label>
+                <select class="form-control" name="departamento_id">
+                    <option value="">Sin asignar</option>
+                    {% for d in departamentos %}
+                    <option value="{{ d.id }}" {% if departamento_actual and departamento_actual == d.id %}selected{% endif %}>{{ d.nombre }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Subdepartamento</label>
+                <select class="form-control" name="subdepartamento_id">
+                    <option value="">Sin asignar</option>
+                    {% for s in subdepartamentos %}
+                    <option value="{{ s.id }}" {% if subdepartamento_actual and subdepartamento_actual == s.id %}selected{% endif %}>{{ s.nombre }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Punto de venta / zona operativa</label>
+                <select class="form-control" name="punto_venta_id">
+                    <option value="">No aplica</option>
+                    {% for pv in puntos_venta %}
+                    <option value="{{ pv.id }}">{{ pv.nombre }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Prioridad</label>
+                <select class="form-control" name="prioridad">
+                    <option value="media">Media</option>
+                    <option value="baja">Baja</option>
+                    <option value="alta">Alta</option>
+                    <option value="urgente">Urgente</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Tipo</label>
+                <select class="form-control" name="tipo">
+                    <option value="correctivo">Averia / correctivo</option>
+                    <option value="seguridad">Seguridad</option>
+                    <option value="instalacion">Instalacion</option>
+                    <option value="revision">Revision</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="form-group" style="margin-top:16px;">
+            <label class="form-label">Que ocurre</label>
+            <textarea class="form-control" name="descripcion" rows="5" required placeholder="Ej: pata de cama rota, fuga de agua, impresora no imprime, puerta no cierra..."></textarea>
+        </div>
+
+        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:20px;">
+            <button type="submit" class="btn btn-success">Enviar aviso</button>
+            <a href="{{ url_for('home') }}" class="btn btn-secondary">Volver al inicio</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

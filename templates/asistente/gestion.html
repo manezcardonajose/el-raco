@@ -1,0 +1,260 @@
+{% extends "base.html" %}
+
+{% block title %}Gestion 360 IA{% endblock %}
+{% block breadcrumb %}<a href="{{ url_for('asistente.dashboard') }}">Asistente El Raco</a> / Gestion 360{% endblock %}
+
+{% block content %}
+<style>
+    .g360-head {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 18px;
+        align-items: end;
+        margin-bottom: 18px;
+    }
+    .g360-head h1 {
+        margin: 0 0 6px;
+        color: #ff6b00;
+        font-size: 28px;
+    }
+    .g360-head p {
+        margin: 0;
+        color: var(--text-muted, #5f6b7a);
+        max-width: 900px;
+        line-height: 1.45;
+    }
+    .g360-filter {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        align-items: end;
+        justify-content: flex-end;
+    }
+    .g360-filter label {
+        display: block;
+        font-size: 12px;
+        color: var(--text-muted, #5f6b7a);
+        margin-bottom: 4px;
+    }
+    .g360-filter input {
+        min-height: 38px;
+        border: 1px solid var(--border-color, #d5dde7);
+        border-radius: 7px;
+        padding: 8px 10px;
+        background: var(--input-bg, #fff);
+        color: var(--text-color, #16202a);
+    }
+    .g360-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(175px, 1fr));
+        gap: 12px;
+        margin-bottom: 16px;
+    }
+    .g360-card, .g360-panel, .g360-rec {
+        border: 1px solid var(--border-color, #d5dde7);
+        background: var(--card-bg, #fff);
+        border-radius: 8px;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, .04);
+    }
+    .g360-card {
+        padding: 14px;
+    }
+    .g360-card span {
+        display: block;
+        color: var(--text-muted, #5f6b7a);
+        font-size: 12px;
+        margin-bottom: 7px;
+    }
+    .g360-card strong {
+        display: block;
+        font-size: 24px;
+        color: var(--text-color, #16202a);
+    }
+    .g360-card small {
+        color: var(--text-muted, #5f6b7a);
+    }
+    .g360-panels {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+        gap: 14px;
+        margin-bottom: 16px;
+    }
+    .g360-panel {
+        overflow: hidden;
+    }
+    .g360-panel h2 {
+        margin: 0;
+        padding: 14px 16px;
+        border-bottom: 1px solid var(--border-color, #d5dde7);
+        color: #ff6b00;
+        font-size: 18px;
+        background: rgba(255, 107, 0, .07);
+    }
+    .g360-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    .g360-table th, .g360-table td {
+        padding: 10px 12px;
+        border-bottom: 1px solid var(--border-color, #d5dde7);
+        text-align: left;
+    }
+    .g360-table th {
+        color: #ff6b00;
+        font-size: 12px;
+        text-transform: uppercase;
+    }
+    .g360-table td:last-child {
+        text-align: right;
+        font-weight: 700;
+    }
+    .g360-rec-wrap {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+        gap: 12px;
+        padding: 14px;
+    }
+    .g360-rec {
+        padding: 14px;
+    }
+    .g360-rec h3 {
+        margin: 8px 0;
+        font-size: 16px;
+    }
+    .g360-rec p {
+        margin: 8px 0 0;
+        line-height: 1.42;
+    }
+    .g360-badge {
+        display: inline-flex;
+        padding: 3px 8px;
+        border-radius: 999px;
+        color: #fff;
+        font-size: 12px;
+        font-weight: 700;
+    }
+    .g360-badge.alta { background: #ea580c; }
+    .g360-badge.media { background: #2563eb; }
+    .g360-badge.baja { background: #64748b; }
+    .g360-badge.critica { background: #dc2626; }
+    .g360-badge.info { background: #0891b2; }
+    @media (max-width: 900px) {
+        .g360-head { grid-template-columns: 1fr; }
+        .g360-filter { justify-content: stretch; }
+    }
+</style>
+
+<div class="g360-head">
+    <div>
+        <h1><i class="fas fa-chart-pie"></i> Gestion 360 IA</h1>
+        <p>Control de gestion aproximado: junta ingresos, costes, cobros, pagos, personal, produccion, compras y mantenimiento. No sustituye la contabilidad oficial, pero ayuda a ver por donde se escapa el margen.</p>
+    </div>
+    <form class="g360-filter" method="get" action="{{ url_for('asistente.gestion_360') }}">
+        <div>
+            <label>Desde</label>
+            <input type="date" name="fecha_desde" value="{{ fecha_desde }}">
+        </div>
+        <div>
+            <label>Hasta</label>
+            <input type="date" name="fecha_hasta" value="{{ fecha_hasta }}">
+        </div>
+        <button class="btn btn-primary" type="submit"><i class="fas fa-search"></i> Analizar</button>
+        <a class="btn btn-secondary" href="{{ url_for('asistente.dashboard', fecha_desde=fecha_desde, fecha_hasta=fecha_hasta) }}"><i class="fas fa-brain"></i> Asistente</a>
+    </form>
+</div>
+
+<div class="g360-grid">
+    <div class="g360-card">
+        <span>Ingresos operativos</span>
+        <strong>{{ metricas.ingresos_operativos|euros }}</strong>
+        <small>Mayor valor entre contabilidad, ventas y reservas estimadas.</small>
+    </div>
+    <div class="g360-card">
+        <span>Costes detectados</span>
+        <strong>{{ metricas.costes_detectados|euros }}</strong>
+        <small>Gastos, personal, produccion, mantenimiento y mermas.</small>
+    </div>
+    <div class="g360-card">
+        <span>Resultado aproximado</span>
+        <strong>{{ metricas.resultado_aprox|euros }}</strong>
+        <small>Margen {{ metricas.margen_aprox_pct|numero_es(1) }} %.</small>
+    </div>
+    <div class="g360-card">
+        <span>Personal / ingresos</span>
+        <strong>{{ metricas.ratio_personal_pct|numero_es(1) }} %</strong>
+        <small>{{ metricas.horas_extra|numero_es(1) }} h extra detectadas.</small>
+    </div>
+    <div class="g360-card">
+        <span>Produccion / ingresos</span>
+        <strong>{{ metricas.ratio_produccion_pct|numero_es(1) }} %</strong>
+        <small>Mermas: {{ metricas.coste_mermas|euros }}.</small>
+    </div>
+    <div class="g360-card">
+        <span>Animacion</span>
+        <strong>{{ metricas.coste_animacion|euros }}</strong>
+        <small>{{ metricas.actividades_animacion }} actividades / {{ metricas.asistentes_animacion }} asistentes.</small><br>
+        <small>Propia {{ metricas.coste_animacion_propia|euros }} / externa {{ metricas.coste_animacion_subcontratada|euros }} / mixta {{ metricas.coste_animacion_mixta|euros }}.</small><br>
+        <small>Impacto estimado {{ metricas.impacto_animacion|euros }}.</small>
+    </div>
+    <div class="g360-card">
+        <span>Experiencia cliente</span>
+        <strong>{{ metricas.quejas_abiertas }}</strong>
+        <small>{{ metricas.quejas_cliente }} expedientes / {{ metricas.quejas_sensibles }} sensibles.</small><br>
+        <small>Vencidas {{ metricas.quejas_vencidas }} / compensaciones {{ metricas.compensaciones_cliente|euros }}.</small>
+    </div>
+    <div class="g360-card">
+        <span>Cobros / pagos</span>
+        <strong>{{ metricas.pendiente_cobro|euros }}</strong>
+        <small>Pago pendiente: {{ metricas.pendiente_pago|euros }}.</small>
+    </div>
+</div>
+
+<div class="g360-panels">
+    <section class="g360-panel">
+        <h2>Ingresos detectados</h2>
+        <table class="g360-table">
+            <thead><tr><th>Origen</th><th>Importe</th></tr></thead>
+            <tbody>
+                {% for item in desglose_ingresos %}
+                <tr><td>{{ item.nombre }}</td><td>{{ item.valor|euros }}</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </section>
+    <section class="g360-panel">
+        <h2>Costes detectados</h2>
+        <table class="g360-table">
+            <thead><tr><th>Origen</th><th>Importe</th></tr></thead>
+            <tbody>
+                {% for item in desglose_costes %}
+                <tr><td>{{ item.nombre }}</td><td>{{ item.valor|euros }}</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </section>
+</div>
+
+<section class="g360-panel">
+    <h2>Lectura IA de gestion</h2>
+    <div class="g360-rec-wrap">
+        {% for rec in recomendaciones %}
+        <article class="g360-rec">
+            <span class="g360-badge {{ rec.prioridad }}">{{ rec.prioridad|upper }}</span>
+            <h3>{{ rec.titulo }}</h3>
+            <p>{{ rec.detalle }}</p>
+            <p><strong>Accion:</strong> {{ rec.accion_propuesta }}</p>
+            {% if rec.enlace %}
+            <p><a class="btn btn-secondary" href="{{ rec.enlace }}"><i class="fas fa-arrow-right"></i> Ir al modulo</a></p>
+            {% endif %}
+        </article>
+        {% else %}
+        <article class="g360-rec">
+            <span class="g360-badge info">INFO</span>
+            <h3>Sin desviaciones claras</h3>
+            <p>No hay senales fuertes de coste o margen con los datos del periodo.</p>
+            <p><strong>Accion:</strong> Mantener seguimiento y guardar feedback para que la IA aprenda.</p>
+        </article>
+        {% endfor %}
+    </div>
+</section>
+{% endblock %}

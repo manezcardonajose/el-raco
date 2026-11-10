@@ -1,0 +1,297 @@
+{% extends "base.html" %}
+{% block content %}
+<style>
+    .menu-form-page {
+        max-width: 1180px;
+        margin: 0 auto;
+    }
+    .menu-form-actions {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+    }
+    .menu-form-grid {
+        display: grid;
+        grid-template-columns: minmax(0, 1.35fr) minmax(280px, .65fr);
+        gap: 16px;
+        align-items: start;
+    }
+    .menu-panel {
+        border: 1px solid #2c3e50;
+        background: #1e252b;
+        border-radius: 8px;
+        padding: 16px;
+    }
+    .menu-panel h3 {
+        margin: 0 0 14px;
+        color: #ff6b00;
+        font-size: 16px;
+        display: flex;
+        gap: 8px;
+        align-items: center;
+    }
+    .menu-fields {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(220px, 1fr));
+        gap: 14px;
+    }
+    .mode-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+    }
+    .mode-option {
+        position: relative;
+    }
+    .mode-option input {
+        position: absolute;
+        opacity: 0;
+        pointer-events: none;
+    }
+    .mode-option span {
+        display: block;
+        border: 1px solid #2c3e50;
+        border-radius: 8px;
+        padding: 12px;
+        background: #252b33;
+        min-height: 70px;
+        cursor: pointer;
+    }
+    .mode-option input:checked + span {
+        border-color: #ff6b00;
+        box-shadow: 0 0 0 2px rgba(255, 107, 0, .14);
+    }
+    .mode-option strong {
+        display: block;
+        color: #fff;
+        margin-bottom: 4px;
+    }
+    .mode-option small,
+    .menu-note {
+        color: #9ca3af;
+        font-size: 12px;
+        line-height: 1.35;
+    }
+    .menu-summary {
+        display: grid;
+        gap: 10px;
+    }
+    .summary-row {
+        border-bottom: 1px solid #2c3e50;
+        padding-bottom: 8px;
+    }
+    .summary-row span {
+        display: block;
+        color: #9ca3af;
+        font-size: 12px;
+        margin-bottom: 3px;
+    }
+    .summary-row strong {
+        color: #fff;
+    }
+    @media (max-width: 950px) {
+        .menu-form-grid,
+        .menu-fields,
+        .mode-grid {
+            grid-template-columns: 1fr;
+        }
+        .menu-form-actions {
+            width: 100%;
+        }
+        .menu-form-actions .btn {
+            flex: 1;
+            justify-content: center;
+        }
+    }
+</style>
+
+<div class="menu-form-page">
+    <div class="card">
+        <div class="card-header">
+            <h2><i class="fas fa-bookmark"></i> Nuevo menu fijo</h2>
+            <div class="menu-form-actions">
+                <a href="{{ url_for('menus.lista_menus_fijos') }}" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left"></i> Volver
+                </a>
+            </div>
+        </div>
+
+        <form method="POST" id="menuFijoForm">
+            <div class="menu-form-grid">
+                <div class="menu-panel">
+                    <h3><i class="fas fa-clipboard-list"></i> Datos principales</h3>
+                    <div class="menu-fields">
+                        <div class="form-group">
+                            <label class="form-label">Nombre</label>
+                            <input type="text"
+                                   name="nombre"
+                                   id="nombreMenu"
+                                   required
+                                   class="form-control"
+                                   value="{{ form_cache.get('nombre', '') }}"
+                                   placeholder="Ej: Semana 1 lunes almuerzo">
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Tipo de menu</label>
+                            <select name="tipo_menu_id" id="tipoMenu" required class="form-control">
+                                <option value="">Seleccionar</option>
+                                {% for t in tipos %}
+                                <option value="{{ t.id }}"
+                                        data-punto-venta="{{ t.punto_venta_id or '' }}"
+                                        {% if form_cache.get('tipo_menu_id')|string == t.id|string %}selected{% endif %}>
+                                    {{ t.nombre }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Departamento responsable</label>
+                            <select name="departamento_id" id="departamentoMenu" class="form-control">
+                                <option value="">Sin departamento fijo</option>
+                                {% for d in departamentos %}
+                                <option value="{{ d.id }}" {% if form_cache.get('departamento_id')|string == d.id|string %}selected{% endif %}>{{ d.nombre }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Punto de venta</label>
+                            <select name="punto_venta_id" id="puntoVentaMenu" class="form-control">
+                                <option value="">Sin punto de venta fijo</option>
+                                {% for pv in puntos_venta %}
+                                <option value="{{ pv.id }}"
+                                        data-departamento="{{ pv.departamento_id or '' }}"
+                                        {% if form_cache.get('punto_venta_id')|string == pv.id|string %}selected{% endif %}>
+                                    {{ pv.nombre }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Fecha inicio</label>
+                            <input type="date" name="fecha_inicio" id="fechaInicio" class="form-control" value="{{ form_cache.get('fecha_inicio', '') }}">
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Fecha fin</label>
+                            <input type="date" name="fecha_fin" id="fechaFin" class="form-control" value="{{ form_cache.get('fecha_fin', '') }}">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Modo de servicio</label>
+                        {% set modo_actual = form_cache.get('modo_servicio', 'buffet') %}
+                        <div class="mode-grid">
+                            <label class="mode-option">
+                                <input type="radio" name="modo_servicio" value="buffet" {% if modo_actual == 'buffet' %}checked{% endif %}>
+                                <span><strong>Buffet</strong><small>Secciones por cuarto frio, caliente, postres o estaciones.</small></span>
+                            </label>
+                            <label class="mode-option">
+                                <input type="radio" name="modo_servicio" value="carta" {% if modo_actual == 'carta' %}checked{% endif %}>
+                                <span><strong>Carta</strong><small>Platos seleccionados y produccion por demanda prevista.</small></span>
+                            </label>
+                            <label class="mode-option">
+                                <input type="radio" name="modo_servicio" value="mixto" {% if modo_actual == 'mixto' %}checked{% endif %}>
+                                <span><strong>Mixto</strong><small>Buffet con platos o suplementos a la carta.</small></span>
+                            </label>
+                            <label class="mode-option">
+                                <input type="radio" name="modo_servicio" value="bar_snack" {% if modo_actual == 'bar_snack' %}checked{% endif %}>
+                                <span><strong>Bar / snack</strong><small>Productos rapidos, bebidas o servicios sencillos.</small></span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Observaciones</label>
+                        <textarea name="observaciones" rows="4" class="form-control">{{ form_cache.get('observaciones', '') }}</textarea>
+                    </div>
+
+                    <div class="menu-form-actions">
+                        <button type="submit" class="btn btn-success">
+                            <i class="fas fa-save"></i> Crear menu fijo
+                        </button>
+                        <a href="{{ url_for('menus.lista_menus_fijos') }}" class="btn btn-secondary">
+                            Cancelar
+                        </a>
+                    </div>
+                </div>
+
+                <aside class="menu-panel">
+                    <h3><i class="fas fa-layer-group"></i> Resumen</h3>
+                    <div class="menu-summary">
+                        <div class="summary-row">
+                            <span>Nombre</span>
+                            <strong id="summaryNombre">Sin nombre</strong>
+                        </div>
+                        <div class="summary-row">
+                            <span>Tipo</span>
+                            <strong id="summaryTipo">Pendiente</strong>
+                        </div>
+                        <div class="summary-row">
+                            <span>Departamento</span>
+                            <strong id="summaryDepartamento">Sin fijar</strong>
+                        </div>
+                        <div class="summary-row">
+                            <span>Punto de venta</span>
+                            <strong id="summaryPuntoVenta">Sin fijar</strong>
+                        </div>
+                        <div class="summary-row">
+                            <span>Vigencia</span>
+                            <strong id="summaryFechas">Sin fechas</strong>
+                        </div>
+                    </div>
+                    <p class="menu-note" style="margin-top:14px;">
+                        Despues de crear el menu podras anadir secciones y recetas por subdepartamento.
+                    </p>
+                </aside>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    (function () {
+        const nombre = document.getElementById('nombreMenu');
+        const tipo = document.getElementById('tipoMenu');
+        const departamento = document.getElementById('departamentoMenu');
+        const puntoVenta = document.getElementById('puntoVentaMenu');
+        const fechaInicio = document.getElementById('fechaInicio');
+        const fechaFin = document.getElementById('fechaFin');
+
+        function selectedText(select, fallback) {
+            if (!select || !select.value) return fallback;
+            return select.options[select.selectedIndex].text.trim() || fallback;
+        }
+
+        function updateSummary() {
+            document.getElementById('summaryNombre').textContent = nombre.value.trim() || 'Sin nombre';
+            document.getElementById('summaryTipo').textContent = selectedText(tipo, 'Pendiente');
+            document.getElementById('summaryDepartamento').textContent = selectedText(departamento, 'Sin fijar');
+            document.getElementById('summaryPuntoVenta').textContent = selectedText(puntoVenta, 'Sin fijar');
+
+            const inicio = fechaInicio.value || '';
+            const fin = fechaFin.value || '';
+            document.getElementById('summaryFechas').textContent = inicio || fin ? `${inicio || '...'} / ${fin || '...'}` : 'Sin fechas';
+        }
+
+        function syncTipoPuntoVenta() {
+            const option = tipo.options[tipo.selectedIndex];
+            const puntoVentaId = option ? option.dataset.puntoVenta : '';
+            if (puntoVentaId && !puntoVenta.value) {
+                puntoVenta.value = puntoVentaId;
+            }
+            updateSummary();
+        }
+
+        [nombre, tipo, departamento, puntoVenta, fechaInicio, fechaFin].forEach(el => {
+            if (el) el.addEventListener('input', updateSummary);
+            if (el) el.addEventListener('change', updateSummary);
+        });
+        if (tipo) tipo.addEventListener('change', syncTipoPuntoVenta);
+        updateSummary();
+    })();
+</script>
+{% endblock %}

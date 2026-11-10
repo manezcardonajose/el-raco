@@ -1,0 +1,286 @@
+{% extends "base.html" %}
+{% block title %}Equipos y activos - El Raco ERP{% endblock %}
+{% block content %}
+
+<div class="card">
+    <div class="card-header" style="display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap;">
+        <div>
+            <h2><i class="fas fa-cubes"></i> Equipos / Activos</h2>
+            <p style="color:#64748b;margin-top:6px;">Inventario maestro: mantenimiento, APPCC, almacenes frios, impresoras, tablets, TPV y pantallas.</p>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <a class="btn btn-primary" href="{{ url_for('mantenimiento.lista_equipos') }}"><i class="fas fa-tools"></i> Mantenimiento</a>
+            <a class="btn btn-secondary" href="{{ url_for('appcc.lista_equipos') }}"><i class="fas fa-clipboard-check"></i> APPCC</a>
+            <a class="btn btn-secondary" href="{{ url_for('empresas.dispositivos_impresion') }}"><i class="fas fa-print"></i> Dispositivos</a>
+        </div>
+    </div>
+
+    <div class="asset-summary">
+        <div><span>Total activos</span><strong>{{ resumen.total }}</strong></div>
+        <div><span>Con APPCC</span><strong>{{ resumen.appcc }}</strong></div>
+        <div><span>Almacenes / camaras</span><strong>{{ resumen.almacenes }}</strong></div>
+        <div><span>Dispositivos</span><strong>{{ resumen.dispositivos }}</strong></div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <h3><i class="fas fa-plus"></i> Crear activo</h3>
+    </div>
+    <form method="post" class="asset-form">
+        <input type="hidden" name="accion" value="crear_activo">
+        <label>Nombre
+            <input class="form-control" name="nombre" placeholder="Horno Rational cocina caliente" required>
+        </label>
+        <label>Codigo
+            <input class="form-control" name="codigo" placeholder="Automatico si se deja vacio">
+        </label>
+        <label>Familia
+            <select class="form-control" name="familia">
+                <option value="maquinaria">Maquinaria</option>
+                <option value="frio">Frio / camaras</option>
+                <option value="tecnologia">Tecnologia</option>
+                <option value="impresion">Impresion</option>
+                <option value="mobiliario">Mobiliario</option>
+                <option value="habitacion">Habitacion</option>
+                <option value="appcc">APPCC</option>
+                <option value="general">General</option>
+            </select>
+        </label>
+        <label>Tipo
+            <input class="form-control" name="tipo" placeholder="horno, camara, tablet, impresora...">
+        </label>
+        <label>Clase activo
+            <select class="form-control" name="clase_activo">
+                <option value="equipo">Equipo</option>
+                <option value="dispositivo">Dispositivo</option>
+                <option value="almacen_frio">Almacen frio</option>
+                <option value="mobiliario">Mobiliario</option>
+                <option value="habitacion">Habitacion</option>
+                <option value="equipo_control">Equipo de control</option>
+            </select>
+        </label>
+        <label>Criticidad
+            <select class="form-control" name="criticidad">
+                <option value="media">Media</option>
+                <option value="alta">Alta</option>
+                <option value="baja">Baja</option>
+                <option value="critica">Critica</option>
+            </select>
+        </label>
+        <label>Ubicacion
+            <input class="form-control" name="ubicacion" placeholder="Cocina central / cuarto frio">
+        </label>
+        <label>Departamento
+            <select class="form-control" name="departamento_id">
+                <option value="">Sin asignar</option>
+                {% for d in departamentos %}<option value="{{ d.id }}">{{ d.nombre }}</option>{% endfor %}
+            </select>
+        </label>
+        <label>Subdepartamento
+            <select class="form-control" name="subdepartamento_id">
+                <option value="">Sin asignar</option>
+                {% for s in subdepartamentos %}<option value="{{ s.id }}">{{ s.nombre }}</option>{% endfor %}
+            </select>
+        </label>
+        <label>Punto venta
+            <select class="form-control" name="punto_venta_id">
+                <option value="">Sin asignar</option>
+                {% for pv in puntos_venta %}<option value="{{ pv.id }}">{{ pv.nombre }}</option>{% endfor %}
+            </select>
+        </label>
+        <label>Marca
+            <input class="form-control" name="marca">
+        </label>
+        <label>Modelo
+            <input class="form-control" name="modelo">
+        </label>
+        <label>Numero serie
+            <input class="form-control" name="numero_serie">
+        </label>
+        <div class="asset-checks">
+            <label><input type="checkbox" name="inventariable" value="1" checked> Inventariable</label>
+            <label><input type="checkbox" name="requiere_appcc" value="1"> Requiere APPCC/control</label>
+        </div>
+        <div style="grid-column:1/-1;">
+            <button class="btn btn-success" type="submit"><i class="fas fa-save"></i> Crear activo</button>
+        </div>
+    </form>
+</div>
+
+{% if dispositivos_sin_activo %}
+<div class="card">
+    <div class="card-header">
+        <h3><i class="fas fa-plug"></i> Dispositivos sin activo inventariable</h3>
+        <p style="color:#64748b;margin-top:6px;">Equipos creados en impresion que aun no estan en el inventario maestro.</p>
+    </div>
+    <div class="device-grid">
+        {% for d in dispositivos_sin_activo %}
+        <form method="post" class="device-card">
+            <input type="hidden" name="accion" value="crear_desde_dispositivo">
+            <input type="hidden" name="device_id" value="{{ d.id }}">
+            <strong>{{ d.nombre }}</strong>
+            <span>{{ d.tipo_dispositivo or '-' }} · {{ d.ubicacion or 'sin ubicacion' }}</span>
+            <small>{{ d.impresora_etiquetas_nombre or 'sin impresora' }}</small>
+            <button class="btn btn-sm btn-primary" type="submit">Crear activo</button>
+        </form>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+<div class="card">
+    <div class="card-header">
+        <h3><i class="fas fa-filter"></i> Inventario maestro</h3>
+    </div>
+    <form method="get" class="filter-bar">
+        <label>Buscar
+            <input class="form-control" name="q" value="{{ q }}" placeholder="Nombre, codigo, ubicacion, serie">
+        </label>
+        <label>Familia
+            <select class="form-control" name="familia">
+                <option value="">Todas</option>
+                {% for f in familias %}
+                <option value="{{ f.familia }}" {% if familia == f.familia %}selected{% endif %}>{{ f.familia }} ({{ f.total }})</option>
+                {% endfor %}
+            </select>
+        </label>
+        <label>Estado
+            <select class="form-control" name="estado">
+                <option value="activos" {% if estado == 'activos' %}selected{% endif %}>Activos</option>
+                <option value="todos" {% if estado == 'todos' %}selected{% endif %}>Todos</option>
+                <option value="inactivos" {% if estado == 'inactivos' %}selected{% endif %}>Inactivos</option>
+            </select>
+        </label>
+        <button class="btn btn-primary" type="submit">Filtrar</button>
+        <a class="btn btn-secondary" href="{{ url_for('empresas.equipos_activos') }}">Limpiar</a>
+    </form>
+
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>Activo</th>
+                    <th>Tipo</th>
+                    <th>Ubicacion</th>
+                    <th>Vinculos</th>
+                    <th>Estado</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for a in activos %}
+                <tr>
+                    <td>
+                        <strong>{{ a.nombre }}</strong><br>
+                        <small>{{ a.codigo or ('ACT-' ~ a.id) }}</small>
+                        {% if a.marca or a.modelo %}<br><small>{{ a.marca or '' }} {{ a.modelo or '' }}</small>{% endif %}
+                        {% if a.numero_serie %}<br><small>Serie: {{ a.numero_serie }}</small>{% endif %}
+                    </td>
+                    <td>
+                        <span class="badge badge-info">{{ a.familia or 'general' }}</span>
+                        <span class="badge badge-secondary">{{ a.tipo or '-' }}</span>
+                        <br><small>{{ a.clase_activo or '-' }} · {{ a.categoria_operativa or '-' }}</small>
+                    </td>
+                    <td>
+                        {{ a.ubicacion or '-' }}<br>
+                        <small>{{ a.departamento_nombre or '-' }}{% if a.subdepartamento_nombre %} / {{ a.subdepartamento_nombre }}{% endif %}</small>
+                        {% if a.punto_venta_nombre %}<br><small>PV: {{ a.punto_venta_nombre }}</small>{% endif %}
+                    </td>
+                    <td>
+                        {% if a.appcc_id %}
+                        <span class="badge badge-success">APPCC #{{ a.appcc_id }}</span>
+                        {% if a.appcc_rango_min is not none or a.appcc_rango_max is not none %}
+                        <br><small>Rango {{ a.appcc_rango_min or '-' }} / {{ a.appcc_rango_max or '-' }}</small>
+                        {% endif %}
+                        {% endif %}
+                        {% if a.almacen_nombre %}<br><span class="badge badge-info">Almacen: {{ a.almacen_nombre }}</span>{% endif %}
+                        {% if a.dispositivos_vinculados %}<br><span class="badge badge-warning">{{ a.dispositivos_vinculados }} dispositivo/s</span>{% endif %}
+                    </td>
+                    <td>
+                        <span class="badge {% if a.activo %}badge-success{% else %}badge-secondary{% endif %}">{{ 'Activo' if a.activo else 'Inactivo' }}</span>
+                        <br><span class="badge {% if a.criticidad in ['alta','critica'] %}badge-danger{% else %}badge-secondary{% endif %}">{{ a.criticidad or 'media' }}</span>
+                        {% if a.ot_abiertas %}<br><span class="badge badge-warning">{{ a.ot_abiertas }} OT abiertas</span>{% endif %}
+                    </td>
+                    <td>
+                        <div class="asset-actions">
+                            <a class="btn btn-sm btn-info" href="{{ url_for('mantenimiento.ver_equipo', equipo_id=a.id) }}">Ver</a>
+                            {% if a.appcc_id %}
+                            <a class="btn btn-sm btn-secondary" href="{{ url_for('appcc.historial_temperaturas', equipo_id=a.appcc_id) }}">APPCC</a>
+                            {% endif %}
+                        </div>
+                    </td>
+                </tr>
+                {% else %}
+                <tr><td colspan="6">No hay activos con estos filtros.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<style>
+.asset-summary {
+    display:grid;
+    grid-template-columns:repeat(auto-fit, minmax(180px, 1fr));
+    gap:12px;
+}
+.asset-summary div {
+    background:#f8fafc;
+    border:1px solid #d8e2ed;
+    border-radius:8px;
+    padding:14px;
+}
+.asset-summary span {
+    display:block;
+    color:#64748b;
+}
+.asset-summary strong {
+    font-size:28px;
+    color:#182230;
+}
+.asset-form,
+.filter-bar {
+    display:grid;
+    grid-template-columns:repeat(auto-fit, minmax(180px, 1fr));
+    gap:10px;
+    align-items:end;
+}
+.asset-form label,
+.filter-bar label {
+    color:#334155;
+    font-weight:600;
+    font-size:13px;
+}
+.asset-checks {
+    grid-column:1/-1;
+    display:flex;
+    gap:14px;
+    flex-wrap:wrap;
+}
+.device-grid {
+    display:grid;
+    grid-template-columns:repeat(auto-fit, minmax(230px, 1fr));
+    gap:10px;
+}
+.device-card {
+    border:1px solid #d8e2ed;
+    border-radius:8px;
+    padding:12px;
+    background:#fff;
+    display:flex;
+    flex-direction:column;
+    gap:6px;
+}
+.device-card span,
+.device-card small {
+    color:#64748b;
+}
+.asset-actions {
+    display:flex;
+    gap:6px;
+    flex-wrap:wrap;
+}
+</style>
+
+{% endblock %}

@@ -1,0 +1,135 @@
+{% extends "base.html" %}
+{% block content %}
+<style>
+    .operativo-header {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 20px;
+        margin-bottom: 24px;
+    }
+
+    .operativo-title h1 {
+        color: #ff6b00;
+        font-size: 28px;
+        margin-bottom: 8px;
+        letter-spacing: 0;
+    }
+
+    .operativo-title p {
+        color: #b8c0cc;
+        margin: 0;
+        line-height: 1.5;
+    }
+
+    .operativo-pill {
+        background: #111827;
+        border: 1px solid #2c3e50;
+        color: #d7dee8;
+        border-radius: 6px;
+        padding: 10px 12px;
+        white-space: nowrap;
+    }
+
+    .operativo-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+        gap: 14px;
+    }
+
+    .operativo-module {
+        display: grid;
+        grid-template-columns: 46px 1fr;
+        gap: 14px;
+        align-items: center;
+        min-height: 118px;
+        padding: 18px;
+        background: #252b33;
+        border: 1px solid #2c3e50;
+        border-radius: 8px;
+        color: #e8edf5;
+        text-decoration: none;
+        transition: border-color .2s, transform .2s, background .2s;
+    }
+
+    .operativo-module:hover {
+        border-color: #ff6b00;
+        background: #2b323c;
+        transform: translateY(-2px);
+    }
+
+    .operativo-icon {
+        width: 46px;
+        height: 46px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 8px;
+        background: #172033;
+        color: #ff6b00;
+        font-size: 20px;
+    }
+
+    .operativo-module strong {
+        display: block;
+        margin-bottom: 6px;
+        font-size: 17px;
+        color: #ffffff;
+    }
+
+    .operativo-module span {
+        display: block;
+        color: #aeb8c6;
+        line-height: 1.4;
+        font-size: 13px;
+    }
+
+    .operativo-empty {
+        border: 1px solid #2c3e50;
+        border-radius: 8px;
+        padding: 22px;
+        background: #252b33;
+        color: #cbd5e1;
+    }
+
+    @media (max-width: 760px) {
+        .operativo-header {
+            display: block;
+        }
+
+        .operativo-pill {
+            display: inline-block;
+            margin-top: 12px;
+        }
+    }
+</style>
+
+<div class="operativo-header">
+    <div class="operativo-title">
+        <h1>Mi area de trabajo</h1>
+        <p>Accesos disponibles segun tu rol, departamento y permisos directos.</p>
+    </div>
+    <div class="operativo-pill">
+        <i class="fas fa-user-shield"></i>
+        {{ nombre }}{% if rol %} - {{ rol }}{% endif %}
+    </div>
+</div>
+
+{% if modulos %}
+<div class="operativo-grid">
+    {% for modulo in modulos %}
+    <a class="operativo-module" href="{{ modulo.url }}">
+        <span class="operativo-icon"><i class="fas {{ modulo.icono }}"></i></span>
+        <span>
+            <strong>{{ modulo.titulo }}</strong>
+            <span>{{ modulo.detalle }}</span>
+        </span>
+    </a>
+    {% endfor %}
+</div>
+{% else %}
+<div class="operativo-empty">
+    No tienes modulos operativos asignados. Revisa el rol, el empleado vinculado o los permisos directos del usuario.
+</div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,80 @@
+# Environment & Secrets
+.env
+.env.*
+
+# Database backups
+*.db-backup
+*.db-wal
+*.db-shm
+*.db
+*.sqlite
+*.sqlite3
+*.sqlite-wal
+*.sqlite-shm
+*.sqlite3-wal
+*.sqlite3-shm
+*.sqbpro
+backups/
+instance/
+
+# IDE & OS
+.vscode/
+.vs/
+__pycache__/
+*.pyc
+.DS_Store
+
+# Logs
+logs/
+*.log
+
+# Uploads & Temp
+uploads/
+temp/
+tmp/
+
+# Virtual Environment
+venv/
+env/
+.venv/
+.venv*/
+
+# Dependencies
+node_modules/
+
+# OS specific
+Thumbs.db
+.DS_Store
+
+# Sensitive files
+*.pem
+*.key
+*.p12
+*.pfx
+*.p8
+*.ppt
+*.xlsx~
+
+# Local data, imports, customer documents and generated archives
+archivo/
+biblioteca_recetas/
+menus_importar/
+recetas_exel/
+simulaciones_compras/
+*.xlsx
+*.xls
+*.ods
+*.docx
+*.pdf
+*.zip
+*.7z
+*.bak
+*.bak_*
+docs/resultado_*.json
+RESUMEN_EJECUTIVO_SEGURIDAD.md
+
+# Local tool and editor state
+.agents/
+.codex/
+.qodo/
+*.code-workspace

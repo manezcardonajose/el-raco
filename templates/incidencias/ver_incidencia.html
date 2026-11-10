@@ -1,0 +1,129 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="card">
+    <div class="card-header" style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;">
+        <h2><i class="fas fa-eye"></i> Incidencia #{{ incidencia.id }}</h2>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            {% if incidencia.tipo == 'recepcion' and incidencia.referencia_id %}
+            <a href="{{ url_for('compras.editar_recepcion', recepcion_id=incidencia.referencia_id) }}" class="btn btn-info">Ver recepcion</a>
+            {% endif %}
+            <a href="{{ next_url or url_for('incidencias.lista') }}" class="btn btn-secondary">Volver</a>
+        </div>
+    </div>
+
+    <div style="background:#1e252b;padding:20px;border-radius:8px;">
+        <p><strong>Tipo:</strong> {{ incidencia.tipo }}</p>
+        <p><strong>Clasificacion:</strong> {{ incidencia.origen_modulo or '-' }} -> {{ incidencia.destino_modulo or '-' }} / {{ incidencia.categoria_operativa or incidencia.tipo }}</p>
+        <p><strong>Ubicacion:</strong> {{ incidencia.ubicacion or '-' }}</p>
+        <p><strong>Fecha:</strong> {{ incidencia.fecha[:16] }}</p>
+        <p><strong>Usuario:</strong> {{ incidencia.usuario or '---' }}</p>
+        <p>
+            <strong>Gravedad:</strong>
+            <span class="badge
+                {% if incidencia.gravedad == 'critica' or incidencia.gravedad == 'urgente' %}badge-danger
+                {% elif incidencia.gravedad == 'alta' %}badge-warning
+                {% elif incidencia.gravedad == 'media' %}badge-info
+                {% else %}badge-secondary{% endif %}">
+                {{ incidencia.gravedad }}
+            </span>
+        </p>
+        <p>
+            <strong>Estado:</strong>
+            <span class="badge
+                {% if incidencia.estado == 'abierta' %}badge-danger
+                {% elif incidencia.estado == 'en_proceso' %}badge-warning
+                {% elif incidencia.estado == 'resuelta' %}badge-success
+                {% endif %}">
+                {{ incidencia.estado }}
+            </span>
+        </p>
+        <p><strong>Descripcion:</strong> {{ incidencia.descripcion }}</p>
+        {% if incidencia.solucion %}
+        <p><strong>Solucion:</strong> {{ incidencia.solucion }}</p>
+        <p><strong>Resuelto por:</strong> {{ incidencia.resuelto_por }}</p>
+        <p><strong>Fecha resolucion:</strong> {{ incidencia.fecha_resolucion[:16] }}</p>
+        {% endif %}
+        {% if incidencia.orden_trabajo_id %}
+        <p><strong>Orden mantenimiento:</strong> <a href="{{ url_for('mantenimiento.ver_orden', orden_id=incidencia.orden_trabajo_id) }}">OT #{{ incidencia.orden_trabajo_id }}</a></p>
+        {% endif %}
+    </div>
+
+    <div style="margin-top:20px;background:#17202a;padding:18px;border-radius:8px;">
+        <h3>Derivar / clasificar</h3>
+        <form method="POST" action="{{ url_for('incidencias.clasificar', incidencia_id=incidencia.id) }}">
+            {% if next_url %}
+            <input type="hidden" name="next" value="{{ next_url }}">
+            {% endif %}
+            <div style="display:grid;grid-template-columns:repeat(4,minmax(160px,1fr));gap:12px;">
+                <div class="form-group">
+                    <label class="form-label">Destino</label>
+                    <select class="form-control" name="destino_modulo">
+                        {% for key, item in destinos.items() %}
+                        <option value="{{ key }}" {% if incidencia.destino_modulo == key %}selected{% endif %}>{{ item.label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Categoria</label>
+                    <select class="form-control" name="categoria_operativa">
+                        <option value="">Mantener actual</option>
+                        {% for key, label in categorias.items() %}
+                        <option value="{{ key }}" {% if incidencia.categoria_operativa == key %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Gravedad</label>
+                    <select class="form-control" name="gravedad">
+                        <option value="">Mantener actual</option>
+                        {% for g in ['baja','media','alta','urgente','critica'] %}
+                        <option value="{{ g }}" {% if incidencia.gravedad == g %}selected{% endif %}>{{ g }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Ubicacion</label>
+                    <input class="form-control" name="ubicacion" value="{{ incidencia.ubicacion or '' }}" placeholder="Habitacion, zona, almacen...">
+                </div>
+            </div>
+            <button class="btn btn-primary" type="submit">Guardar clasificacion</button>
+        </form>
+
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;">
+            {% for key in ['mantenimiento', 'compras', 'appcc', 'pisos', 'interno'] %}
+            <form method="POST" action="{{ url_for('incidencias.clasificar', incidencia_id=incidencia.id) }}">
+                {% if next_url %}<input type="hidden" name="next" value="{{ next_url }}">{% endif %}
+                <input type="hidden" name="destino_modulo" value="{{ key }}">
+                <button class="btn btn-sm btn-secondary" type="submit">{{ destinos[key].label }}</button>
+            </form>
+            {% endfor %}
+        </div>
+    </div>
+
+    {% if incidencia.estado != 'resuelta' %}
+    <div style="margin-top:30px;">
+        <h3>Resolver incidencia</h3>
+        <form method="POST" action="{{ url_for('incidencias.resolver', incidencia_id=incidencia.id) }}">
+            <div class="form-group">
+                <label class="form-label">Solucion</label>
+                <textarea name="solucion" rows="4" class="form-control" required></textarea>
+                {% if next_url %}
+                <input type="hidden" name="next" value="{{ next_url }}">
+                {% endif %}
+            </div>
+            <button type="submit" class="btn btn-success">Marcar como resuelta</button>
+        </form>
+    </div>
+    {% endif %}
+    {% if not incidencia.orden_trabajo_id and (incidencia.requiere_mantenimiento or incidencia.origen_modulo in ['pisos', 'mantenimiento'] or incidencia.destino_modulo == 'mantenimiento') %}
+    <div style="margin-top:20px;">
+        <form method="POST" action="{{ url_for('incidencias.crear_ot_mantenimiento', incidencia_id=incidencia.id) }}">
+            {% if next_url %}
+            <input type="hidden" name="next" value="{{ next_url }}">
+            {% endif %}
+            <button type="submit" class="btn btn-warning">Crear OT mantenimiento</button>
+        </form>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

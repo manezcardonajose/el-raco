@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="card">
+    <h2 style="color: #ff6b00;">️ EDITAR REPUESTO</h2>
+    
+    <form method="POST">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+            <div>
+                <label>Cdigo:</label>
+                <input type="text" name="codigo" value="{{ repuesto.codigo }}" required style="width: 100%; padding: 8px;">
+            </div>
+            
+            <div>
+                <label>Nombre:</label>
+                <input type="text" name="nombre" value="{{ repuesto.nombre }}" required style="width: 100%; padding: 8px;">
+            </div>
+            
+            <div>
+                <label>Proveedor:</label>
+                <select name="proveedor_id" style="width: 100%; padding: 8px;">
+                    <option value="">-- Ninguno --</option>
+                    {% for p in proveedores %}
+                    <option value="{{ p.id }}" {% if p.id == repuesto.proveedor_id %}selected{% endif %}>{{ p.nombre }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div>
+                <label>Referencia proveedor:</label>
+                <input type="text" name="referencia_proveedor" value="{{ repuesto.referencia_proveedor or '' }}" style="width: 100%; padding: 8px;">
+            </div>
+            
+            <div>
+                <label>Stock actual:</label>
+                <input type="number" step="0.01" name="stock_actual" value="{{ repuesto.stock_actual }}" style="width: 100%; padding: 8px;">
+            </div>
+            
+            <div>
+                <label>Stock mnimo:</label>
+                <input type="number" step="0.01" name="stock_minimo" value="{{ repuesto.stock_minimo }}" style="width: 100%; padding: 8px;">
+            </div>
+            
+            <div>
+                <label>Precio compra ():</label>
+                <input type="number" step="0.01" name="precio_compra" value="{{ repuesto.precio_compra }}" style="width: 100%; padding: 8px;">
+            </div>
+            
+            <div>
+                <label>Unidad:</label>
+                <select name="unidad" style="width: 100%; padding: 8px;">
+                    <option value="ud" {% if repuesto.unidad == 'ud' %}selected{% endif %}>Unidad (ud)</option>
+                    <option value="kg" {% if repuesto.unidad == 'kg' %}selected{% endif %}>Kilogramo (kg)</option>
+                    <option value="g" {% if repuesto.unidad == 'g' %}selected{% endif %}>Gramo (g)</option>
+                    <option value="l" {% if repuesto.unidad == 'l' %}selected{% endif %}>Litro (l)</option>
+                    <option value="ml" {% if repuesto.unidad == 'ml' %}selected{% endif %}>Mililitro (ml)</option>
+                </select>
+            </div>
+            
+            <div>
+                <label>Ubicacin en almacn:</label>
+                <input type="text" name="ubicacion_almacen" value="{{ repuesto.ubicacion_almacen or '' }}" style="width: 100%; padding: 8px;">
+            </div>
+        </div>
+        
+        <div style="margin-top: 20px;">
+            <label>Descripcin:</label>
+            <textarea name="descripcion" rows="3" style="width: 100%; padding: 8px;">{{ repuesto.descripcion or '' }}</textarea>
+        </div>
+        
+        <div style="margin-top: 20px;">
+            <label>Equipos compatibles:</label>
+            <textarea name="compatible_con" rows="2" style="width: 100%; padding: 8px;">{{ repuesto.compatible_con or '' }}</textarea>
+        </div>
+        
+        <div style="margin-top: 30px;">
+            <button type="submit" class="btn btn-success"> Guardar cambios</button>
+            <a href="/mantenimiento/repuestos/{{ repuesto.id }}" class="btn btn-info">️ Ver</a>
+            <a href="/mantenimiento/repuestos" class="btn btn-red">Cancelar</a>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+
+

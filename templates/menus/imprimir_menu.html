@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>{{ menu.tipo_nombre }} - {{ menu.fecha }}</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Arial, sans-serif; background: #f5f5f5; padding: 20px; }
+        .menu { max-width: 1000px; margin: 0 auto; background: white; border-radius: 10px; box-shadow: 0 5px 15px rgba(0,0,0,0.2); overflow: hidden; }
+        .header { background: linear-gradient(135deg, #ff6b00 0%, #ff944d 100%); color: white; padding: 25px 30px; }
+        .header h1 { font-size: 28px; margin-bottom: 5px; }
+        .header p { opacity: 0.9; font-size: 14px; }
+        .info-empresa { display: flex; justify-content: space-between; background: #f8f9fa; padding: 15px 30px; border-bottom: 1px solid #dee2e6; color: #495057; font-size: 13px; }
+        .seccion { margin: 20px 30px; border-left: 4px solid #ff6b00; padding-left: 15px; }
+        .seccion h3 { color: #ff6b00; margin-bottom: 10px; }
+        .seccion p { color: #17a2b8; font-size: 14px; margin-bottom: 10px; }
+        table { width: 100%; border-collapse: collapse; margin: 10px 0; }
+        th { background: #343a40; color: white; padding: 8px; text-align: left; }
+        td { padding: 6px 8px; border-bottom: 1px solid #dee2e6; }
+        .footer { background: #f8f9fa; padding: 15px 30px; text-align: center; color: #6c757d; border-top: 1px solid #dee2e6; }
+        .no-print { text-align: right; padding: 15px 30px; }
+        .btn-print { background: #ff6b00; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; font-size: 14px; margin-right: 10px; }
+        .btn-print:hover { background: #e55a00; }
+        @media print {
+            .no-print { display: none; }
+            body { background: white; padding: 0; }
+            .menu { box-shadow: none; }
+            .header { background: #ff6b00; color: white; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+        }
+    </style>
+</head>
+<body>
+    <div class="menu">
+        <div class="header">
+            <h1>{{ menu.tipo_nombre }}</h1>
+            <p>{{ menu.fecha }}</p>
+        </div>
+
+        <div class="info-empresa">
+            <div><strong>El Racó ERP</strong> · Gestión hotelera integral</div>
+            <div>{{ now().strftime('%d/%m/%Y %H:%M') }}</div>
+        </div>
+
+        {% if menu.observaciones %}
+        <div style="padding: 15px 30px; background: #f8f9fa; border-bottom: 1px solid #dee2e6;">
+            <strong>Observaciones:</strong> {{ menu.observaciones }}
+        </div>
+        {% endif %}
+
+        {% if secciones %}
+            {% for s in secciones %}
+            <div class="seccion">
+                <h3>{{ s.departamento_nombre }} → {{ s.subdepartamento_nombre }}</h3>
+                {% if s.seccion %}
+                <p>{{ s.seccion }}</p>
+                {% endif %}
+
+                {% if s.platos and s.platos|length > 0 %}
+                <table>
+                    <thead>
+                        <tr>
+                            <th style="width: 50px;">#</th>
+                            <th>Plato</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for p in s.platos %}
+                        <tr>
+                            <td>{{ p.orden }}</td>
+                            <td><strong>{{ p.receta_nombre }}</strong></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% else %}
+                <p style="color: #999; font-style: italic;">No hay platos en esta sección</p>
+                {% endif %}
+            </div>
+            {% endfor %}
+        {% else %}
+        <div style="text-align: center; padding: 40px; color: #999;">
+            Este menú no tiene secciones asignadas.
+        </div>
+        {% endif %}
+
+        <div class="footer">
+            Documento generado automáticamente · El Racó ERP
+        </div>
+
+        <div class="no-print">
+            <button class="btn-print" onclick="window.print()">Imprimir / PDF</button>
+            <button class="btn-print" onclick="window.close()" style="background: #6c757d;">Cerrar</button>
+        </div>
+    </div>
+</body>
+</html>

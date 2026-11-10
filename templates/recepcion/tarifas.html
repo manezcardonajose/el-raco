@@ -1,0 +1,187 @@
+{% extends 'base.html' %}
+{% block title %}Tarifas{% endblock %}
+{% block breadcrumb %}Recepcion / Tarifas{% endblock %}
+{% block content %}
+<div class="card">
+  <div class="card-header">
+    <h2><i class="fas fa-euro-sign"></i> Tarifas por tipo y regimen</h2>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+      <a class="btn btn-info" href="{{ url_for('recepcion.exportar_tarifas_csv') }}">Exportar CSV</a>
+      <a class="btn btn-secondary" href="{{ url_for('recepcion.reglas_precio') }}">Reglas de precio</a>
+      <a class="btn btn-secondary" href="{{ url_for('recepcion.tipos_habitacion') }}">Tipos</a>
+    </div>
+  </div>
+
+  <form method="post" enctype="multipart/form-data" action="{{ url_for('recepcion.importar_tarifas_csv') }}" style="display:flex;gap:8px;align-items:end;flex-wrap:wrap;margin-bottom:18px;">
+    <div class="form-group" style="margin:0;min-width:260px;"><label class="form-label">Importar tarifas CSV</label><input class="form-control" type="file" name="archivo_csv" accept=".csv,text/csv" required></div>
+    <button class="btn btn-primary" type="submit">Importar</button>
+    <small>Cabeceras: tipo_codigo, tipo_nombre, regimen, fecha_inicio, fecha_fin, precio_noche, prioridad, activo.</small>
+  </form>
+
+  <form method="post" action="{{ url_for('recepcion.crear_tarifas_demo_mercado') }}" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;align-items:end;margin-bottom:18px;border:1px solid #334155;border-radius:8px;padding:12px;">
+    <div class="form-group"><label class="form-label">Ano inicio demo</label><input class="form-control" type="number" name="inicio_year" value="{{ demo_year }}" min="2024" max="2035"></div>
+    <div class="form-group"><label class="form-label">Anos</label><input class="form-control" type="number" name="num_years" value="2" min="1" max="4"></div>
+    <label style="display:flex;gap:6px;align-items:center;"><input type="checkbox" name="sobrescribir" value="1"> Actualizar tramos existentes</label>
+    <button class="btn btn-warning" type="submit">Crear tarifas demo mercado</button>
+  </form>
+
+  <form method="post" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;align-items:end;margin-bottom:18px;">
+    <div class="form-group"><label class="form-label">Tipo</label><select class="form-control" name="tipo_habitacion_id" required>
+      {% for t in tipos %}<option value="{{ t.id }}">{{ t.nombre }} ({{ t.codigo }})</option>{% endfor %}
+    </select></div>
+    <div class="form-group"><label class="form-label">Regimen</label><select class="form-control" name="regimen">
+      {% for key,label in regimenes.items() %}<option value="{{ key }}">{{ label }}</option>{% endfor %}
+    </select></div>
+    <div class="form-group"><label class="form-label">Desde estancia</label><input class="form-control" type="date" name="fecha_inicio" required></div>
+    <div class="form-group"><label class="form-label">Hasta estancia</label><input class="form-control" type="date" name="fecha_fin" required></div>
+    <div class="form-group"><label class="form-label">Precio noche</label><input class="form-control" type="number" step="0.01" name="precio_noche" required></div>
+    <div class="form-group"><label class="form-label">Prioridad</label><input class="form-control" type="number" name="prioridad" value="10"></div>
+    <label style="display:flex;gap:6px;align-items:center;"><input type="checkbox" name="activo" checked> Activa</label>
+    <button class="btn btn-success" type="submit">Anadir tarifa</button>
+  </form>
+
+  <div style="border-top:1px solid #334155;padding-top:16px;margin-bottom:18px;">
+    <h3 style="color:#ff6b00;margin:0 0 12px;"><i class="fas fa-search"></i> Auditoria de huecos</h3>
+    <form method="get" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;align-items:end;margin-bottom:14px;">
+      <input type="hidden" name="auditar_tarifas" value="1">
+      <div class="form-group"><label class="form-label">Desde</label><input class="form-control" type="date" name="auditoria_desde" value="{{ auditoria_form.desde }}" required></div>
+      <div class="form-group"><label class="form-label">Hasta</label><input class="form-control" type="date" name="auditoria_hasta" value="{{ auditoria_form.hasta }}" required></div>
+      <div class="form-group"><label class="form-label">Tipo</label><select class="form-control" name="auditoria_tipo_habitacion_id">
+        <option value="">Todos</option>
+        {% for t in tipos %}
+        <option value="{{ t.id }}" {% if auditoria_form.tipo_habitacion_id == t.id %}selected{% endif %}>{{ t.nombre }} ({{ t.codigo }})</option>
+        {% endfor %}
+      </select></div>
+      <div class="form-group"><label class="form-label">Regimen</label><select class="form-control" name="auditoria_regimen">
+        <option value="">Todos</option>
+        {% for key,label in regimenes.items() %}
+        <option value="{{ key }}" {% if auditoria_form.regimen == key %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select></div>
+      <button class="btn btn-info" type="submit">Buscar huecos</button>
+    </form>
+    {% if auditoria %}
+      {% if auditoria.huecos %}
+      <div class="alert alert-warning">
+        Hay {{ auditoria.huecos|length }} tramos sin tarifa, con {{ auditoria.total_noches }} noches afectadas.
+      </div>
+      <div class="table-container">
+        <table>
+          <thead><tr><th>Tipo</th><th>Regimen</th><th>Desde</th><th>Hasta</th><th>Noches</th></tr></thead>
+          <tbody>
+            {% for h in auditoria.huecos %}
+            <tr>
+              <td>{{ h.tipo_nombre }} <small>({{ h.tipo_codigo }})</small></td>
+              <td>{{ regimenes.get(h.regimen, h.regimen) }}</td>
+              <td>{{ h.desde }}</td>
+              <td>{{ h.hasta }}</td>
+              <td>{{ h.noches }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <div class="alert alert-success">No hay huecos de tarifas en el periodo seleccionado.</div>
+      {% endif %}
+    {% endif %}
+  </div>
+
+  <div style="border-top:1px solid #334155;padding-top:16px;margin-bottom:18px;">
+    <h3 style="color:#ff6b00;margin:0 0 12px;"><i class="fas fa-copy"></i> Clonar temporada</h3>
+    <form method="post" action="{{ url_for('recepcion.clonar_temporada_tarifas') }}" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;align-items:end;">
+      <div class="form-group"><label class="form-label">Origen desde</label><input class="form-control" type="date" name="origen_inicio" required></div>
+      <div class="form-group"><label class="form-label">Origen hasta</label><input class="form-control" type="date" name="origen_fin" required></div>
+      <div class="form-group"><label class="form-label">Destino desde</label><input class="form-control" type="date" name="destino_inicio" required></div>
+      <div class="form-group"><label class="form-label">Tipo</label><select class="form-control" name="tipo_habitacion_id">
+        <option value="">Todos</option>
+        {% for t in tipos %}<option value="{{ t.id }}">{{ t.nombre }} ({{ t.codigo }})</option>{% endfor %}
+      </select></div>
+      <div class="form-group"><label class="form-label">Regimen</label><select class="form-control" name="regimen">
+        <option value="">Todos</option>
+        {% for key,label in regimenes.items() %}<option value="{{ key }}">{{ label }}</option>{% endfor %}
+      </select></div>
+      <label style="display:flex;gap:6px;align-items:center;"><input type="checkbox" name="sobrescribir" value="1"> Sobrescribir existentes</label>
+      <button class="btn btn-warning" type="submit">Clonar</button>
+    </form>
+  </div>
+
+  <div style="border-top:1px solid #334155;padding-top:16px;margin-bottom:18px;">
+    <h3 style="color:#ff6b00;margin:0 0 12px;"><i class="fas fa-calculator"></i> Simulador de precio</h3>
+    <form method="get" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;align-items:end;margin-bottom:14px;">
+      <input type="hidden" name="simular_precio" value="1">
+      <div class="form-group"><label class="form-label">Habitacion</label><select class="form-control" name="habitacion_id" required>
+        <option value="">Seleccionar</option>
+        {% for h in habitaciones %}
+        <option value="{{ h.id }}" {% if simulador_form.habitacion_id == h.id %}selected{% endif %}>{{ h.numero }}{% if h.nombre %} - {{ h.nombre }}{% endif %}{% if h.tipo_nombre %} - {{ h.tipo_nombre }}{% endif %}</option>
+        {% endfor %}
+      </select></div>
+      <div class="form-group"><label class="form-label">Regimen</label><select class="form-control" name="regimen">
+        {% for key,label in regimenes.items() %}
+        <option value="{{ key }}" {% if simulador_form.regimen == key %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select></div>
+      <div class="form-group"><label class="form-label">Entrada</label><input class="form-control" type="date" name="fecha_entrada" value="{{ simulador_form.fecha_entrada }}" required></div>
+      <div class="form-group"><label class="form-label">Salida</label><input class="form-control" type="date" name="fecha_salida" value="{{ simulador_form.fecha_salida }}" required></div>
+      <button class="btn btn-info" type="submit">Simular</button>
+    </form>
+
+    {% if simulador %}
+    <div class="alert alert-info">
+      <strong>Total sugerido:</strong> {{ '%.2f'|format(simulador.total or 0) }} &euro;
+      <br><small>Base: {{ '%.2f'|format(simulador.total_base or 0) }} &euro; / Ajustes: {{ '%.2f'|format(simulador.total_ajustes or 0) }} &euro; / Noches: {{ simulador.noches }}</small>
+      {% if simulador.faltan_tarifas %}
+      <br><small>Faltan tarifas para: {{ simulador.faltan_tarifas|join(', ') }}</small>
+      {% endif %}
+    </div>
+    <div class="table-container">
+      <table>
+        <thead><tr><th>Fecha</th><th>Base</th><th>Ajustes</th><th>Total noche</th><th>Reglas aplicadas</th></tr></thead>
+        <tbody>
+          {% for d in simulador.detalle %}
+          <tr>
+            <td>{{ d.fecha }}</td>
+            <td>{{ '%.2f'|format(d.base or 0) }} &euro;</td>
+            <td>{{ '%.2f'|format(d.ajuste or 0) }} &euro;</td>
+            <td>{{ '%.2f'|format(d.total or 0) }} &euro;</td>
+            <td>
+              {% for r in d.reglas %}
+              <div>{{ r.nombre }}: {{ '%.2f'|format(r.ajuste or 0) }} &euro;{% if r.motivo %} <small>({{ r.motivo }})</small>{% endif %}</div>
+              {% else %}
+              -
+              {% endfor %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% endif %}
+  </div>
+
+  <div class="table-container">
+    <table>
+      <thead><tr><th>Tipo</th><th>Regimen</th><th>Fechas</th><th>Precio noche</th><th>Prioridad</th><th>Activa</th><th>Acciones</th></tr></thead>
+      <tbody>
+        {% for t in tarifas %}
+        <tr>
+          <td>{{ t.tipo_nombre }} <small>({{ t.tipo_codigo }})</small></td>
+          <td>{{ regimenes.get(t.regimen, t.regimen) }}</td>
+          <td>{{ t.fecha_inicio }}<br><small>{{ t.fecha_fin }}</small></td>
+          <td>{{ '%.2f'|format(t.precio_noche or 0) }} &euro;</td>
+          <td>{{ t.prioridad }}</td>
+          <td>{% if t.activo %}Si{% else %}No{% endif %}</td>
+          <td>
+            <form method="post" action="{{ url_for('recepcion.toggle_tarifa', id=t.id) }}">
+              <button class="btn btn-sm {% if t.activo %}btn-warning{% else %}btn-success{% endif %}" type="submit">{% if t.activo %}Desactivar{% else %}Activar{% endif %}</button>
+            </form>
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="7">No hay tarifas configuradas.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

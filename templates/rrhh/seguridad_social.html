@@ -1,0 +1,147 @@
+{% extends 'base.html' %}
+{% block title %}Seguridad Social RRHH{% endblock %}
+{% block breadcrumb %}RRHH / Seguridad Social{% endblock %}
+{% block content %}
+<div class="card">
+  <div class="card-header">
+    <h2><i class="fas fa-share-alt"></i> Seguridad Social / Sistema RED</h2>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+      <a class="btn btn-secondary" href="{{ url_for('rrhh.exportar_seguridad_social') }}"><i class="fas fa-file-csv"></i> Exportar registro</a>
+      <a class="btn btn-primary" href="{{ url_for('rrhh.lista_documentos') }}"><i class="fas fa-folder-open"></i> Documentos RRHH</a>
+    </div>
+  </div>
+
+  <div class="alert alert-info">
+    Este apartado registra ficheros de intercambio con Seguridad Social, Sistema RED o SILTRA. No envia automaticamente a organismos oficiales: guarda fichero, hash, estado, respuesta y trazabilidad para trabajar con el autorizado RED o la asesoria.
+  </div>
+
+  <form method="post" enctype="multipart/form-data" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px;align-items:end;">
+    <div class="form-group">
+      <label class="form-label">Tipo</label>
+      <select class="form-control" name="tipo">
+        {% for codigo,nombre in opciones.tipos %}
+        <option value="{{ codigo }}">{{ nombre }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Direccion</label>
+      <select class="form-control" name="direccion">
+        {% for codigo,nombre in opciones.direcciones %}
+        <option value="{{ codigo }}">{{ nombre }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Estado</label>
+      <select class="form-control" name="estado">
+        {% for codigo,nombre in opciones.estados %}
+        <option value="{{ codigo }}">{{ nombre }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="form-group"><label class="form-label">Periodo</label><input class="form-control" name="periodo" placeholder="2026-05"></div>
+    <div class="form-group"><label class="form-label">CCC</label><input class="form-control" name="ccc" placeholder="Cuenta cotizacion"></div>
+    <div class="form-group"><label class="form-label">Autorizado RED</label><input class="form-control" name="autorizado_red" placeholder="Asesoria o usuario"></div>
+    <div class="form-group"><label class="form-label">Canal</label><input class="form-control" name="canal" value="Sistema RED / SILTRA"></div>
+    <div class="form-group"><label class="form-label">Fichero</label><input class="form-control" type="file" name="archivo" required></div>
+    <div class="form-group" style="grid-column:1/-1;"><label class="form-label">Descripcion</label><input class="form-control" name="descripcion" placeholder="Alta, baja, cotizacion, respuesta de SILTRA..."></div>
+    <div class="form-group" style="grid-column:1/-1;"><label class="form-label">Observaciones</label><textarea class="form-control" name="observaciones" rows="2"></textarea></div>
+    <div style="grid-column:1/-1;"><button class="btn btn-success" type="submit"><i class="fas fa-upload"></i> Registrar fichero</button></div>
+  </form>
+</div>
+
+<div class="card">
+  <div class="card-header"><h2><i class="fas fa-list"></i> Registro de ficheros</h2></div>
+
+  <form method="get" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;align-items:end;margin-bottom:14px;">
+    <div class="form-group">
+      <label class="form-label">Tipo</label>
+      <select class="form-control" name="tipo">
+        <option value="">Todos</option>
+        {% for codigo,nombre in opciones.tipos %}
+        <option value="{{ codigo }}" {% if filtros.tipo == codigo %}selected{% endif %}>{{ nombre }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Direccion</label>
+      <select class="form-control" name="direccion">
+        <option value="">Todas</option>
+        {% for codigo,nombre in opciones.direcciones %}
+        <option value="{{ codigo }}" {% if filtros.direccion == codigo %}selected{% endif %}>{{ nombre }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Estado</label>
+      <select class="form-control" name="estado">
+        <option value="">Todos</option>
+        {% for codigo,nombre in opciones.estados %}
+        <option value="{{ codigo }}" {% if filtros.estado == codigo %}selected{% endif %}>{{ nombre }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="form-group"><label class="form-label">Periodo</label><input class="form-control" name="periodo" value="{{ filtros.periodo }}"></div>
+    <div class="form-group"><label class="form-label">Buscar</label><input class="form-control" name="q" value="{{ filtros.q }}"></div>
+    <button class="btn btn-primary" type="submit"><i class="fas fa-search"></i> Filtrar</button>
+  </form>
+
+  <div class="table-container">
+    <table>
+      <thead>
+        <tr>
+          <th>Fecha</th>
+          <th>Tipo</th>
+          <th>Direccion</th>
+          <th>Periodo</th>
+          <th>Fichero</th>
+          <th>Estado</th>
+          <th>Respuesta</th>
+          <th>Hash</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for f in ficheros %}
+        <tr>
+          <td>{{ f.fecha_generacion or f.fecha_creacion }}</td>
+          <td><span class="badge badge-info">{{ f.tipo }}</span></td>
+          <td>{{ f.direccion }}</td>
+          <td>{{ f.periodo or '-' }}</td>
+          <td>
+            <strong>{{ f.nombre_original or 'Sin nombre' }}</strong><br>
+            <small>{{ f.descripcion or '' }}</small>
+          </td>
+          <td>
+            <form method="post" action="{{ url_for('rrhh.actualizar_estado_seguridad_social', id=f.id) }}" style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
+              <select class="form-control" name="estado" style="min-width:130px;">
+                {% for codigo,nombre in opciones.estados %}
+                <option value="{{ codigo }}" {% if f.estado == codigo %}selected{% endif %}>{{ nombre }}</option>
+                {% endfor %}
+              </select>
+              <input class="form-control" name="motivo_cambio" placeholder="Motivo" style="min-width:150px;">
+              <button class="btn btn-sm btn-success" type="submit">Guardar</button>
+            </form>
+          </td>
+          <td>
+            <form method="post" action="{{ url_for('rrhh.actualizar_estado_seguridad_social', id=f.id) }}" style="display:flex;gap:6px;flex-wrap:wrap;">
+              <input type="hidden" name="estado" value="{{ f.estado or 'preparado' }}">
+              <input class="form-control" name="respuesta" value="{{ f.respuesta or '' }}" placeholder="Respuesta" style="min-width:160px;">
+              <input class="form-control" name="observaciones" value="{{ f.observaciones or '' }}" placeholder="Observaciones" style="min-width:160px;">
+              <button class="btn btn-sm btn-secondary" type="submit">Anotar</button>
+            </form>
+          </td>
+          <td><small>{{ (f.hash_archivo or '')[:16] }}</small></td>
+          <td>
+            <a class="btn btn-sm btn-primary" href="{{ url_for('rrhh.descargar_seguridad_social', id=f.id) }}"><i class="fas fa-download"></i> Descargar</a>
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="9">No hay ficheros registrados.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

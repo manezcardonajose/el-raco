@@ -1,0 +1,58 @@
+<style>
+@media print{
+  .sidebar,.topbar,.no-print,.btn,.btn-icon,form,.card-header a{display:none!important;}
+  .main-content{margin-left:0!important;}
+  .content-container{padding:0!important;}
+  .card{box-shadow:none!important;border:0!important;background:white!important;color:black!important;}
+  .table-container{border:0!important;overflow:visible!important;}
+  table{min-width:0!important;table-layout:auto!important;font-size:11px!important;}
+  th{background:#eee!important;color:#000!important;}
+  td,th{color:#000!important;border:1px solid #ddd!important;}
+}
+.rrhh-tools{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:10px 0 15px 0;}
+.rrhh-tools input,.rrhh-tools select{max-width:260px;}
+th.rrhh-sortable{cursor:pointer;user-select:none;}
+th.rrhh-sortable:after{content:' ⇅';font-size:10px;color:#999;}
+</style>
+<div class="rrhh-tools no-print">
+  <input type="text" class="form-control rrhh-buscador" placeholder="Buscar en esta tabla...">
+  <button type="button" class="btn btn-secondary rrhh-limpiar"><i class="fas fa-times"></i> Limpiar</button>
+  <button type="button" class="btn btn-info rrhh-imprimir"><i class="fas fa-print"></i> Imprimir</button>
+</div>
+<script>
+(function(){
+  function normalizar(txt){return (txt||'').toString().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');}
+  function preparar(card){
+    const input = card.querySelector('.rrhh-buscador');
+    const limpiar = card.querySelector('.rrhh-limpiar');
+    const imprimir = card.querySelector('.rrhh-imprimir');
+    const table = card.querySelector('table');
+    if(!table || table.dataset.rrhhToolsReady === '1') return;
+    table.dataset.rrhhToolsReady = '1';
+    if(input){
+      input.addEventListener('input', function(){
+        const q = normalizar(this.value);
+        table.querySelectorAll('tbody tr').forEach(tr => {
+          tr.style.display = normalizar(tr.innerText).includes(q) ? '' : 'none';
+        });
+      });
+    }
+    if(limpiar){limpiar.addEventListener('click', function(){ if(input){input.value=''; input.dispatchEvent(new Event('input'));} });}
+    if(imprimir){imprimir.addEventListener('click', function(){ window.print(); });}
+    table.querySelectorAll('thead th').forEach((th, idx) => {
+      th.classList.add('rrhh-sortable');
+      th.addEventListener('click', function(){
+        const tbody = table.tBodies[0]; if(!tbody) return;
+        const asc = th.dataset.asc !== '1'; th.dataset.asc = asc ? '1' : '0';
+        Array.from(tbody.rows)
+          .filter(r => r.cells.length > idx)
+          .sort((a,b) => normalizar(a.cells[idx].innerText).localeCompare(normalizar(b.cells[idx].innerText), 'es', {numeric:true}) * (asc ? 1 : -1))
+          .forEach(r => tbody.appendChild(r));
+      });
+    });
+  }
+  document.addEventListener('DOMContentLoaded', function(){
+    document.querySelectorAll('.card').forEach(preparar);
+  });
+})();
+</script>

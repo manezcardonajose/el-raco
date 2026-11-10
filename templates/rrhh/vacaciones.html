@@ -1,0 +1,201 @@
+{% extends 'base.html' %}
+{% block title %}Ausencias, bajas y permisos{% endblock %}
+{% block breadcrumb %}RRHH / Ausencias, bajas y permisos{% endblock %}
+{% block content %}
+<style>
+  .rrhh-page{padding:0;}
+  .rrhh-head{margin-bottom:18px;}
+  .rrhh-head h2{color:#ff6b00;margin:0 0 6px 0;display:flex;align-items:center;gap:10px;}
+  .rrhh-subtitle{color:#b8c2cc;margin-bottom:10px;}
+  .rrhh-links{display:flex;gap:12px;flex-wrap:wrap;margin-top:8px;}
+  .rrhh-links a{color:#25c2e3;text-decoration:none;font-size:13px;}
+  .rrhh-card{background:#252b33;border:1px solid #2c3e50;border-radius:8px;padding:18px;margin-bottom:18px;box-shadow:0 4px 12px rgba(0,0,0,.2);}
+  .rrhh-card h3{color:#ff6b00;font-size:17px;margin:0 0 16px 0;display:flex;align-items:center;gap:8px;}
+  .rrhh-form-grid{display:grid;grid-template-columns:repeat(4,minmax(180px,1fr));gap:14px;align-items:end;}
+  .rrhh-form-grid .wide{grid-column:span 2;}
+  .rrhh-form-grid .full{grid-column:1/-1;}
+  .rrhh-field label{display:block;color:#b8c2cc;font-weight:600;margin-bottom:5px;font-size:13px;}
+  .rrhh-field select,.rrhh-field input,.rrhh-field textarea{width:100%;min-height:39px;background:#17212b;color:#fff;border:1px solid #34485d;border-radius:5px;padding:9px 10px;font-size:14px;}
+  .rrhh-field textarea{min-height:70px;resize:vertical;}
+  .rrhh-field select:focus,.rrhh-field input:focus,.rrhh-field textarea:focus{outline:none;border-color:#25c2e3;box-shadow:0 0 0 3px rgba(37,194,227,.12);}
+  .rrhh-field option{background:#17212b;color:#fff;}
+  .hint{font-size:12px;color:#8d9aa6;margin-top:4px;}
+  .actions-row{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px;}
+  .filters-grid{display:grid;grid-template-columns:repeat(4,minmax(160px,1fr));gap:12px;align-items:end;}
+  .saldo-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin-bottom:14px;}
+  .saldo-box{background:#17212b;border:1px solid #334155;border-radius:8px;padding:12px;}
+  .saldo-box span{display:block;color:#94a3b8;font-size:12px;}
+  .saldo-box strong{font-size:24px;color:#fff;}
+  .table-wrap{overflow-x:auto;border:1px solid #334155;border-radius:6px;}
+  .table-darkish{width:100%;border-collapse:collapse;color:#eef2f7;min-width:1050px;}
+  .table-darkish th{background:#151a20;color:#ff6b00;border:1px solid #334155;padding:9px;font-size:12px;text-transform:uppercase;}
+  .table-darkish td{border:1px solid #334155;padding:9px;vertical-align:top;background:#202832;font-size:13px;}
+  .tipo-badge{display:inline-block;border-radius:6px;padding:4px 7px;font-weight:700;font-size:12px;color:#fff;}
+  .status-pill{display:inline-block;border-radius:999px;padding:3px 8px;font-size:12px;font-weight:700;}
+  .status-solicitada{background:#334155;color:#dbeafe;}.status-aprobada{background:#124d2f;color:#b6f7cd;}.status-rechazada{background:#5b1c1c;color:#ffd7d7;}.status-cancelada{background:#3f3f46;color:#e4e4e7;}
+  .doc-pending{color:#ffb84d;font-weight:700;}.doc-ok{color:#51d88a;font-weight:700;}
+  .inline-form{display:inline-block;margin:2px;}
+  @media(max-width:1100px){.rrhh-form-grid{grid-template-columns:repeat(2,minmax(180px,1fr));}.filters-grid{grid-template-columns:repeat(2,minmax(160px,1fr));}}
+  @media(max-width:700px){.rrhh-form-grid,.filters-grid{grid-template-columns:1fr;}.rrhh-form-grid .wide{grid-column:1/-1;}}
+</style>
+
+<div class="rrhh-page">
+  <div class="rrhh-head">
+    <h2><i class="fas fa-user-clock"></i> Ausencias, bajas y permisos</h2>
+    <div class="rrhh-subtitle">Registro real de vacaciones, bajas médicas, accidentes, permisos y ausencias. Estos datos alimentan cuadrantes, fichajes y pre-nómina.</div>
+    <div class="rrhh-links">
+      <a href="{{ url_for('rrhh.cuadrante_real') }}"><i class="fas fa-calendar-week"></i> Cuadrante</a>
+      <a href="{{ url_for('rrhh.lista_fichajes') }}"><i class="fas fa-clock"></i> Fichajes</a>
+      <a href="{{ url_for('rrhh.lista_prenomina') }}"><i class="fas fa-file-invoice-dollar"></i> Pre-nómina</a>
+      <a href="{{ url_for('rrhh.alertas_rrhh') }}"><i class="fas fa-bell"></i> Alertas RRHH</a>
+      <a href="{{ url_for('rrhh.saldos_vacaciones_csv', anio=anio) }}"><i class="fas fa-download"></i> Exportar saldos</a>
+      <a href="{{ url_for('rrhh.lista_documentos') }}"><i class="fas fa-folder-open"></i> Documentación</a>
+    </div>
+  </div>
+
+  {% if puede_editar %}
+  <div class="rrhh-card">
+    <h3><i class="fas fa-plus-circle"></i> Registrar ausencia, baja o permiso</h3>
+    <form method="post" enctype="multipart/form-data">
+      <div class="rrhh-form-grid">
+        <div class="rrhh-field wide">
+          <label>Trabajador</label>
+          <select name="empleado_id" required>
+            <option value="">Seleccionar trabajador...</option>
+            {% for e in empleados %}<option value="{{ e.id }}">{{ e.nombre }} {{ e.apellidos or '' }}</option>{% endfor %}
+          </select>
+        </div>
+        <div class="rrhh-field">
+          <label>Tipo de ausencia</label>
+          <select name="tipo" required>
+            {% for valor, nombre in tipos_ausencia %}<option value="{{ valor }}">{{ nombre }}</option>{% endfor %}
+          </select>
+          <div class="hint">Baja médica y accidente laboral requieren justificante.</div>
+        </div>
+        <div class="rrhh-field">
+          <label>Estado</label>
+          <select name="estado">
+            <option value="solicitada">Solicitada / pendiente</option>
+            <option value="aprobada">Aprobada</option>
+            <option value="rechazada">Rechazada</option>
+            <option value="cancelada">Cancelada</option>
+          </select>
+        </div>
+        <div class="rrhh-field">
+          <label>Inicio</label>
+          <input type="date" name="fecha_inicio" required>
+        </div>
+        <div class="rrhh-field">
+          <label>Fin</label>
+          <input type="date" name="fecha_fin" required>
+        </div>
+        <div class="rrhh-field">
+          <label>Origen</label>
+          <select name="origen">
+            <option value="manual_rrhh">Manual RRHH</option>
+            <option value="email">Recibido por email</option>
+            <option value="escaneado">Escaneado</option>
+            <option value="foto">Foto móvil</option>
+            <option value="empleado">Solicitud empleado</option>
+          </select>
+        </div>
+        <div class="rrhh-field">
+          <label>Documento ya existente</label>
+          <select name="documento_id">
+            <option value="">Sin documento asociado</option>
+            {% for d in documentos %}<option value="{{ d.id }}">{{ d.nombre or d.tipo_documento }}</option>{% endfor %}
+          </select>
+        </div>
+        <div class="rrhh-field wide">
+          <label>Subir justificante ahora</label>
+          <input type="file" name="archivo_documento" accept=".pdf,.png,.jpg,.jpeg,.webp,.heic,.tif,.tiff">
+          <div class="hint">PDF, foto, escaneo o imagen recibida por email.</div>
+        </div>
+        <div class="rrhh-field wide">
+          <label>Observaciones internas</label>
+          <input type="text" name="observaciones" placeholder="Motivo, parte médico, mutua, referencia, observación interna...">
+        </div>
+      </div>
+      <div class="actions-row">
+        <button class="btn btn-success"><i class="fas fa-save"></i> Guardar ausencia</button>
+        <a class="btn btn-info" href="{{ url_for('rrhh.alertas_rrhh') }}"><i class="fas fa-bell"></i> Ver alertas de fichaje</a>
+      </div>
+    </form>
+  </div>
+  {% endif %}
+
+  <div class="rrhh-card">
+    <h3><i class="fas fa-filter"></i> Filtros</h3>
+    <form method="get" class="filters-grid">
+      <div class="rrhh-field"><label>Año</label><input type="number" name="anio" value="{{ anio }}"></div>
+      <div class="rrhh-field"><label>Tipo</label><select name="tipo"><option value="">Todos</option>{% for valor, nombre in tipos_ausencia %}<option value="{{ valor }}" {% if tipo_filtro == valor %}selected{% endif %}>{{ nombre }}</option>{% endfor %}</select></div>
+      <div class="rrhh-field"><label>Estado</label><select name="estado"><option value="">Todos</option>{% for estado in ['solicitada','aprobada','rechazada','cancelada'] %}<option value="{{ estado }}" {% if estado_filtro == estado %}selected{% endif %}>{{ estado|capitalize }}</option>{% endfor %}</select></div>
+      <div class="rrhh-field"><button class="btn btn-primary" style="width:100%;"><i class="fas fa-search"></i> Filtrar</button></div>
+    </form>
+  </div>
+
+  <div class="rrhh-card">
+    <h3><i class="fas fa-umbrella-beach"></i> Saldos de vacaciones {{ anio }}</h3>
+    <div class="saldo-grid">
+      <div class="saldo-box"><span>Generadas</span><strong>{{ "%.2f"|format(saldos_vacaciones|sum(attribute='devengadas') or 0) }}</strong></div>
+      <div class="saldo-box"><span>Aprobadas</span><strong>{{ "%.2f"|format(saldos_vacaciones|sum(attribute='aprobadas') or 0) }}</strong></div>
+      <div class="saldo-box"><span>Disfrutadas</span><strong>{{ "%.2f"|format(saldos_vacaciones|sum(attribute='disfrutadas') or 0) }}</strong></div>
+      <div class="saldo-box"><span>Solicitadas</span><strong>{{ "%.2f"|format(saldos_vacaciones|sum(attribute='solicitadas') or 0) }}</strong></div>
+      <div class="saldo-box"><span>Disponible</span><strong>{{ "%.2f"|format(saldos_vacaciones|sum(attribute='disponible') or 0) }}</strong></div>
+    </div>
+    <div class="table-wrap">
+      <table class="table-darkish">
+        <thead><tr><th>Trabajador</th><th>Derecho anual</th><th>Generadas</th><th>Aprobadas</th><th>Disfrutadas</th><th>Pendientes</th><th>Solicitadas</th><th>Disponible</th></tr></thead>
+        <tbody>
+          {% for s in saldos_vacaciones %}
+          {% set e = s.empleado %}
+          <tr>
+            <td><strong>{{ e.nombre }} {{ e.apellidos or '' }}</strong><br><small>{{ e.departamento_nombre or '' }}{% if e.subdepartamento_nombre %} / {{ e.subdepartamento_nombre }}{% endif %}</small></td>
+            <td>{{ "%.2f"|format(s.derecho_anual or 0) }}</td>
+            <td>{{ "%.2f"|format(s.devengadas or 0) }}</td>
+            <td>{{ "%.2f"|format(s.aprobadas or 0) }}</td>
+            <td>{{ "%.2f"|format(s.disfrutadas or 0) }}</td>
+            <td>{{ "%.2f"|format(s.pendientes_aprobadas or 0) }}</td>
+            <td>{{ "%.2f"|format(s.solicitadas or 0) }}</td>
+            <td><strong>{{ "%.2f"|format(s.disponible or 0) }}</strong></td>
+          </tr>
+          {% else %}
+          <tr><td colspan="8" style="text-align:center;color:#9ca3af;">No hay empleados para calcular saldos.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="rrhh-card">
+    <h3><i class="fas fa-list"></i> Registros</h3>
+    <div class="table-wrap">
+      <table class="table-darkish">
+        <thead><tr><th>Trabajador</th><th>Tipo</th><th>Fechas</th><th>Estado</th><th>Documento</th><th>Pre-nómina</th><th>Observaciones</th>{% if puede_editar %}<th>Acciones</th>{% endif %}</tr></thead>
+        <tbody>
+          {% for r in registros %}
+          <tr>
+            <td><strong>{{ r.empleado_nombre }}</strong><br><small>{{ r.departamento_nombre or '' }}</small></td>
+            <td><span class="tipo-badge" style="background:{{ r.color or '#6c757d' }}">{{ r.tipo|replace('_',' ')|capitalize }}</span></td>
+            <td>{{ r.fecha_inicio }}<br>{{ r.fecha_fin }}<br><small>{{ r.dias or 0 }} día(s)</small></td>
+            <td><span class="status-pill status-{{ r.estado or 'solicitada' }}">{{ r.estado or 'solicitada' }}</span></td>
+            <td>{% if r.documento_id %}<span class="doc-ok"><i class="fas fa-check-circle"></i> Asociado</span><br><small>{{ r.documento_nombre or 'Documento RRHH' }}</small>{% elif r.requiere_documento %}<span class="doc-pending"><i class="fas fa-exclamation-triangle"></i> Pendiente</span>{% else %}<small>No obligatorio</small>{% endif %}</td>
+            <td>{% if r.afecta_prenomina == 0 %}<small>No afecta</small>{% else %}<strong>{{ r.porcentaje_cobro or 100 }}%</strong><br><small>{{ r.codigo_oficial or '' }}</small>{% endif %}</td>
+            <td>{{ r.observaciones or '' }}</td>
+            {% if puede_editar %}
+            <td>
+              <a class="btn btn-sm btn-warning" href="{{ url_for('rrhh.editar_vacacion', id=r.id) }}" title="Editar"><i class="fas fa-edit"></i></a>
+              <form method="post" action="{{ url_for('rrhh.cambiar_estado_vacaciones', id=r.id) }}" class="inline-form"><input type="hidden" name="estado" value="aprobada"><button class="btn btn-sm btn-success" title="Aprobar"><i class="fas fa-check"></i></button></form>
+              <form method="post" action="{{ url_for('rrhh.cancelar_vacacion', id=r.id) }}" class="inline-form"><button class="btn btn-sm btn-secondary" title="Cancelar"><i class="fas fa-ban"></i></button></form>
+            </td>
+            {% endif %}
+          </tr>
+          {% else %}
+          <tr><td colspan="8" style="text-align:center;color:#9ca3af;">No hay registros para los filtros seleccionados.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,309 @@
+{% extends 'base.html' %}
+{% block title %}Pisos{% endblock %}
+{% block breadcrumb %}Pisos / Parte diario{% endblock %}
+{% block content %}
+<style>
+  .px-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:10px;margin:12px 0 16px;}
+  .px-card{border:1px solid #334155;border-radius:6px;background:#111827;padding:10px;}
+  .px-card span{display:block;color:#94a3b8;font-size:12px;}
+  .px-card strong{display:block;font-size:22px;margin-top:3px;}
+  .px-filters{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;align-items:end;margin-bottom:16px;}
+  .px-actions{display:flex;gap:6px;flex-wrap:wrap;align-items:center;}
+  .px-inline{display:inline-flex;gap:6px;align-items:center;margin:2px 0;}
+  .px-note{color:#94a3b8;font-size:12px;line-height:1.35;}
+  .px-pill{display:inline-block;border:1px solid #475569;border-radius:4px;padding:2px 6px;font-size:12px;background:#0f172a;margin:2px 2px 2px 0;}
+  .px-priority-alta{color:#fecaca;border-color:#ef4444;}
+  .px-priority-media{color:#fed7aa;border-color:#f59e0b;}
+  .px-priority-baja{color:#bbf7d0;border-color:#22c55e;}
+  .px-estado-pendiente{color:#fde68a;}
+  .px-estado-en_curso{color:#bfdbfe;}
+  .px-estado-hecha{color:#bbf7d0;}
+  .px-estado-incidencia{color:#fecaca;}
+  .px-small-input{max-width:150px;}
+  .px-table td{vertical-align:top;}
+  .px-check{display:inline-flex;gap:4px;align-items:center;font-size:12px;color:#cbd5e1;white-space:nowrap;}
+  .px-action-stack{display:grid;gap:8px;min-width:260px;}
+  .px-action-row{display:flex;gap:6px;flex-wrap:wrap;align-items:end;}
+  .px-action-row .btn{white-space:nowrap;}
+  .px-close-form{border:1px solid #334155;border-radius:6px;background:#0f172a;padding:8px;display:grid;gap:8px;}
+  .px-close-title{display:flex;justify-content:space-between;gap:8px;align-items:center;}
+  .px-close-grid{display:grid;grid-template-columns:repeat(2,minmax(90px,1fr));gap:8px;}
+  .px-field{display:grid;gap:3px;}
+  .px-field label{font-size:11px;color:#94a3b8;}
+  .px-close-grid .form-control,.px-close-form .form-control{max-width:none;}
+  .px-details{border:1px solid #334155;border-radius:6px;padding:7px;background:#111827;}
+  .px-details summary{cursor:pointer;color:#bfdbfe;font-size:12px;}
+  .px-help{border:1px solid #334155;border-radius:6px;background:#111827;padding:10px;margin-bottom:12px;color:#cbd5e1;font-size:13px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
+  .px-help strong{color:#fff;}
+  @media (max-width: 900px){.px-inline,.px-action-row{display:flex;width:100%;}.px-inline .btn,.px-inline input,.px-inline select,.px-action-row .btn,.px-action-row input{width:100%;}.px-action-stack{min-width:0;}.px-close-grid{grid-template-columns:1fr;}}
+</style>
+
+<div class="card">
+  <div class="card-header">
+    <h2><i class="fas fa-broom"></i> Parte diario de pisos</h2>
+    <div class="px-actions">
+      <a class="btn btn-secondary" href="{{ url_for('pisos.habitaciones', fecha=fecha, bloque=filtros.bloque, planta=filtros.planta) }}"><i class="fas fa-bed"></i> Habitaciones</a>
+      <a class="btn btn-secondary" href="{{ url_for('pisos.panel', fecha=fecha) }}"><i class="fas fa-chart-line"></i> Panel</a>
+      <a class="btn btn-secondary" href="{{ url_for('pisos.asignacion', fecha=fecha, bloque=filtros.bloque, planta=filtros.planta) }}"><i class="fas fa-user-check"></i> Asignacion</a>
+      <a class="btn btn-secondary" href="{{ url_for('pisos.tablet', fecha=fecha) }}"><i class="fas fa-tablet-alt"></i> Tablet</a>
+      <a class="btn btn-secondary" href="{{ url_for('pisos.configuracion') }}"><i class="fas fa-cog"></i> Reglas y zonas</a>
+      <a class="btn btn-secondary" href="{{ url_for('pisos.productos') }}"><i class="fas fa-boxes"></i> Stock</a>
+      <a class="btn btn-secondary" href="{{ url_for('pisos.pedidos') }}"><i class="fas fa-shopping-cart"></i> Pedidos</a>
+      <a class="btn btn-secondary" href="{{ url_for('pisos.objetos_perdidos') }}"><i class="fas fa-key"></i> Objetos</a>
+      <a class="btn btn-secondary" href="{{ url_for('pisos.lenceria', desde=fecha, hasta=fecha) }}"><i class="fas fa-tshirt"></i> Lenceria</a>
+      <a class="btn btn-secondary" href="{{ url_for('pisos.lavanderia', desde=fecha, hasta=fecha) }}"><i class="fas fa-soap"></i> Lavanderia</a>
+      <a class="btn btn-secondary" href="{{ url_for('pisos.trazabilidad', desde=fecha, hasta=fecha) }}"><i class="fas fa-history"></i> Trazabilidad</a>
+      <a class="btn btn-secondary" target="_blank" href="{{ url_for('pisos.imprimir', fecha=fecha, estado=filtros.estado, bloque=filtros.bloque, planta=filtros.planta) }}"><i class="fas fa-print"></i> Imprimir</a>
+      <form method="post" action="{{ url_for('pisos.generar_partes') }}" class="px-inline">
+        <input type="hidden" name="fecha" value="{{ fecha }}">
+        <button class="btn btn-success" type="submit"><i class="fas fa-sync"></i> Generar dia</button>
+      </form>
+    </div>
+  </div>
+
+  <form method="get" class="px-filters">
+    <div class="form-group"><label class="form-label">Fecha</label><input class="form-control" type="date" name="fecha" value="{{ fecha }}"></div>
+    <div class="form-group"><label class="form-label">Estado</label><select class="form-control" name="estado">
+      <option value="">Todos</option>
+      {% for key, label in estados.items() %}<option value="{{ key }}" {% if filtros.estado == key %}selected{% endif %}>{{ label }}</option>{% endfor %}
+    </select></div>
+    <div class="form-group"><label class="form-label">Bloque</label><select class="form-control" name="bloque">
+      <option value="">Todos</option>
+      {% for b in bloques %}<option value="{{ b.valor }}" {% if filtros.bloque == b.valor %}selected{% endif %}>{{ b.valor }}</option>{% endfor %}
+    </select></div>
+    <div class="form-group"><label class="form-label">Planta</label><select class="form-control" name="planta">
+      <option value="">Todas</option>
+      {% for p in plantas %}<option value="{{ p.valor }}" {% if filtros.planta == p.valor %}selected{% endif %}>{% if p.valor|string == '0' %}PB{% else %}{{ p.valor }}{% endif %}</option>{% endfor %}
+    </select></div>
+    <button class="btn btn-primary" type="submit"><i class="fas fa-search"></i> Ver</button>
+  </form>
+
+  <div class="px-grid">
+    <div class="px-card"><span>Pendientes</span><strong>{{ resumen.partes.get('pendiente', 0) }}</strong></div>
+    <div class="px-card"><span>En curso</span><strong>{{ resumen.partes.get('en_curso', 0) }}</strong></div>
+    <div class="px-card"><span>Hechas</span><strong>{{ resumen.partes.get('hecha', 0) }}</strong></div>
+    <div class="px-card"><span>Incidencias</span><strong>{{ resumen.partes.get('incidencia', 0) }}</strong></div>
+    <div class="px-card"><span>Habitacion</span><strong>{{ resumen.categorias.get('habitacion', 0) }}</strong></div>
+    <div class="px-card"><span>Zonas</span><strong>{{ resumen.categorias.get('zona', 0) }}</strong></div>
+    <div class="px-card"><span>Sabanas</span><strong>{{ resumen.lenceria.sabanas }}</strong></div>
+    <div class="px-card"><span>Toallas</span><strong>{{ resumen.lenceria.toallas }}</strong></div>
+  </div>
+
+  <div class="px-help">
+    <strong>Uso diario:</strong>
+    <span>1. Filtra por fecha/planta.</span>
+    <span>2. Inicia el trabajo.</span>
+    <span>3. Al terminar, marca hecha y rellena solo lenceria/productos si cambia algo.</span>
+    <span>Las reglas, inventario y trazabilidad quedan en botones aparte.</span>
+  </div>
+
+  <div class="table-container">
+    <table class="px-table">
+      <thead>
+        <tr>
+          <th>Destino</th>
+          <th>Trabajo</th>
+          <th>Reserva / avisos</th>
+          <th>Lenceria y productos</th>
+          <th>Estado</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for p in partes %}
+        {% set registrar_limpieza = (p.tarea_codigo in tareas_registro_limpieza) and (p.target_tipo != 'zona' or p.zona_appcc_critico) %}
+        <tr>
+          <td>
+            <strong>{% if p.target_tipo == 'zona' %}{{ p.zona_nombre or 'Zona comun' }}{% else %}{{ p.habitacion_numero or p.habitacion_nombre or '-' }}{% endif %}</strong>
+            <div class="px-note">
+              <span class="px-pill">{{ p.target_tipo }}</span>
+              {% if p.bloque %}Bloque {{ p.bloque }} &middot; {% endif %}
+              {% if p.planta|string == '0' %}PB{% elif p.planta %}Planta {{ p.planta }}{% endif %}
+              {% if p.habitacion_estado %}<br>Habitacion: {{ estados_habitacion.get(p.habitacion_estado, p.habitacion_estado) }}{% endif %}
+              {% if p.tipo_cama %}<br>Cama: {{ tipos_cama.get(p.tipo_cama, p.tipo_cama) }}{% endif %}
+              {% if p.supletorias_max %}<br>Supletoria max: {{ p.supletorias_max }}{% endif %}
+              {% if p.aire_tipo %}<br>Aire: {{ tipos_aire.get(p.aire_tipo, p.aire_tipo) }}{% endif %}
+            </div>
+          </td>
+          <td>
+            <strong>{{ p.tarea_nombre }}</strong>
+            <div>
+              <span class="px-pill px-priority-{{ p.prioridad or 'media' }}">{{ p.prioridad or 'media' }}</span>
+              <span class="px-pill">{{ p.categoria }}</span>
+              <span class="px-pill">{{ p.origen }}</span>
+            </div>
+            {% if p.checklist %}<div class="px-note">{{ p.checklist }}</div>{% endif %}
+            {% if p.observaciones %}<div class="px-note">{{ p.observaciones }}</div>{% endif %}
+          </td>
+          <td>
+            {% if p.reserva_id %}
+            <a href="{{ url_for('recepcion.reserva_detalle', id=p.reserva_id) }}">{{ p.reserva_codigo or ('Reserva ' ~ p.reserva_id) }}</a>
+            <div>{{ p.titular_nombre or '-' }}</div>
+            <div class="px-note">{{ p.fecha_entrada }} / {{ p.fecha_salida }}</div>
+            <div class="px-note">{{ (p.adultos or 0) + (p.menores or 0) }} pax</div>
+            {% else %}
+            <span class="px-note">Sin reserva vinculada</span>
+            {% endif %}
+            {% if p.alergias_resumen %}<div><strong>Alergias:</strong> {{ p.alergias_resumen }}</div>{% endif %}
+            {% if p.observaciones_operativas %}<div class="px-note">{{ p.observaciones_operativas }}</div>{% endif %}
+            {% if p.supletoria_solicitada or p.cuna_solicitada or p.preferencia_cama or p.observaciones_habitacion %}
+            <div class="px-note">
+              <strong>Pisos:</strong>
+              {% if p.supletoria_solicitada %}supletoria; {% endif %}
+              {% if p.cuna_solicitada %}cuna; {% endif %}
+              {% if p.preferencia_cama %}{{ tipos_cama.get(p.preferencia_cama, p.preferencia_cama) }}; {% endif %}
+              {{ p.observaciones_habitacion or '' }}
+            </div>
+            {% endif %}
+          </td>
+          <td>
+            {% if p.productos_previstos %}<div><strong>Previstos:</strong> {{ p.productos_previstos }}</div>{% endif %}
+            {% if p.productos_usados %}<div><strong>Usados:</strong> {{ p.productos_usados }}</div>{% endif %}
+            {% if p.sabanas_previstas or p.toallas_previstas or p.alfombrines_previstos %}
+            <div class="px-note">Previsto: S{{ p.sabanas_previstas or 0 }} T{{ p.toallas_previstas or 0 }} A{{ p.alfombrines_previstos or 0 }}</div>
+            {% endif %}
+            {% if p.lavanderia_lote %}<div class="px-note">Lote: {{ p.lavanderia_lote }}</div>{% endif %}
+            {% if p.appcc_registro_id %}<div class="px-note">Registro limpieza #{{ p.appcc_registro_id }}</div>{% endif %}
+            {% if p.incidencia_id %}<div class="px-note">Incidencia #{{ p.incidencia_id }}</div>{% endif %}
+            {% if p.mantenimiento_orden_id %}<div class="px-note"><a href="{{ url_for('mantenimiento.ver_orden', orden_id=p.mantenimiento_orden_id) }}">OT mantenimiento #{{ p.mantenimiento_orden_id }}</a></div>{% endif %}
+          </td>
+          <td>
+            <strong class="px-estado-{{ p.estado }}">{{ estados.get(p.estado, p.estado) }}</strong>
+            {% if p.asignado_a %}<div class="px-note">Asignado: {{ p.asignado_a }}</div>{% endif %}
+            {% if p.iniciado_at %}<div class="px-note">Inicio: {{ p.iniciado_at }}</div>{% endif %}
+            {% if p.cerrado_at %}<div class="px-note">Cierre: {{ p.cerrado_at }}</div>{% endif %}
+            {% if p.revision_estado %}<div class="px-note">Revision: {{ p.revision_estado }}</div>{% endif %}
+            {% if p.revisado_at %}<div class="px-note">Revisado: {{ p.revisado_at }}</div>{% endif %}
+            {% if p.resultado %}<div class="px-note">{{ p.resultado }}</div>{% endif %}
+          </td>
+          <td>
+            <div class="px-action-stack">
+              {% if p.estado != 'hecha' %}
+              <form method="post" action="{{ url_for('pisos.cambiar_estado_trabajo', trabajo_id=p.id) }}" class="px-action-row">
+                <input type="hidden" name="estado" value="en_curso">
+                <input class="form-control px-small-input" name="asignado_a" value="{{ p.asignado_a or '' }}" placeholder="Asignar">
+                <button class="btn btn-sm btn-secondary" type="submit"><i class="fas fa-play"></i> En curso</button>
+              </form>
+              <form method="post" action="{{ url_for('pisos.cambiar_estado_trabajo', trabajo_id=p.id) }}" class="px-close-form">
+                <input type="hidden" name="estado" value="hecha">
+                <div class="px-close-title">
+                  <strong>Cierre</strong>
+                  <button class="btn btn-sm btn-success" type="submit"><i class="fas fa-check"></i> Hecha</button>
+                </div>
+                <div class="px-field">
+                  <label>Productos usados</label>
+                  <input class="form-control" name="productos_usados" value="{{ p.productos_usados or p.productos_previstos or '' }}" placeholder="Producto o mezcla usada">
+                </div>
+                <details class="px-details">
+                  <summary>Lenceria, lote y registro limpieza</summary>
+                  <div class="px-close-grid" style="margin-top:8px;">
+                    <div class="px-field">
+                      <label>Sabanas</label>
+                      <input class="form-control" type="number" min="0" name="sabanas_usadas" value="{{ p.sabanas_previstas or 0 }}">
+                    </div>
+                    <div class="px-field">
+                      <label>Toallas</label>
+                      <input class="form-control" type="number" min="0" name="toallas_usadas" value="{{ p.toallas_previstas or 0 }}">
+                    </div>
+                    <div class="px-field">
+                      <label>Alfombrines</label>
+                      <input class="form-control" type="number" min="0" name="alfombrines_usados" value="{{ p.alfombrines_previstos or 0 }}">
+                    </div>
+                    <div class="px-field">
+                      <label>Lote lavanderia</label>
+                      <input class="form-control" name="lavanderia_lote" value="{{ p.lavanderia_lote or '' }}" placeholder="Lote">
+                    </div>
+                    <div class="px-field">
+                      <label>Circuito</label>
+                      <select class="form-control" name="circuito_lavanderia">
+                        {% for key,label in circuitos_lavanderia.items() %}
+                        <option value="{{ key }}">{{ label }}</option>
+                        {% endfor %}
+                      </select>
+                    </div>
+                    <div class="px-field">
+                      <label>Lavanderia</label>
+                      <select class="form-control" name="lavanderia_proveedor_id">
+                        <option value="">Sin asignar</option>
+                        {% for lav in lavanderias %}
+                        <option value="{{ lav.id }}">{{ lav.nombre }} - {{ lav.tipo }}</option>
+                        {% endfor %}
+                      </select>
+                    </div>
+                    <div class="px-field">
+                      <label>Productos lavado</label>
+                      <input class="form-control" name="productos_lavado" value="{{ p.productos_lavado or '' }}" placeholder="Detergente/desinfectante">
+                    </div>
+                    <div class="px-field">
+                      <label>Salida prevista</label>
+                      <input class="form-control" type="date" name="fecha_salida">
+                    </div>
+                    <div class="px-field">
+                      <label>Retorno previsto</label>
+                      <input class="form-control" type="date" name="fecha_retorno_prevista">
+                    </div>
+                  </div>
+                  {% if registrar_limpieza %}
+                  <label class="px-check" style="margin-top:8px;"><input type="checkbox" name="registrar_appcc" value="1" checked> Registrar control de limpieza</label>
+                  <input type="hidden" name="registrar_appcc" value="0">
+                  {% else %}
+                  <div class="px-note" style="margin-top:8px;">Esta tarea no genera APPCC; queda solo en trazabilidad de pisos.</div>
+                  <input type="hidden" name="registrar_appcc" value="0">
+                  {% endif %}
+                  <div class="px-field" style="margin-top:8px;">
+                    <label>Consumo de stock</label>
+                    {% for _ in [1,2,3,4] %}
+                    <div class="px-action-row" style="margin-bottom:6px;">
+                      <select class="form-control" name="producto_pisos_id">
+                        <option value="">Sin consumo</option>
+                        {% for prod in productos_pisos %}
+                        <option value="{{ prod.id }}">{{ prod.nombre }} ({{ (prod.stock_actual or 0)|round(2) }} {{ prod.unidad }})</option>
+                        {% endfor %}
+                      </select>
+                      <input class="form-control px-small-input" type="number" step="0.01" min="0" name="cantidad_consumo" placeholder="Cant.">
+                    </div>
+                    {% endfor %}
+                  </div>
+                </details>
+                {% if registrar_limpieza %}
+                <noscript>
+                  <input type="hidden" name="registrar_appcc" value="1">
+                </noscript>
+                {% endif %}
+              </form>
+              <form method="post" action="{{ url_for('pisos.cambiar_estado_trabajo', trabajo_id=p.id) }}" class="px-action-row">
+                <input type="hidden" name="estado" value="incidencia">
+                <select class="form-control px-small-input" name="incidencia_tipo">
+                  {% for key,label in tipos_incidencia.items() %}<option value="{{ key }}">{{ label }}</option>{% endfor %}
+                </select>
+                <select class="form-control px-small-input" name="incidencia_gravedad">
+                  {% for key,label in gravedades_incidencia.items() %}<option value="{{ key }}" {% if key == (p.prioridad or 'media') %}selected{% endif %}>{{ label }}</option>{% endfor %}
+                </select>
+                <input class="form-control px-small-input" name="observaciones" placeholder="Motivo incidencia">
+                <button class="btn btn-sm btn-danger" type="submit"><i class="fas fa-exclamation-triangle"></i> Avisar</button>
+              </form>
+              {% else %}
+              <span class="px-note">Trabajo cerrado. Validar o reabrir si hay que corregir.</span>
+              {% endif %}
+              {% if p.estado == 'hecha' and p.revision_estado != 'validado' %}
+              <form method="post" action="{{ url_for('pisos.validar_trabajo', trabajo_id=p.id) }}" class="px-action-row">
+                <input type="hidden" name="revision_estado" value="validado">
+                <button class="btn btn-sm btn-primary" type="submit"><i class="fas fa-clipboard-check"></i> Validar</button>
+              </form>
+              <form method="post" action="{{ url_for('pisos.validar_trabajo', trabajo_id=p.id) }}" class="px-action-row">
+                <input type="hidden" name="revision_estado" value="rechazado">
+                <input class="form-control px-small-input" name="revision_observaciones" placeholder="Motivo">
+                <button class="btn btn-sm btn-warning" type="submit"><i class="fas fa-redo"></i> Reabrir</button>
+              </form>
+              {% endif %}
+            </div>
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="6">No hay trabajos para estos filtros.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

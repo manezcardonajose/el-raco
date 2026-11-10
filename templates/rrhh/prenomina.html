@@ -1,0 +1,210 @@
+{% extends 'base.html' %}
+{% block title %}Pre-nómina{% endblock %}
+{% block breadcrumb %}RRHH / Pre-nómina{% endblock %}
+{% block content %}
+<style>
+  .prenomina-grid{display:grid;grid-template-columns:repeat(4,minmax(150px,1fr));gap:12px;align-items:end;}
+  .prenomina-grid .wide{grid-column:span 2;}
+  .mini-note{color:#b8c2cc;font-size:12px;margin-top:4px;}
+  .periodo-chip{display:inline-flex;align-items:center;gap:6px;background:#1e2a3a;border:1px solid #17a2b8;color:#a5d1e6;padding:6px 10px;border-radius:999px;font-weight:600;}
+  .rrhh-subtable{margin-top:18px;}
+  .rrhh-subtable table{min-width:900px;}
+  .badge-soft{display:inline-block;border-radius:6px;padding:3px 7px;font-size:11px;background:#334155;color:#dbeafe;font-weight:700;}
+  @media(max-width:950px){.prenomina-grid{grid-template-columns:repeat(2,minmax(150px,1fr));}.prenomina-grid .wide{grid-column:1/-1;}}
+  @media(max-width:650px){.prenomina-grid{grid-template-columns:1fr;}}
+</style>
+
+<div class="card">
+    <div class="card-header">
+        <h2><i class="fas fa-calculator"></i> Pre-nómina</h2>
+        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+            <a href="{{ url_for('rrhh.lista_turnos') }}" class="btn btn-info"><i class="fas fa-calendar-alt"></i> Turnos</a>
+            <a href="{{ url_for('rrhh.coste_personal', anio=anio, mes=mes) }}" class="btn btn-success"><i class="fas fa-chart-pie"></i> Coste personal</a>
+            <a href="{{ url_for('rrhh.lista_variables_prenomina') }}" class="btn btn-warning"><i class="fas fa-plus-minus"></i> Variables</a>
+            <a href="{{ url_for('rrhh.lista_embargos_rrhh') }}" class="btn btn-danger"><i class="fas fa-balance-scale"></i> Embargos</a>
+            <a href="{{ url_for('rrhh.vacaciones') }}" class="btn btn-secondary"><i class="fas fa-user-clock"></i> Ausencias</a>
+        </div>
+    </div>
+
+    <div class="alert alert-info">
+        <strong>Periodo de cálculo:</strong>
+        <span class="periodo-chip"><i class="fas fa-calendar-check"></i> {{ periodo_desde }} → {{ periodo_hasta }}</span>
+        <br>La pre-nómina usa cuadrante, fichajes, ausencias/bajas/permisos y variables. Las ausencias registradas no borran el turno: justifican la falta de fichaje y se calculan según su porcentaje de cobro.
+    </div>
+
+    <form method="get" class="prenomina-grid" style="margin-bottom:20px;">
+        <div class="form-group" style="margin-bottom:0;">
+            <label class="form-label">Mes de nómina</label>
+            <input type="number" min="1" max="12" name="mes" class="form-control" value="{{ mes }}">
+        </div>
+        <div class="form-group" style="margin-bottom:0;">
+            <label class="form-label">Año</label>
+            <input type="number" name="anio" class="form-control" value="{{ anio }}">
+        </div>
+        <div class="form-group wide" style="margin-bottom:0;">
+            <button class="btn btn-secondary" type="submit"><i class="fas fa-search"></i> Ver periodo</button>
+        </div>
+    </form>
+
+    {% if puede_editar %}
+    <details class="card" style="padding:15px; margin-bottom:20px;">
+        <summary style="cursor:pointer;color:#ff6b00;font-weight:700;"><i class="fas fa-sliders-h"></i> Configuración de cierre de nómina</summary>
+        <form method="post" action="{{ url_for('rrhh.guardar_configuracion_prenomina') }}" class="prenomina-grid" style="margin-top:14px;">
+            <input type="hidden" name="mes" value="{{ mes }}">
+            <input type="hidden" name="anio" value="{{ anio }}">
+            <div class="form-group" style="margin-bottom:0;">
+                <label class="form-label">Modo de cierre</label>
+                <select name="modo_cierre" class="form-control">
+                    <option value="mes_natural" {% if (config_nomina.modo_cierre or 'mes_natural') == 'mes_natural' %}selected{% endif %}>Mes natural: 1 al 30/31</option>
+                    <option value="dia_cierre" {% if config_nomina.modo_cierre == 'dia_cierre' %}selected{% endif %}>Día de cierre propio</option>
+                </select>
+            </div>
+            <div class="form-group" style="margin-bottom:0;">
+                <label class="form-label">Día inicio</label>
+                <input type="number" min="1" max="31" name="dia_inicio" class="form-control" value="{{ config_nomina.dia_inicio or 1 }}">
+                <div class="mini-note">Ejemplo: 26</div>
+            </div>
+            <div class="form-group" style="margin-bottom:0;">
+                <label class="form-label">Día cierre</label>
+                <input type="number" min="0" max="31" name="dia_cierre" class="form-control" value="{{ config_nomina.dia_cierre or 0 }}">
+                <div class="mini-note">0 = último día del mes. Ejemplo: 25</div>
+            </div>
+            <div class="form-group" style="margin-bottom:0;">
+                <label class="form-label">Qué cerrar</label>
+                <label style="display:block;"><input type="checkbox" name="cerrar_horas_extra" value="1" {% if config_nomina.cerrar_horas_extra|default(1) %}checked{% endif %}> Horas extra</label>
+                <label style="display:block;"><input type="checkbox" name="cerrar_ausencias" value="1" {% if config_nomina.cerrar_ausencias|default(1) %}checked{% endif %}> Ausencias</label>
+                <label style="display:block;"><input type="checkbox" name="cerrar_variables" value="1" {% if config_nomina.cerrar_variables|default(1) %}checked{% endif %}> Variables</label>
+            </div>
+            <div class="form-group wide" style="margin-bottom:0;">
+                <label class="form-label">Observaciones</label>
+                <input type="text" name="observaciones" class="form-control" placeholder="Ej.: Dirección cierra del 26 al 25 para enviar a gestoría">
+            </div>
+            <div class="form-group" style="margin-bottom:0;">
+                <button class="btn btn-success" type="submit"><i class="fas fa-save"></i> Guardar configuración</button>
+            </div>
+        </form>
+    </details>
+
+    <form method="post" action="{{ url_for('rrhh.calcular_prenomina') }}" class="prenomina-grid" style="margin-bottom:20px;">
+        <input type="hidden" name="mes" value="{{ mes }}">
+        <input type="hidden" name="anio" value="{{ anio }}">
+        <div class="form-group wide" style="margin-bottom:0;">
+            <label class="form-label">Empleado concreto (opcional)</label>
+            <select name="empleado_id" class="form-control">
+                <option value="">Todos los empleados activos</option>
+                {% for e in empleados %}
+                <option value="{{ e.id }}">{{ e.nombre }} {{ e.apellidos or '' }}{% if e.departamento_nombre %} — {{ e.departamento_nombre }}{% endif %}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="form-group" style="margin-bottom:0;">
+            <button class="btn btn-success" type="submit"><i class="fas fa-sync"></i> Calcular pre-nómina</button>
+        </div>
+    </form>
+    <form method="post" action="{{ url_for('rrhh.generar_nominas_desde_prenomina') }}" style="margin:-8px 0 20px;" onsubmit="return confirm('Generar o actualizar nominas pendientes desde la pre-nomina calculada?')">
+        <input type="hidden" name="mes" value="{{ mes }}">
+        <input type="hidden" name="anio" value="{{ anio }}">
+        <button class="btn btn-primary" type="submit"><i class="fas fa-file-invoice-dollar"></i> Generar nominas del periodo</button>
+    </form>
+    {% endif %}
+
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>Empleado</th>
+                    <th>Depto.</th>
+                    <th>Normales</th>
+                    <th>Extra aprob.</th>
+                    <th>Extra no aprob.</th>
+                    <th>Noct.</th>
+                    <th>Fest.</th>
+                    <th>Ausencias</th>
+                    <th>Aus. retrib.</th>
+                    <th>Aus. no retrib.</th>
+                    <th>Base</th>
+                    <th>Hora</th>
+                    <th>Pluses</th>
+                    <th>Desc.</th>
+                    <th>Embargos</th>
+                    <th>Coste estimado</th>
+                    <th>IRPF</th>
+                    <th>Neto est.</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for r in resumen %}
+                <tr>
+                    <td><strong>{{ r.empleado_nombre }}</strong><br><small>{{ r.periodo_desde or periodo_desde }} → {{ r.periodo_hasta or periodo_hasta }}</small></td>
+                    <td>{{ r.departamento_nombre or '-' }}</td>
+                    <td>{{ '%.2f'|format(r.horas_normales or 0) }}</td>
+                    <td>{{ '%.2f'|format(r.horas_extra or 0) }}</td>
+                    <td>{{ '%.2f'|format(r.horas_extra_no_aprobadas or 0) }}</td>
+                    <td>{{ '%.2f'|format(r.horas_nocturnas or 0) }}</td>
+                    <td>{{ '%.2f'|format(r.horas_festivas or 0) }}</td>
+                    <td>{{ '%.2f'|format(r.ausencias_horas or 0) }}</td>
+                    <td>{{ '%.2f'|format(r.horas_ausencia_retribuidas or 0) }}</td>
+                    <td>{{ '%.2f'|format(r.horas_ausencia_no_retribuidas or 0) }}</td>
+                    <td>{{ '%.2f'|format(r.salario_base_mes or 0) }} €</td>
+                    <td>{{ '%.2f'|format(r.precio_hora or 0) }} €</td>
+                    <td>{{ '%.2f'|format(r.pluses or 0) }} €</td>
+                    <td>{{ '%.2f'|format(r.descuentos or 0) }} €</td>
+                    <td>{{ '%.2f'|format(r.embargo_importe or 0) }} €{% if r.embargo_detalle %}<br><small>{{ r.embargo_detalle }}</small>{% endif %}</td>
+                    <td><strong>{{ '%.2f'|format(r.coste_estimado or 0) }} €</strong></td>
+                    <td>{{ '%.2f'|format(r.irpf_pct or 0) }}%<br><small>{{ '%.2f'|format(r.irpf_importe or 0) }} €</small></td>
+                    <td><strong>{{ '%.2f'|format(r.neto_estimado or 0) }} €</strong></td>
+                </tr>
+                {% if r.detalle_ausencias %}
+                <tr>
+                    <td colspan="18"><span class="badge-soft">Detalle ausencias</span> {{ r.detalle_ausencias }}</td>
+                </tr>
+                {% endif %}
+                {% else %}
+                <tr><td colspan="18">No hay pre-nómina calculada para este periodo.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="card rrhh-subtable">
+    <div class="card-header">
+        <h2><i class="fas fa-user-clock"></i> Ausencias del periodo</h2>
+        <a href="{{ url_for('rrhh.vacaciones') }}" class="btn btn-secondary"><i class="fas fa-plus"></i> Gestionar ausencias</a>
+    </div>
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>Trabajador</th>
+                    <th>Departamento</th>
+                    <th>Tipo</th>
+                    <th>Estado</th>
+                    <th>Fechas</th>
+                    <th>Días</th>
+                    <th>% cobro</th>
+                    <th>Documento</th>
+                    <th>Observaciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for a in ausencias_periodo %}
+                <tr>
+                    <td><strong>{{ a.empleado_nombre }}</strong></td>
+                    <td>{{ a.departamento_nombre or '-' }}</td>
+                    <td>{{ (a.tipo or '')|replace('_',' ')|capitalize }}</td>
+                    <td>{{ a.estado }}</td>
+                    <td>{{ a.fecha_inicio }} → {{ a.fecha_fin }}</td>
+                    <td>{{ a.dias or '' }}</td>
+                    <td>{{ a.porcentaje_cobro or 100 }}%</td>
+                    <td>{% if a.documento_id %}Sí{% elif a.requiere_documento %}<strong>Pendiente</strong>{% else %}-{% endif %}</td>
+                    <td>{{ a.observaciones or '' }}</td>
+                </tr>
+                {% else %}
+                <tr><td colspan="9">No hay ausencias registradas dentro del periodo de cálculo.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

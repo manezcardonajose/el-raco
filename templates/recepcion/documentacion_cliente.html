@@ -1,0 +1,137 @@
+{% extends 'base.html' %}
+{% block title %}Documentacion cliente {{ reserva.codigo or reserva.id }}{% endblock %}
+{% block breadcrumb %}Recepcion / Documentacion cliente{% endblock %}
+{% block content %}
+<style>
+  .rx-pack{max-width:980px;margin:0 auto;background:#fff;color:#111;border-radius:4px;padding:22px;}
+  .rx-pack h1,.rx-pack h2,.rx-pack h3,.rx-pack p,.rx-pack li{color:#111;}
+  .rx-toolbar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;}
+  .rx-top{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;border:1px solid #111;padding:10px;margin:12px 0;}
+  .rx-box{border:1px solid #111;padding:12px;margin-top:12px;break-inside:avoid;page-break-inside:avoid;}
+  .rx-label{font-size:11px;text-transform:uppercase;color:#333;}
+  .rx-value{font-size:15px;border-bottom:1px solid #111;min-height:26px;padding-top:5px;}
+  .rx-check{display:grid;grid-template-columns:24px 1fr;gap:8px;align-items:start;margin:8px 0;}
+  .rx-check span:first-child{display:inline-block;width:16px;height:16px;border:1px solid #111;margin-top:2px;}
+  .rx-sign-row{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:18px;}
+  .rx-sign{height:65px;border:1px solid #111;}
+  @media(max-width:850px){.rx-top,.rx-sign-row{grid-template-columns:1fr 1fr;}}
+  @media print{
+    .sidebar,.topbar,.breadcrumb,.no-print{display:none!important;}
+    .main-content{margin:0!important;padding:0!important;background:#fff!important;}
+    .card{background:#fff!important;box-shadow:none!important;border:none!important;}
+    .rx-pack{max-width:none;border:none;border-radius:0;padding:0;}
+  }
+</style>
+
+<div class="rx-toolbar no-print">
+  <form method="get" action="{{ url_for('recepcion.documentacion_cliente_checkin', id=reserva.id) }}" style="display:flex;gap:8px;flex-wrap:wrap;align-items:end;">
+    <div class="form-group" style="margin:0;">
+      <label class="form-label">Idioma</label>
+      <select class="form-control" name="idioma">
+        {% for codigo,nombre in idiomas_documento.items() %}
+        <option value="{{ codigo }}" {% if idioma == codigo %}selected{% endif %}>{{ nombre }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <button class="btn btn-success" type="submit">Actualizar</button>
+    <button class="btn btn-info" type="button" onclick="window.print()">Imprimir / entregar</button>
+    <a class="btn btn-secondary" href="{{ url_for('recepcion.reserva_detalle', id=reserva.id) }}">Volver</a>
+  </form>
+  <form method="post" action="{{ url_for('recepcion.generar_documento_checkin', id=reserva.id) }}" style="display:flex;align-items:end;">
+    <input type="hidden" name="idioma" value="{{ idioma }}">
+    <button class="btn btn-primary" type="submit">Generar parte firma</button>
+  </form>
+  <form method="post" action="{{ url_for('recepcion.marcar_documentacion_cliente_entregada', id=reserva.id) }}" style="display:flex;align-items:end;">
+    <input type="hidden" name="idioma" value="{{ idioma }}">
+    <button class="btn btn-warning" type="submit">Marcar entregada</button>
+  </form>
+</div>
+
+<div class="card">
+  <div class="rx-pack">
+    {% include 'recepcion/_empresa_print_header.html' %}
+    <h1>{{ txt.titulo }}</h1>
+    <p>{{ txt.subtitulo }}</p>
+    {% if reserva.documentacion_entregada_at %}
+    <p><strong>{{ txt.entrega }}:</strong> {{ reserva.documentacion_entregada_at }} ({{ idiomas_documento.get(reserva.documentacion_entregada_idioma, reserva.documentacion_entregada_idioma or idioma) }})</p>
+    {% endif %}
+
+    <div class="rx-top">
+      <div><div class="rx-label">{{ txt.reserva }}</div><div class="rx-value">{{ reserva.codigo or ('#' ~ reserva.id) }}</div></div>
+      <div><div class="rx-label">{{ txt.titular }}</div><div class="rx-value">{{ reserva.titular_nombre or '-' }}</div></div>
+      <div><div class="rx-label">{{ txt.habitacion }}</div><div class="rx-value">{{ reserva.habitacion_numero or reserva.habitacion_nombre or '-' }}</div></div>
+      <div><div class="rx-label">{{ txt.fechas }}</div><div class="rx-value">{{ reserva.fecha_entrada }} / {{ reserva.fecha_salida }}</div></div>
+      <div><div class="rx-label">{{ txt.regimen }}</div><div class="rx-value">{{ regimenes.get(reserva.regimen, reserva.regimen) }}</div></div>
+      <div><div class="rx-label">{{ txt.personas }}</div><div class="rx-value">{{ (reserva.adultos or 0) + (reserva.menores or 0) }}</div></div>
+      <div><div class="rx-label">Email</div><div class="rx-value">{{ reserva.titular_email or '-' }}</div></div>
+      <div><div class="rx-label">Telefono</div><div class="rx-value">{{ reserva.titular_telefono or '-' }}</div></div>
+    </div>
+
+    <div class="rx-box">
+      <h2>{{ txt.checklist }}</h2>
+      <div class="rx-check"><span></span><div>{{ txt.parte }}</div></div>
+      <div class="rx-check"><span></span><div>{{ txt.estancia }}</div></div>
+      <div class="rx-check"><span></span><div>{{ txt.fiscal }}</div></div>
+      <div class="rx-check"><span></span><div>{{ txt.alergias }}</div></div>
+    </div>
+
+    <div class="rx-box">
+      <h2>{{ txt.incluido }}</h2>
+      {% for i in inclusiones %}
+      <p><strong>{{ i.servicio|replace('_',' ') }}:</strong> {{ i.concepto }}{% if i.limite %} - {{ i.limite }}{% endif %}{% if i.condiciones %}<br><small>{{ i.condiciones }}</small>{% endif %}</p>
+      {% else %}
+      <p>{{ txt.sin_incluidos }}</p>
+      {% endfor %}
+    </div>
+
+    <div class="rx-box">
+      <h2>{{ txt.avisos }}</h2>
+      {% for v in avisos_viajeros %}
+      <p><strong>{{ v.nombre }} {{ v.apellidos or '' }}:</strong>
+        {% if v.alergias_intolerancias %}{{ v.alergias_intolerancias }}{% endif %}
+        {% if v.observaciones_salud %}{% if v.alergias_intolerancias %} / {% endif %}{{ v.observaciones_salud }}{% endif %}
+      </p>
+      {% endfor %}
+      {% for a in avisos %}
+      <p><strong>{{ a.departamentos }} / {{ a.prioridad }}:</strong> {{ a.descripcion }}</p>
+      {% endfor %}
+      {% if not avisos and not avisos_viajeros %}
+      <p>{{ txt.sin_avisos }}</p>
+      {% endif %}
+    </div>
+
+    <div class="rx-box">
+      <h2>{{ txt.facturacion }}</h2>
+      <p>{{ txt.texto_factura }}</p>
+      {% for f in facturas %}
+      <p><strong>{{ f.numero_completo }}:</strong> {{ '%.2f'|format(f.total or 0) }} &euro; - {{ f.estado }}</p>
+      {% endfor %}
+    </div>
+
+    <div class="rx-box">
+      <h2>{{ txt.proteccion }}</h2>
+      {% if texto_legal %}
+      <p style="white-space:pre-wrap;">{{ texto_legal.contenido }}</p>
+      {% endif %}
+    </div>
+
+    <div class="rx-sign-row">
+      <div>
+        <div class="rx-label">{{ txt.titular }}</div>
+        <div class="rx-sign"></div>
+      </div>
+      <div>
+        <div class="rx-label">{{ txt.entrega }} / {{ hoy }}</div>
+        <div class="rx-sign"></div>
+      </div>
+    </div>
+  </div>
+</div>
+{% if autoprint %}
+<script>
+  window.addEventListener('load', function(){
+    setTimeout(function(){ window.print(); }, 350);
+  });
+</script>
+{% endif %}
+{% endblock %}

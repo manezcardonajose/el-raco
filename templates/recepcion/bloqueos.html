@@ -1,0 +1,50 @@
+{% extends 'base.html' %}
+{% block title %}Bloqueos{% endblock %}
+{% block breadcrumb %}Recepcion / Bloqueos{% endblock %}
+{% block content %}
+<div class="card">
+  <div class="card-header">
+    <h2><i class="fas fa-ban"></i> Bloqueos de habitaciones</h2>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+      <a class="btn btn-secondary" href="{{ url_for('recepcion.ocupacion') }}"><i class="fas fa-th"></i> Ocupacion</a>
+      <a class="btn btn-info" href="{{ url_for('recepcion.bloqueo_masivo') }}"><i class="fas fa-layer-group"></i> Bloqueo masivo</a>
+      <a class="btn btn-success" href="{{ url_for('recepcion.bloqueo_form') }}"><i class="fas fa-plus"></i> Nuevo bloqueo</a>
+    </div>
+  </div>
+
+  <form method="get" style="display:flex;gap:12px;align-items:end;flex-wrap:wrap;margin-bottom:16px;">
+    <div class="form-group" style="min-width:180px;"><label class="form-label">Estado</label><select class="form-control" name="estado">
+      <option value="">Todos</option>
+      <option value="activo" {% if estado == 'activo' %}selected{% endif %}>Activo</option>
+      <option value="anulado" {% if estado == 'anulado' %}selected{% endif %}>Anulado</option>
+    </select></div>
+    <button class="btn btn-primary" type="submit">Filtrar</button>
+  </form>
+
+  <div class="table-container">
+    <table>
+      <thead><tr><th>Habitacion</th><th>Bloque</th><th>Fechas</th><th>Motivo</th><th>Descripcion</th><th>Estado</th><th>Acciones</th></tr></thead>
+      <tbody>
+        {% for b in bloqueos %}
+        <tr>
+          <td><strong>{{ b.habitacion_numero or b.habitacion_nombre }}</strong></td>
+          <td>{{ b.habitacion_bloque or '-' }}</td>
+          <td>{{ b.fecha_inicio }}<br><small>{{ b.fecha_fin }}</small></td>
+          <td>{{ b.motivo or '-' }}</td>
+          <td>{{ b.descripcion or '-' }}</td>
+          <td>{{ b.estado }}</td>
+          <td style="display:flex;gap:6px;flex-wrap:wrap;">
+            <a class="btn btn-sm btn-primary" href="{{ url_for('recepcion.bloqueo_form', id=b.id) }}">Editar</a>
+            {% if b.estado != 'anulado' %}
+            <form method="post" action="{{ url_for('recepcion.anular_bloqueo', id=b.id) }}"><button class="btn btn-sm btn-danger" type="submit">Anular</button></form>
+            {% endif %}
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="7">No hay bloqueos con estos filtros.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

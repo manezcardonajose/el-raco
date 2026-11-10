@@ -1,0 +1,268 @@
+{% extends "base.html" %}
+{% block content %}
+{% set es_sobrante = lote.destino_sobrante == 'reaprovechamiento' %}
+
+<div class="card label-page">
+    <div class="card-header no-print" style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;">
+        <h2><i class="fas fa-tags"></i> {% if es_sobrante %}Etiqueta de sobrante buffet{% else %}Etiqueta de lote elaborado{% endif %}</h2>
+        <form method="get" style="display:flex;gap:8px;align-items:end;flex-wrap:wrap;">
+            <label style="display:flex;flex-direction:column;gap:4px;color:#64748b;font-size:12px;">Formato etiqueta
+                <select class="form-control" name="formato" onchange="this.form.submit()" style="min-width:220px;">
+                    {% for f in formatos_etiqueta %}
+                    <option value="{{ f.codigo }}" {% if f.codigo == config_etiqueta.codigo %}selected{% endif %}>{{ f.nombre }}</option>
+                    {% endfor %}
+                </select>
+            </label>
+            <button type="button" onclick="window.print()" class="btn btn-info">Imprimir</button>
+            <button type="button" onclick="queuePrintJob()" class="btn btn-success">Enviar a impresora asignada</button>
+            {% if dispositivo_impresion %}
+            <span class="printer-chip">Equipo: {{ dispositivo_impresion.nombre }} · Etiquetas: {{ dispositivo_impresion.impresora_etiquetas_nombre or 'sin impresora asignada' }}</span>
+            {% else %}
+            <a href="{{ url_for('empresas.dispositivos_impresion') }}" class="btn btn-warning">Asignar este equipo</a>
+            {% endif %}
+            <a href="{{ url_for('empresas.configurar_etiquetas') }}" class="btn btn-primary">Configurar formatos</a>
+            {% if es_sobrante %}
+            <a href="{{ url_for('produccion.recogida_sobrantes_parte', parte_id=lote.parte_id) }}" class="btn btn-secondary">Volver a recogida</a>
+            {% else %}
+            <a href="{{ url_for('produccion.trazabilidad_produccion', fecha_desde=lote.parte_fecha, fecha_hasta=lote.parte_fecha) }}" class="btn btn-secondary">Volver</a>
+            {% endif %}
+        </form>
+    </div>
+
+    <div class="label-sheet">
+        <section class="food-label">
+            <div class="label-top">
+                <div>
+                    <strong>{{ lote.empresa_nombre or 'Establecimiento' }}</strong>
+                    {% if lote.empresa_nif %}<small>{{ lote.empresa_nif }}</small>{% endif %}
+                </div>
+                <div class="lot-code">{{ lote.codigo_lote }}</div>
+            </div>
+
+            {% if es_sobrante %}
+            <div class="label-origin">SOBRANTE BUFFET - REAPROVECHAMIENTO</div>
+            {% endif %}
+            <h1>{{ lote.receta_nombre }}</h1>
+            <div class="muted">{{ lote.subdepartamento_nombre }} · {{ lote.turno or 'Servicio' }}</div>
+
+            <div class="label-grid">
+                <div>
+                    <span>{% if es_sobrante %}Recogida{% else %}Producción{% endif %}</span>
+                    <strong>{{ lote.fecha_elaboracion or lote.parte_fecha }}</strong>
+                </div>
+                <div>
+                    <span>Consumo hasta</span>
+                    <strong>{{ lote.fecha_limite_uso or 'Pendiente' }}</strong>
+                </div>
+                <div>
+                    <span>Conservación</span>
+                    <strong>{{ lote.metodo_conservacion or '-' }}</strong>
+                </div>
+                <div>
+                    <span>Envase</span>
+                    <strong>{{ lote.tipo_envase or '-' }}</strong>
+                </div>
+                <div>
+                    <span>Cantidad</span>
+                    <strong>{{ lote.cantidad or 0 }} {{ lote.unidad or '' }}</strong>
+                </div>
+                <div>
+                    <span>Vida útil</span>
+                    <strong>{% if lote.dias_vida_util is not none %}{{ lote.dias_vida_util }} días{% else %}-{% endif %}</strong>
+                </div>
+                <div>
+                    <span>Ubicación</span>
+                    <strong>{{ lote.ubicacion or '-' }}</strong>
+                </div>
+                <div>
+                    <span>Temperaturas</span>
+                    <strong>
+                        {% if lote.temperatura_inicio is not none %}Ini {{ lote.temperatura_inicio }} ºC{% endif %}
+                        {% if lote.temperatura_fin is not none %} Fin {{ lote.temperatura_fin }} ºC{% endif %}
+                    </strong>
+                </div>
+            </div>
+
+            <div class="label-section">
+                <span>Ingredientes</span>
+                <p>{{ ingredientes or 'Pendiente de ingredientes' }}</p>
+            </div>
+
+            <div class="label-section">
+                <span>Alérgenos</span>
+                <p>
+                    {{ alergenos or 'Pendiente de revisión' }}
+                    {% if alergenos_pendiente %}<strong class="warning">Pendiente validar</strong>{% endif %}
+                </p>
+            </div>
+
+            {% if es_sobrante and lote.motivo_merma %}
+            <div class="label-section">
+                <span>Motivo recogida</span>
+                <p>{{ lote.motivo_merma }}</p>
+            </div>
+            {% endif %}
+
+            <div class="label-foot">
+                <span>Responsable: {{ lote.responsable or '-' }}</span>
+                <span>Impresa: {{ now.strftime('%d/%m/%Y %H:%M') }}</span>
+            </div>
+        </section>
+    </div>
+
+    <form id="queuePrintForm" method="post" action="{{ url_for('empresas.crear_trabajo_impresion') }}" style="display:none;">
+        <input type="hidden" name="tipo" value="etiqueta_lote_elaborado">
+        <input type="hidden" name="origen_tabla" value="produccion_lotes_elaborados">
+        <input type="hidden" name="origen_id" value="{{ lote.id }}">
+        <input type="hidden" name="titulo" value="{% if es_sobrante %}Etiqueta sobrante{% else %}Etiqueta elaborado{% endif %} {{ lote.codigo_lote }}">
+        <input type="hidden" name="formato_codigo" value="{{ config_etiqueta.codigo }}">
+        <input type="hidden" name="lenguaje_impresion" value="{% if config_etiqueta.tipo_impresora in ['zebra_zpl','termica'] %}zpl{% else %}html{% endif %}">
+        <input type="hidden" name="next_url" value="{{ request.full_path }}">
+        <textarea name="contenido_html" id="printJobHtml"></textarea>
+        <textarea name="contenido_raw">{{ zpl_contenido }}</textarea>
+    </form>
+</div>
+
+<style>
+:root {
+    --label-w: {{ label_css.ancho_mm }}mm;
+    --label-h: {{ label_css.alto_mm }}mm;
+    --label-gap: {{ label_css.separacion_mm }}mm;
+    --label-pad: {{ label_css.padding_mm }}mm;
+    --label-font: {{ label_css.fuente_base_px }}px;
+    --page-margin: {{ label_css.margen_mm }}mm;
+}
+@page { size: {{ label_css.page_size }}; margin: {{ label_css.page_margin }}; }
+.label-sheet {
+    display:flex;
+    justify-content:center;
+    padding:18px;
+}
+.printer-chip {
+    padding:9px 10px;
+    border:1px solid #d8e2ed;
+    background:#f8fafc;
+    color:#334155;
+    border-radius:6px;
+    font-size:12px;
+}
+.food-label {
+    width:var(--label-w);
+    min-height:var(--label-h);
+    background:#fff;
+    color:#111827;
+    border:1px solid #111827;
+    padding:var(--label-pad);
+    border-radius:4px;
+    box-sizing:border-box;
+    overflow:hidden;
+    font-size:var(--label-font);
+}
+.label-top, .label-foot {
+    display:flex;
+    justify-content:space-between;
+    gap:10px;
+    align-items:flex-start;
+}
+.label-top small, .label-foot, .muted {
+    color:#4b5563;
+    font-size:calc(var(--label-font) * .9);
+}
+.lot-code {
+    border:2px solid #111827;
+    padding:calc(var(--label-pad) * .45) calc(var(--label-pad) * .65);
+    font-weight:800;
+    font-size:calc(var(--label-font) * 1.15);
+}
+.label-origin {
+    margin-top:calc(var(--label-pad) * .65);
+    border:2px solid #111827;
+    padding:calc(var(--label-pad) * .4);
+    text-align:center;
+    font-weight:900;
+    letter-spacing:.04em;
+}
+.food-label h1 {
+    font-size:calc(var(--label-font) * 1.75);
+    line-height:1.05;
+    margin:calc(var(--label-pad) * .9) 0 calc(var(--label-pad) * .35);
+    color:#111827;
+}
+.label-grid {
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:calc(var(--label-pad) * .5) calc(var(--label-pad) * .9);
+    margin:calc(var(--label-pad) * .9) 0;
+    border-top:1px solid #d1d5db;
+    border-bottom:1px solid #d1d5db;
+    padding:calc(var(--label-pad) * .7) 0;
+}
+.label-grid span, .label-section span {
+    display:block;
+    font-size:calc(var(--label-font) * .72);
+    text-transform:uppercase;
+    color:#4b5563;
+    letter-spacing:.04em;
+}
+.label-grid strong {
+    display:block;
+    font-size:calc(var(--label-font) * .98);
+}
+.label-section {
+    margin-top:calc(var(--label-pad) * .7);
+}
+.label-section p {
+    margin:2px 0 0;
+    font-size:calc(var(--label-font) * .95);
+    line-height:1.25;
+}
+.warning {
+    color:#b45309;
+    display:inline-block;
+    margin-left:5px;
+}
+.label-foot {
+    border-top:1px solid #d1d5db;
+    margin-top:calc(var(--label-pad) * .8);
+    padding-top:calc(var(--label-pad) * .45);
+}
+@media print {
+    .sidebar, .topbar, .no-print {
+        display:none !important;
+    }
+    .main-content {
+        margin-left:0 !important;
+        padding:0 !important;
+    }
+    .card {
+        box-shadow:none;
+        background:#fff;
+        padding:0;
+        border:0;
+    }
+    .label-sheet {
+        padding:0;
+        justify-content:flex-start;
+    }
+    .food-label {
+        page-break-inside:avoid;
+        margin:0;
+    }
+}
+</style>
+
+{% if config_etiqueta.auto_print or (dispositivo_impresion and dispositivo_impresion.auto_print_etiquetas) %}
+<script>
+    window.addEventListener('load', function () { window.print(); });
+</script>
+{% endif %}
+<script>
+    function queuePrintJob() {
+        const styles = Array.from(document.querySelectorAll('style')).map(s => s.outerHTML).join('\n');
+        const content = document.querySelector('.label-sheet');
+        document.getElementById('printJobHtml').value = `<!doctype html><html lang="es"><head><meta charset="utf-8"><title>Etiqueta</title>${styles}</head><body>${content.outerHTML}</body></html>`;
+        document.getElementById('queuePrintForm').submit();
+    }
+</script>
+
+{% endblock %}

@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="card">
+    <div class="card-header">
+        <h2><i class="fas fa-plus-circle"></i> Nuevo parte de producción</h2>
+        <a href="{{ url_for('produccion.produccion_index') }}" class="btn btn-secondary">Volver</a>
+    </div>
+    <form method="POST">
+        <div class="form-group">
+            <label class="form-label">Fecha</label>
+            <input type="date" name="fecha" value="{{ now.strftime('%Y-%m-%d') }}" required class="form-control">
+        </div>
+        <div class="form-group">
+            <label class="form-label">Turno</label>
+            <select name="turno" class="form-control">
+                <option value="Mañana">Mañana</option>
+                <option value="Tarde">Tarde</option>
+                <option value="Noche">Noche</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label class="form-label">Responsable</label>
+            <input type="text" name="responsable" value="{{ session.get('user_nombre', '') }}" class="form-control">
+        </div>
+        <div class="form-group">
+            <label class="form-label">Punto de venta</label>
+            <select name="punto_venta_id" class="form-control">
+                <option value="">Sin asignar</option>
+                {% for pv in puntos_venta %}
+                <option value="{{ pv.id }}">{{ pv.nombre }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="form-group">
+            <label class="form-label">Observaciones</label>
+            <textarea name="observaciones" rows="3" class="form-control"></textarea>
+        </div>
+        <button type="submit" class="btn btn-success"><i class="fas fa-save"></i> Crear parte</button>
+    </form>
+</div>
+{% endblock %}

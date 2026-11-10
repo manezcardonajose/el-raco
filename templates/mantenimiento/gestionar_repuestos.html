@@ -1,0 +1,109 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="card">
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+        <h2 style="color: #ff6b00;"> GESTIONAR REPUESTOS</h2>
+        <div>
+            <a href="/mantenimiento/ordenes/{{ orden.id }}" class="btn btn-info">️ Volver a la orden</a>
+        </div>
+    </div>
+    
+    <div style="background: #3a3f44; padding: 15px; border-radius: 4px; margin: 20px 0;">
+        <h3 style="margin-top: 0;">Orden: {{ orden.numero_orden }}</h3>
+    </div>
+    
+    <!-- Repuestos ya aadidos -->
+    <h3> Repuestos utilizados</h3>
+    <table style="width: 100%; margin-bottom: 30px;">
+        <thead>
+            <tr>
+                <th>Cdigo</th>
+                <th>Repuesto</th>
+                <th>Cantidad</th>
+                <th>Precio unit.</th>
+                <th>Total</th>
+                <th>Accin</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for r in repuestos_orden %}
+            <tr>
+                <td>{{ r.codigo }}</td>
+                <td>{{ r.nombre }}</td>
+                <td>{{ r.cantidad }}</td>
+                <td>{{ "%.2f"|format(r.precio_unitario) }} </td>
+                <td>{{ "%.2f"|format(r.cantidad * r.precio_unitario) }} </td>
+                <td>
+                    <form method="POST" action="/mantenimiento/ordenes/repuestos/{{ r.id }}/eliminar" style="display: inline;">
+                        <button type="submit" class="btn-small btn-red" onclick="return confirm('Eliminar este repuesto?')">️</button>
+                    </form>
+                </td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="6" style="text-align: center;">No hay repuestos aadidos</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    
+    <!-- Aadir nuevo repuesto -->
+    <h3> Aadir repuesto</h3>
+    <form method="POST" style="background: #3a3f44; padding: 20px; border-radius: 4px;">
+        <div style="display: grid; grid-template-columns: 2fr 1fr 1fr auto; gap: 10px; align-items: center;">
+            <div>
+                <label>Repuesto:</label>
+                <select name="repuesto_id" required style="width: 100%; padding: 8px;">
+                    <option value="">-- Seleccionar --</option>
+                    {% for r in repuestos %}
+                    <option value="{{ r.id }}" data-precio="{{ r.precio_compra }}">
+                        {{ r.codigo }} - {{ r.nombre }} (Stock: {{ r.stock_actual }})
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div>
+                <label>Cantidad:</label>
+                <input type="number" step="0.01" name="cantidad" required style="width: 100%; padding: 8px;">
+            </div>
+            
+            <div>
+                <label>Precio unit. ():</label>
+                <input type="number" step="0.01" name="precio_unitario" id="precio_unitario" style="width: 100%; padding: 8px;" placeholder="0.00">
+            </div>
+            
+            <div style="display: flex; align-items: flex-end;">
+                <button type="submit" class="btn btn-success"> Aadir</button>
+            </div>
+        </div>
+        <p style="margin-top: 10px; color: #999;"><small> Si dejas precio 0, se usar el precio de compra del repuesto</small></p>
+    </form>
+</div>
+
+<script>
+    // Auto-completar precio al seleccionar repuesto
+    document.querySelector('select[name="repuesto_id"]').addEventListener('change', function() {
+        var selected = this.options[this.selectedIndex];
+        var precio = selected.getAttribute('data-precio');
+        if (precio) {
+            document.getElementById('precio_unitario').value = precio;
+        }
+    });
+</script>
+
+<style>
+    .btn-small {
+        padding: 3px 8px;
+        border-radius: 3px;
+        border: none;
+        cursor: pointer;
+    }
+    .btn-red { background: #dc3545; color: white; }
+    .btn-success { background: #28a745; color: white; }
+</style>
+{% endblock %}
+
+
+

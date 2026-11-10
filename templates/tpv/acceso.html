@@ -1,0 +1,132 @@
+{% extends 'base.html' %}
+{% block title %}Acceso TPV{% endblock %}
+{% block breadcrumb %}TPV / Acceso rapido{% endblock %}
+{% block content %}
+<style>
+  .access-shell{display:grid;grid-template-columns:320px 1fr;gap:14px;}
+  .access-panel{border:1px solid #334155;border-radius:8px;background:#111827;padding:14px;}
+  .access-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px;align-items:end;}
+  .access-search{font-size:30px;font-weight:800;min-height:62px;}
+  .access-results{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px;}
+  .access-card{border:1px solid #334155;border-radius:8px;background:#0f172a;padding:14px;}
+  .access-card.ok{border-color:#22c55e;}
+  .access-card.warn{border-color:#f59e0b;}
+  .access-card.stop{border-color:#ef4444;}
+  .access-card h3{margin:0 0 6px 0;font-size:24px;}
+  .access-note{color:#94a3b8;font-size:13px;line-height:1.35;}
+  .access-pill{display:inline-block;border:1px solid #475569;border-radius:4px;padding:3px 7px;font-size:12px;margin:3px 4px 3px 0;}
+  .access-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:10px;}
+  .access-actions input{max-width:82px;}
+  .street-box{border:1px solid #475569;border-radius:8px;background:#0f172a;padding:12px;margin-top:12px;}
+  .street-box h3{margin:0 0 8px;font-size:18px;}
+  .btn-xl{font-size:18px;padding:14px 18px;}
+  @media (max-width:980px){.access-shell{grid-template-columns:1fr;}}
+</style>
+
+<div class="card">
+  <div class="card-header">
+    <h2><i class="fas fa-door-open"></i> Acceso rapido</h2>
+    <div class="access-actions">
+      {% if terminal %}
+      <a class="btn btn-primary" href="{{ url_for('tpv.terminal', terminal_id=terminal.id) }}"><i class="fas fa-cash-register"></i> Volver terminal</a>
+      {% else %}
+      <a class="btn btn-secondary" href="{{ url_for('tpv.arranque', punto_venta_id=punto_venta_id) }}">Abrir terminal</a>
+      {% endif %}
+      <a class="btn btn-secondary" href="{{ url_for('tpv.dashboard') }}">TPV</a>
+      <a class="btn btn-secondary" href="{{ url_for('tpv.buffet', terminal_id=terminal_id, punto_venta_id=punto_venta_id, fecha=fecha, servicio=servicio) }}">Vista completa</a>
+    </div>
+  </div>
+  {% if terminal %}
+  <div class="access-note" style="margin-bottom:10px;">{{ terminal.nombre }} - {{ servicios.get(servicio, servicio) }} - {{ fecha }}</div>
+  {% endif %}
+  <div class="access-shell">
+    <div class="access-panel">
+      <form method="get">
+        <input type="hidden" name="terminal_id" value="{{ terminal_id }}">
+        <div class="form-group">
+          <label class="form-label">Buscar</label>
+          <input class="form-control access-search" name="q" value="{{ q }}" placeholder="Hab. 204" autofocus>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Punto</label>
+          <select class="form-control" name="punto_venta_id">
+            {% for p in puntos %}<option value="{{ p.id }}" {% if punto_venta_id|string == p.id|string %}selected{% endif %}>{{ p.nombre }}</option>{% endfor %}
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Servicio</label>
+          <select class="form-control" name="servicio">
+            {% for key,label in servicios.items() %}<option value="{{ key }}" {% if servicio == key %}selected{% endif %}>{{ label }}</option>{% endfor %}
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Fecha</label>
+          <input class="form-control" type="date" name="fecha" value="{{ fecha }}">
+        </div>
+        <button class="btn btn-primary btn-xl" style="width:100%;" type="submit"><i class="fas fa-search"></i> Buscar</button>
+      </form>
+      <div class="street-box">
+        <h3><i class="fas fa-walking"></i> Cliente calle</h3>
+        <form method="post">
+          <input type="hidden" name="terminal_id" value="{{ terminal_id }}">
+          <input type="hidden" name="punto_venta_id" value="{{ punto_venta_id }}">
+          <input type="hidden" name="fecha" value="{{ fecha }}">
+          <input type="hidden" name="servicio" value="{{ servicio }}">
+          <input type="hidden" name="titular" value="Cliente calle">
+          <input type="hidden" name="habitacion" value="Cliente calle">
+          <input type="hidden" name="regimen" value="sin_reserva">
+          <div class="access-actions">
+            <input class="form-control" name="adultos" type="number" min="0" value="1">
+            <input class="form-control" name="menores" type="number" min="0" value="0">
+            <button class="btn btn-success btn-xl" type="submit"><i class="fas fa-cash-register"></i> Entrar y cobrar</button>
+          </div>
+          <div class="access-note">Registra la entrada para cocina y abre un ticket TPV con el precio del servicio.</div>
+        </form>
+      </div>
+    </div>
+
+    <div class="access-panel">
+      <div class="access-results">
+        {% for item in resultados %}
+        {% set card_class = 'ok' if item.derecho and item.faltan > 0 else 'warn' if item.derecho else 'stop' %}
+        <div class="access-card {{ card_class }}">
+          <h3>{{ item.habitacion }}</h3>
+          <div><strong>{{ item.reserva.titular_nombre or item.reserva.codigo }}</strong></div>
+          <div class="access-note">{{ item.reserva.codigo }} - {{ regimenes.get(item.reserva.regimen, item.reserva.regimen or '-') }}</div>
+          <div style="margin-top:8px;">
+            <span class="access-pill">{{ item.pax }} pax</span>
+            <span class="access-pill">Entrados {{ item.registrados.total }}</span>
+            <span class="access-pill">Faltan {{ item.faltan }}</span>
+          </div>
+          {% if item.derecho %}
+            {% if item.faltan > 0 %}
+            <div class="access-note">Servicio incluido para esta reserva.</div>
+            {% else %}
+            <div class="access-note">Ya se registro el total previsto para este servicio.</div>
+            {% endif %}
+          {% else %}
+          <div class="access-note">No incluido en este regimen. Se puede registrar manualmente o cobrar suplemento desde TPV.</div>
+          {% endif %}
+          <form method="post" class="access-actions">
+            <input type="hidden" name="terminal_id" value="{{ terminal_id }}">
+            <input type="hidden" name="q" value="{{ q }}">
+            <input type="hidden" name="punto_venta_id" value="{{ punto_venta_id }}">
+            <input type="hidden" name="fecha" value="{{ fecha }}">
+            <input type="hidden" name="servicio" value="{{ servicio }}">
+            <input type="hidden" name="reserva_id" value="{{ item.reserva.id }}">
+            <input class="form-control" name="adultos" type="number" min="0" value="{{ item.reserva.adultos if item.faltan else 0 }}">
+            <input class="form-control" name="menores" type="number" min="0" value="{{ item.reserva.menores if item.faltan else 0 }}">
+            <button class="btn btn-success btn-xl" type="submit" {% if item.faltan <= 0 %}disabled{% endif %}>Entrar</button>
+          </form>
+        </div>
+        {% else %}
+        <div class="access-card">
+          <h3>Sin resultados</h3>
+          <div class="access-note">Escribe habitacion, nombre, reserva o localizador.</div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,44 @@
+{% extends 'base.html' %}
+{% block title %}Corregir fichaje{% endblock %}
+{% block breadcrumb %}RRHH / Fichajes / Corregir{% endblock %}
+{% block content %}
+<div class="card">
+  <div class="card-header"><h2><i class="fas fa-clock"></i> Corregir fichaje</h2></div>
+  <div class="alert alert-warning">
+    El registro original no se pisa: quedara anulado con historial y se creara un nuevo fichaje corregido.
+  </div>
+  <div class="alert alert-info">
+    Original: {{ fichaje.fecha_hora }} · {{ fichaje.tipo }} · {{ fichaje.origen or 'manual' }} · estado {{ fichaje.estado or 'activo' }}
+  </div>
+  <form method="post">
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;">
+      <div class="form-group">
+        <label class="form-label">Empleado</label>
+        <select name="empleado_id" class="form-control" required>
+          {% for e in empleados %}<option value="{{ e.id }}" {% if fichaje.empleado_id == e.id %}selected{% endif %}>{{ e.nombre }} {{ e.apellidos or '' }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Tipo corregido</label>
+        <select name="tipo" class="form-control">
+          {% for t in ['entrada','salida','pausa','reanudacion'] %}<option value="{{ t }}" {% if fichaje.tipo == t %}selected{% endif %}>{{ t }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Fecha/hora corregida</label>
+        <input name="fecha_hora" class="form-control" value="{{ fichaje.fecha_hora }}" required>
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Observaciones del nuevo fichaje</label>
+      <textarea name="observaciones" class="form-control">{{ fichaje.observaciones or '' }}</textarea>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Motivo de correccion</label>
+      <input name="motivo_cambio" class="form-control" required>
+    </div>
+    <button class="btn btn-success">Crear correccion</button>
+    <a class="btn btn-secondary" href="{{ url_for('rrhh.lista_fichajes') }}">Volver</a>
+  </form>
+</div>
+{% endblock %}

@@ -1,0 +1,181 @@
+{% extends 'base.html' %}
+{% block title %}Caja TPV{% endblock %}
+{% block breadcrumb %}TPV / Caja{% endblock %}
+{% block content %}
+<style>
+  .tpv-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
+  .tpv-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;align-items:end;}
+  .cash-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin-top:12px;}
+  .cash-kpi{border:1px solid #334155;border-radius:8px;background:#111827;padding:12px;}
+  .cash-kpi span{display:block;color:#94a3b8;font-size:12px;}
+  .cash-kpi strong{display:block;font-size:26px;margin-top:4px;}
+  .cash-count{border:1px solid #334155;border-radius:8px;background:#0f172a;padding:12px;margin-top:14px;}
+  .cash-count h3{margin:0 0 10px;font-size:16px;}
+  .cash-denoms{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;}
+  .cash-denom{border:1px solid #263244;border-radius:8px;background:#111827;padding:9px;}
+  .cash-denom label{display:flex;justify-content:space-between;gap:8px;color:#cbd5e1;font-size:13px;margin-bottom:6px;}
+  .cash-denom input{width:100%;}
+  .cash-denom small{display:block;color:#94a3b8;margin-top:5px;text-align:right;}
+  .cash-total{display:flex;justify-content:flex-end;gap:10px;align-items:baseline;margin-top:10px;font-size:14px;color:#cbd5e1;}
+  .cash-total strong{font-size:24px;color:#fff;}
+  .cash-table{width:100%;border-collapse:collapse;margin-top:12px;}
+  .cash-table th,.cash-table td{border-bottom:1px solid #263244;padding:8px;text-align:left;}
+  .cash-table th{color:#94a3b8;font-size:12px;text-transform:uppercase;}
+</style>
+
+<div class="card">
+  <div class="card-header">
+    <h2><i class="fas fa-cash-register"></i> Caja - {{ terminal.punto_nombre or terminal.nombre }}</h2>
+    <div class="tpv-actions">
+      <a class="btn btn-primary" href="{{ url_for('tpv.terminal', terminal_id=terminal.id) }}"><i class="fas fa-arrow-left"></i> Terminal</a>
+      <a class="btn btn-secondary" href="{{ url_for('tpv.cuentas', terminal_id=terminal.id, punto_venta_id=terminal.punto_venta_id) }}"><i class="fas fa-receipt"></i> Cuentas</a>
+      {% if caja %}<a class="btn btn-info" href="{{ url_for('tpv.reporte_caja_terminal', terminal_id=terminal.id, caja_id=caja.id) }}"><i class="fas fa-file-invoice"></i> Informe X</a>{% endif %}
+    </div>
+  </div>
+
+  {% if caja %}
+  <div class="alert alert-success">Caja abierta desde {{ caja.fecha_apertura }} por {{ caja.usuario_apertura or '-' }}.</div>
+  <div class="cash-kpis">
+    <div class="cash-kpi"><span>Saldo inicial</span><strong>{{ '%.2f'|format(caja.saldo_inicial or 0) }} EUR</strong></div>
+    <div class="cash-kpi"><span>Efectivo ventas</span><strong>{{ '%.2f'|format(resumen.efectivo or 0) }} EUR</strong></div>
+    <div class="cash-kpi"><span>Tarjeta</span><strong>{{ '%.2f'|format(resumen.tarjeta or 0) }} EUR</strong></div>
+    <div class="cash-kpi"><span>Cargos habitacion</span><strong>{{ '%.2f'|format(resumen.cargo_habitacion or 0) }} EUR</strong></div>
+    <div class="cash-kpi"><span>Consumo empleados</span><strong>{{ '%.2f'|format(resumen.consumo_empleado or 0) }} EUR</strong></div>
+    <div class="cash-kpi"><span>Invitaciones</span><strong>{{ '%.2f'|format(resumen.invitacion or 0) }} EUR</strong></div>
+    <div class="cash-kpi"><span>Retiradas</span><strong>{{ '%.2f'|format(resumen.retiradas or 0) }} EUR</strong></div>
+    <div class="cash-kpi"><span>Efectivo esperado</span><strong>{{ '%.2f'|format((caja.saldo_inicial or 0) + (resumen.efectivo or 0) + (resumen.entradas or 0) - (resumen.retiradas or 0)) }} EUR</strong></div>
+    <div class="cash-kpi"><span>Total ventas</span><strong>{{ '%.2f'|format(resumen.total or 0) }} EUR</strong></div>
+  </div>
+  <form method="post" class="tpv-grid" style="margin-top:14px;">
+    <input type="hidden" name="accion" value="movimiento">
+    <div class="form-group"><label class="form-label">Movimiento</label><select class="form-control" name="tipo">
+      <option value="retirada_recepcion">Retirada a recepcion</option>
+      <option value="retirada_direccion">Retirada a direccion</option>
+      <option value="entrada_cambio">Entrada cambio</option>
+      <option value="fondo_extra">Fondo extra</option>
+    </select></div>
+    <div class="form-group"><label class="form-label">Importe</label><input class="form-control" name="importe" type="number" min="0" step="0.01" required></div>
+    <div class="form-group"><label class="form-label">Destino / origen</label><input class="form-control" name="destino" placeholder="Recepcion, direccion, cambio..."></div>
+    <div class="form-group"><label class="form-label">Motivo</label><input class="form-control" name="motivo" placeholder="Retirada parcial, cambio, incidencia..."></div>
+    <button class="btn btn-secondary" type="submit"><i class="fas fa-exchange-alt"></i> Registrar</button>
+  </form>
+  {% if movimientos %}
+  <table class="cash-table">
+    <thead><tr><th>Hora</th><th>Tipo</th><th>Importe</th><th>Destino</th><th>Usuario</th><th>Motivo</th></tr></thead>
+    <tbody>
+      {% for m in movimientos %}
+      <tr>
+        <td>{{ m.fecha }}</td>
+        <td>{{ m.tipo|replace('_', ' ') }}</td>
+        <td>{{ '%.2f'|format(m.importe or 0) }} EUR</td>
+        <td>{{ m.destino or '-' }}</td>
+        <td>{{ m.usuario or '-' }}</td>
+        <td>{{ m.motivo or '-' }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% endif %}
+  <form method="post" class="tpv-grid" style="margin-top:14px;">
+    <input type="hidden" name="accion" value="cerrar">
+    <input type="hidden" name="caja_id" value="{{ caja.id }}">
+    <input type="hidden" name="usar_arqueo_cierre" value="1">
+    <input type="hidden" name="efectivo_contado" value="{{ '%.2f'|format((caja.saldo_inicial or 0) + (resumen.efectivo or 0) + (resumen.entradas or 0) - (resumen.retiradas or 0)) }}">
+    <div class="cash-count" style="grid-column:1/-1;">
+      <h3><i class="fas fa-coins"></i> Arqueo de cierre</h3>
+      <div class="cash-denoms">
+        {% for d in denominaciones %}
+        <div class="cash-denom">
+          <label><span>{{ d.label }}</span><span>{{ d.tipo }}</span></label>
+          <input class="form-control cash-input" name="cierre_{{ d.valor|string|replace('.', '_') }}" type="number" min="0" step="1" value="0" data-value="{{ d.valor }}" data-prefix="cierre">
+          <small><span data-line-total="cierre">0.00</span> EUR</small>
+        </div>
+        {% endfor %}
+      </div>
+      <div class="cash-total">Total contado por arqueo <strong id="total-cierre">0.00 EUR</strong></div>
+    </div>
+    <div class="form-group" style="grid-column:1/-1;">
+      <label class="form-label">Observaciones cierre</label>
+      <input class="form-control" name="observaciones" placeholder="Diferencias, retiradas, incidencias...">
+    </div>
+    <button class="btn btn-danger" type="submit"><i class="fas fa-lock"></i> Cerrar caja</button>
+  </form>
+  {% else %}
+  <div class="alert alert-warning">No hay caja abierta en este terminal.</div>
+  <form method="post" class="tpv-grid">
+    <input type="hidden" name="accion" value="abrir">
+    <input type="hidden" name="usar_arqueo_apertura" value="1">
+    <div class="form-group"><label class="form-label">Turno</label><select class="form-control" name="turno">
+      {% for k,v in turnos.items() %}<option value="{{ k }}">{{ v }}</option>{% endfor %}
+    </select></div>
+    <div class="form-group"><label class="form-label">Saldo inicial manual</label><input class="form-control" name="saldo_inicial" type="number" step="0.01" value="0"></div>
+    <div class="cash-count" style="grid-column:1/-1;">
+      <h3><i class="fas fa-coins"></i> Arqueo de apertura</h3>
+      <div class="cash-denoms">
+        {% for d in denominaciones %}
+        <div class="cash-denom">
+          <label><span>{{ d.label }}</span><span>{{ d.tipo }}</span></label>
+          <input class="form-control cash-input" name="apertura_{{ d.valor|string|replace('.', '_') }}" type="number" min="0" step="1" value="0" data-value="{{ d.valor }}" data-prefix="apertura">
+          <small><span data-line-total="apertura">0.00</span> EUR</small>
+        </div>
+        {% endfor %}
+      </div>
+      <div class="cash-total">Total fondo de caja <strong id="total-apertura">0.00 EUR</strong></div>
+      <div class="tpv-note">Si rellenas cantidades, este total sustituye al saldo inicial manual.</div>
+    </div>
+    <div class="form-group" style="grid-column:1/-1;"><label class="form-label">Observaciones apertura</label><input class="form-control" name="observaciones"></div>
+    <button class="btn btn-success" type="submit"><i class="fas fa-unlock"></i> Abrir caja</button>
+  </form>
+  {% endif %}
+</div>
+
+<div class="card">
+  <div class="card-header"><h2><i class="fas fa-history"></i> Ultimos arqueos</h2></div>
+  <table class="table">
+    <thead><tr><th>Fecha</th><th>Estado</th><th>Inicial</th><th>Efectivo teorico</th><th>Contado</th><th>Diferencia</th><th>Usuario</th><th></th></tr></thead>
+    <tbody>
+      {% for c in historial %}
+      <tr>
+        <td>{{ c.fecha_apertura }}</td>
+        <td><span class="badge badge-info">{{ estados.get(c.estado, c.estado) }}</span></td>
+        <td>{{ '%.2f'|format(c.saldo_inicial or 0) }}</td>
+        <td>{{ '%.2f'|format(c.efectivo_teorico or 0) }}</td>
+        <td>{{ '%.2f'|format(c.efectivo_contado or 0) }}</td>
+        <td>{{ '%.2f'|format(c.diferencia or 0) }}</td>
+        <td>{{ c.usuario_cierre or c.usuario_apertura or '-' }}</td>
+        <td><a class="btn btn-sm btn-secondary" href="{{ url_for('tpv.reporte_caja_terminal', terminal_id=terminal.id, caja_id=c.id) }}">{{ 'Z' if c.estado == 'cerrada' else 'X' }}</a></td>
+      </tr>
+      {% else %}
+      <tr><td colspan="8">Sin arqueos registrados.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+<script>
+(() => {
+  function update(prefix) {
+    let total = 0;
+    document.querySelectorAll(`.cash-input[data-prefix="${prefix}"]`).forEach((input) => {
+      const unidades = Math.max(parseInt(input.value || '0', 10) || 0, 0);
+      const valor = parseFloat(input.dataset.value || '0') || 0;
+      const importe = unidades * valor;
+      total += importe;
+      const box = input.closest('.cash-denom');
+      const line = box ? box.querySelector(`[data-line-total="${prefix}"]`) : null;
+      if (line) line.textContent = importe.toFixed(2);
+    });
+    const totalEl = document.getElementById(`total-${prefix}`);
+    if (totalEl) totalEl.textContent = `${total.toFixed(2)} EUR`;
+    if (prefix === 'cierre' && total > 0) {
+      const contado = document.querySelector('input[name="efectivo_contado"]');
+      if (contado) contado.value = total.toFixed(2);
+    }
+  }
+  document.querySelectorAll('.cash-input').forEach((input) => {
+    input.addEventListener('input', () => update(input.dataset.prefix));
+  });
+  update('apertura');
+  update('cierre');
+})();
+</script>
+{% endblock %}

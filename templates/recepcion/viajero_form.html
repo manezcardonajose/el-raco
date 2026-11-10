@@ -1,0 +1,63 @@
+{% extends 'base.html' %}
+{% block title %}{% if viajero %}Editar viajero{% else %}Nuevo viajero{% endif %}{% endblock %}
+{% block breadcrumb %}Recepcion / Registro viajeros{% endblock %}
+{% block content %}
+<div class="card">
+  <div class="card-header">
+    <h2><i class="fas fa-id-card"></i> {% if viajero %}Editar viajero{% else %}Nuevo viajero{% endif %}</h2>
+    <a class="btn btn-secondary" href="{{ url_for('recepcion.reserva_detalle', id=reserva.id) }}">Volver a reserva</a>
+  </div>
+
+  <form method="post">
+    <h3 style="color:#ff6b00;margin:10px 0 15px;">Datos personales</h3>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;">
+      <div class="form-group"><label class="form-label">Nombre *</label><input class="form-control" name="nombre" required value="{{ viajero.nombre if viajero else '' }}"></div>
+      <div class="form-group"><label class="form-label">Apellidos</label><input class="form-control" name="apellidos" value="{{ viajero.apellidos if viajero else '' }}"></div>
+      <div class="form-group"><label class="form-label">Fecha nacimiento</label><input class="form-control" type="date" name="fecha_nacimiento" value="{{ viajero.fecha_nacimiento if viajero else '' }}"></div>
+      <div class="form-group"><label class="form-label">Sexo</label><select class="form-control" name="sexo">
+        {% for s in ['','M','F','X'] %}<option value="{{ s }}" {% if viajero and viajero.sexo == s %}selected{% endif %}>{{ s or 'Sin indicar' }}</option>{% endfor %}
+      </select></div>
+      <div class="form-group"><label class="form-label">Nacionalidad</label><input class="form-control" name="nacionalidad" value="{{ viajero.nacionalidad if viajero else '' }}"></div>
+      <div class="form-group"><label class="form-label">Parentesco</label><input class="form-control" name="parentesco" value="{{ viajero.parentesco if viajero else '' }}"></div>
+    </div>
+
+    <h3 style="color:#ff6b00;margin:20px 0 15px;">Documento y registro</h3>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;">
+      <div class="form-group"><label class="form-label">Tipo documento</label><select class="form-control" name="tipo_documento">
+        <option value="" {% if viajero and not viajero.tipo_documento %}selected{% endif %}>Sin documento / menor</option>
+        {% for t in ['DNI','NIE','PASAPORTE','OTRO'] %}<option value="{{ t }}" {% if viajero and viajero.tipo_documento == t %}selected{% endif %}>{{ t }}</option>{% endfor %}
+      </select></div>
+      <div class="form-group"><label class="form-label">Numero documento</label><input class="form-control" name="numero_documento" value="{{ viajero.numero_documento if viajero else '' }}"><small>No se marca como faltante para menores de {{ edad_min_documento }} anos.</small></div>
+      <div class="form-group"><label class="form-label">Soporte documento</label><input class="form-control" name="soporte_documento" value="{{ viajero.soporte_documento if viajero else '' }}"></div>
+      <div class="form-group"><label class="form-label">Estado registro viajeros</label><select class="form-control" name="registro_viajeros_estado">
+        {% for e in ['pendiente','preparado','enviado','aceptado','rechazado'] %}<option value="{{ e }}" {% if viajero and viajero.registro_viajeros_estado == e %}selected{% endif %}>{{ e }}</option>{% endfor %}
+      </select></div>
+      <div class="form-group"><label class="form-label">Fecha envio/registro</label><input class="form-control" type="date" name="registro_viajeros_fecha" value="{{ viajero.registro_viajeros_fecha if viajero else '' }}"></div>
+    </div>
+
+    <h3 style="color:#ff6b00;margin:20px 0 15px;">Contacto y domicilio</h3>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;">
+      <div class="form-group"><label class="form-label">Telefono</label><input class="form-control" name="telefono" value="{{ viajero.telefono if viajero else '' }}"></div>
+      <div class="form-group"><label class="form-label">Email</label><input class="form-control" type="email" name="email" value="{{ viajero.email if viajero else '' }}"></div>
+      <div class="form-group"><label class="form-label">Direccion</label><input class="form-control" name="direccion" value="{{ viajero.direccion if viajero else '' }}"></div>
+      <div class="form-group"><label class="form-label">Codigo postal</label><input class="form-control" name="codigo_postal" value="{{ viajero.codigo_postal if viajero else '' }}"></div>
+      <div class="form-group"><label class="form-label">Localidad</label><input class="form-control" name="localidad" value="{{ viajero.localidad if viajero else '' }}"></div>
+      <div class="form-group"><label class="form-label">Pais</label><input class="form-control" name="pais" value="{{ viajero.pais if viajero else 'Espana' }}"></div>
+    </div>
+
+    <h3 style="color:#ff6b00;margin:20px 0 15px;">Alergias, intolerancias y avisos</h3>
+    <div class="form-group"><label class="form-label">Alergias / intolerancias / condiciones multiples</label><textarea class="form-control" name="alergias_intolerancias" rows="3" placeholder="Ej.: Celiaca; intolerancia lactosa; piel atopica; no frutos secos">{{ viajero.alergias_intolerancias if viajero else '' }}</textarea></div>
+    <div class="form-group"><label class="form-label">Observaciones utiles para el servicio</label><textarea class="form-control" name="observaciones_salud" rows="3">{{ viajero.observaciones_salud if viajero else '' }}</textarea></div>
+    {% set deps = (viajero.avisos_departamentos or '').split(',') if viajero else [] %}
+    <div style="display:flex;gap:22px;flex-wrap:wrap;margin-bottom:16px;">
+      {% for key,label in departamentos_aviso.items() %}
+      <label><input type="checkbox" name="avisos_departamentos" value="{{ key }}" {% if key in deps or (not viajero and key == 'cocina') %}checked{% endif %}> {{ label }}</label>
+      {% endfor %}
+    </div>
+    <label style="display:flex;gap:8px;align-items:center;margin-bottom:16px;"><input type="checkbox" name="es_titular" value="1" {% if viajero and viajero.es_titular %}checked{% endif %}> Es titular de la reserva</label>
+
+    <button class="btn btn-success" type="submit">Guardar viajero</button>
+    <a class="btn btn-secondary" href="{{ url_for('recepcion.reserva_detalle', id=reserva.id) }}">Volver</a>
+  </form>
+</div>
+{% endblock %}

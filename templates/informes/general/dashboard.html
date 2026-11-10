@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="card">
+    <h2 style="color: #ff6b00;"> PANEL DE INFORMES</h2>
+    <p style="color: #999;">Selecciona el tipo de informe que deseas visualizar</p>
+    
+    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; margin-top: 30px;">
+        
+        <a href="/informes/compras" style="text-decoration: none;">
+            <div style="background: linear-gradient(135deg, #3a3f44 0%, #2b2f33 100%); padding: 25px; border-radius: 8px; text-align: center; border-left: 4px solid #007bff;">
+                <div style="font-size: 40px; margin-bottom: 15px;"></div>
+                <h3 style="margin: 0; color: #007bff;">Compras</h3>
+                <p style="color: #999; margin-top: 10px;">Histrico de pedidos, gastos por proveedor, evolucin de precios</p>
+            </div>
+        </a>
+        
+        <a href="/informes/produccion" style="text-decoration: none;">
+            <div style="background: linear-gradient(135deg, #3a3f44 0%, #2b2f33 100%); padding: 25px; border-radius: 8px; text-align: center; border-left: 4px solid #28a745;">
+                <div style="font-size: 40px; margin-bottom: 15px;"></div>
+                <h3 style="margin: 0; color: #28a745;">Produccin</h3>
+                <p style="color: #999; margin-top: 10px;">Partes diarios, costes de produccin, eficiencia</p>
+            </div>
+        </a>
+        
+        <a href="/informes/stock" style="text-decoration: none;">
+            <div style="background: linear-gradient(135deg, #3a3f44 0%, #2b2f33 100%); padding: 25px; border-radius: 8px; text-align: center; border-left: 4px solid #ffc107;">
+                <div style="font-size: 40px; margin-bottom: 15px;"></div>
+                <h3 style="margin: 0; color: #ffc107;">Stock</h3>
+                <p style="color: #999; margin-top: 10px;">Valoracin de inventario, rotacin, productos bajo mnimos</p>
+            </div>
+        </a>
+        
+        <a href="{{ url_for('appcc.appcc_dashboard') }}" class="menu-item sub-item">
+            <i class="fas fa-chart-bar"></i> Informes APPCC
+        </a>
+            <div style="background: linear-gradient(135deg, #3a3f44 0%, #2b2f33 100%); padding: 25px; border-radius: 8px; text-align: center; border-left: 4px solid #17a2b8;">
+                <div style="font-size: 40px; margin-bottom: 15px;"></div>
+                <h3 style="margin: 0; color: #17a2b8;">APPCC</h3>
+                <p style="color: #999; margin-top: 10px;">Temperaturas, limpieza, incidencias, caducidades</p>
+            </div>
+        </a>
+        
+        <a href="/informes/ventas" style="text-decoration: none;">
+            <div style="background: linear-gradient(135deg, #3a3f44 0%, #2b2f33 100%); padding: 25px; border-radius: 8px; text-align: center; border-left: 4px solid #dc3545;">
+                <div style="font-size: 40px; margin-bottom: 15px;"></div>
+                <h3 style="margin: 0; color: #dc3545;">Ventas</h3>
+                <p style="color: #999; margin-top: 10px;">Facturacin, mrgenes, platos ms vendidos</p>
+            </div>
+        </a>
+        
+        <a href="/informes/personalizados" style="text-decoration: none;">
+            <div style="background: linear-gradient(135deg, #3a3f44 0%, #2b2f33 100%); padding: 25px; border-radius: 8px; text-align: center; border-left: 4px solid #6f42c1;">
+                <div style="font-size: 40px; margin-bottom: 15px;">️</div>
+                <h3 style="margin: 0; color: #6f42c1;">Personalizados</h3>
+                <p style="color: #999; margin-top: 10px;">Crea tus propios informes con filtros a medida</p>
+            </div>
+        </a>
+        
+    </div>
+</div>
+{% endblock %}
+
+
+

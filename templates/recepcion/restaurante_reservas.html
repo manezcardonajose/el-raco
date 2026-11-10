@@ -1,0 +1,65 @@
+{% extends 'base.html' %}
+{% block title %}Reservas restaurante{% endblock %}
+{% block breadcrumb %}Recepcion / Restaurante{% endblock %}
+{% block content %}
+<div class="card">
+  <div class="card-header">
+    <h2><i class="fas fa-chair"></i> Reservas de restaurante</h2>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+      <a class="btn btn-info" href="{{ url_for('recepcion.prevision_servicios', fecha=filtros.fecha) }}"><i class="fas fa-utensils"></i> Prevision cocina</a>
+      <a class="btn btn-success" href="{{ url_for('recepcion.restaurante_reserva_form') }}"><i class="fas fa-plus"></i> Nueva reserva</a>
+    </div>
+  </div>
+
+  <form method="get" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;align-items:end;margin-bottom:16px;">
+    <div class="form-group"><label class="form-label">Fecha</label><input class="form-control" type="date" name="fecha" value="{{ filtros.fecha }}"></div>
+    <div class="form-group"><label class="form-label">Punto venta</label><select class="form-control" name="punto_venta_id">
+      <option value="">Todos</option>
+      {% for pv in puntos_venta %}
+      <option value="{{ pv.id }}" {% if filtros.punto_venta_id == pv.id %}selected{% endif %}>{{ pv.nombre }}</option>
+      {% endfor %}
+    </select></div>
+    <div class="form-group"><label class="form-label">Estado</label><select class="form-control" name="estado">
+      <option value="">Todos</option>
+      {% for e in ['pendiente','confirmada','sentada','finalizada','cancelada'] %}
+      <option value="{{ e }}" {% if filtros.estado == e %}selected{% endif %}>{{ e }}</option>
+      {% endfor %}
+    </select></div>
+    <button class="btn btn-primary" type="submit">Filtrar</button>
+  </form>
+
+  <div class="table-container">
+    <table>
+      <thead><tr><th>Hora</th><th>Turno</th><th>Punto venta</th><th>Reserva hotel</th><th>Cliente</th><th>Pax</th><th>Mesa</th><th>Avisos</th><th>Estado</th><th>Acciones</th></tr></thead>
+      <tbody>
+        {% for rr in reservas_restaurante %}
+        <tr>
+          <td>{{ rr.hora or '-' }}</td>
+          <td>{{ rr.turno or '-' }}</td>
+          <td>{{ rr.punto_venta_nombre or '-' }}</td>
+          <td>{% if rr.reserva_id %}<a href="{{ url_for('recepcion.reserva_detalle', id=rr.reserva_id) }}">{{ rr.codigo or ('#' ~ rr.reserva_id) }}</a>{% else %}-{% endif %}</td>
+          <td>{{ rr.nombre_contacto or rr.titular_nombre or '-' }}<br><small>{{ rr.telefono_contacto or '' }} {{ rr.habitacion_numero or rr.habitacion_nombre or '' }}</small></td>
+          <td>{{ rr.personas or 0 }}</td>
+          <td>{{ rr.mesa or '-' }}</td>
+          <td>{{ rr.alergias_resumen or '-' }}</td>
+          <td>{{ rr.estado }}</td>
+          <td style="display:flex;gap:6px;flex-wrap:wrap;">
+            <a class="btn btn-sm btn-primary" href="{{ url_for('recepcion.restaurante_reserva_form', id=rr.id) }}">Editar</a>
+            <form method="post" action="{{ url_for('recepcion.cambiar_estado_restaurante_reserva', id=rr.id) }}" style="display:flex;gap:6px;">
+              <select class="form-control" name="estado" style="min-width:120px;">
+                {% for e in ['pendiente','confirmada','sentada','finalizada','cancelada'] %}
+                <option value="{{ e }}" {% if rr.estado == e %}selected{% endif %}>{{ e }}</option>
+                {% endfor %}
+              </select>
+              <button class="btn btn-sm btn-success" type="submit">OK</button>
+            </form>
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="10">No hay reservas de restaurante con estos filtros.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

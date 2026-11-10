@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+
+{% block title %}Terminales cocina - El Raco ERP{% endblock %}
+
+{% block content %}
+<style>
+    .terminal-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+        gap: 14px;
+    }
+    .terminal-card {
+        background: #1e252b;
+        border: 1px solid #2c3e50;
+        border-radius: 8px;
+        padding: 18px;
+    }
+    .terminal-card h3 {
+        color: #ff6b00;
+        margin: 0 0 8px;
+    }
+    .terminal-stats {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 8px;
+        margin: 14px 0;
+    }
+    .terminal-stats div {
+        background: #111820;
+        border-radius: 6px;
+        padding: 10px;
+        text-align: center;
+    }
+    .terminal-stats span {
+        display: block;
+        color: #9fb0c0;
+        font-size: 11px;
+    }
+    .terminal-stats strong {
+        font-size: 22px;
+    }
+</style>
+
+<div class="card">
+    <div class="card-header">
+        <h2><i class="fas fa-tablet-alt"></i> Terminales de cocina</h2>
+        <form method="GET" style="display:flex; gap:8px; align-items:end;">
+            <div>
+                <label class="form-label">Fecha</label>
+                <input class="form-control" type="date" name="fecha" value="{{ fecha }}">
+            </div>
+            <button class="btn btn-primary" type="submit">Filtrar</button>
+        </form>
+    </div>
+
+    <div class="terminal-grid">
+        {% for s in subdepartamentos %}
+        <div class="terminal-card">
+            <h3>{{ s.nombre }}</h3>
+            <p style="color:#9fb0c0; margin-bottom:10px;">{{ s.departamento_nombre }}</p>
+            <div class="terminal-stats">
+                <div><span>Partes</span><strong>{{ s.partes or 0 }}</strong></div>
+                <div><span>Pend.</span><strong>{{ s.pendientes or 0 }}</strong></div>
+                <div><span>Curso</span><strong>{{ s.en_proceso or 0 }}</strong></div>
+                <div><span>Hechas</span><strong>{{ s.completadas or 0 }}</strong></div>
+            </div>
+            <a class="btn btn-success btn-lg" href="{{ url_for('produccion.terminal_subdepartamento', subdepto_id=s.id, fecha=fecha) }}">
+                <i class="fas fa-play"></i> Abrir terminal
+            </a>
+        </div>
+        {% else %}
+        <div class="terminal-card">
+            No hay subdepartamentos de cocina o produccion para la fecha seleccionada.
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

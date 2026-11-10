@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<h2>Menú fijo: {{ menu.nombre }}</h2>
+<div style="display:inline-flex;align-items:center;gap:8px;padding:6px 10px;border:1px solid var(--border,#d5dde8);border-radius:8px;background:var(--card-bg,#fff);color:var(--text-muted,#475569);font-size:.9rem;margin-bottom:14px;">
+    <i class="fas fa-building"></i>
+    <span>Centro actual:</span>
+    <strong style="color:var(--text,#0f172a);">{{ centro_activo.nombre if centro_activo else 'Empresa completa' }}</strong>
+</div>
+
+<div style="margin-bottom: 20px;">
+    {% if tiene_permiso('produccion_editar') %}
+    <a href="{{ url_for('menus.editar_menu_fijo', menu_id=menu.id) }}" class="btn btn-primary">Editar cabecera</a>
+    <a href="{{ url_for('menus.nueva_seccion_menu_fijo', menu_id=menu.id) }}" class="btn btn-success">+ Añadir sección</a>
+    {% endif %}
+    <a href="{{ url_for('menus.imprimir_menu_fijo', menu_id=menu.id) }}" class="btn btn-secondary">Imprimir</a>
+</div>
+
+{% if tiene_permiso('produccion_editar') %}
+<div class="card" style="margin-bottom:20px;">
+    <div class="card-header">
+        <h3><i class="fas fa-cash-register"></i> Publicar este menu en TPV</h3>
+    </div>
+    <form method="POST" action="{{ url_for('menus.publicar_menu_fijo_tpv', menu_id=menu.id) }}" style="display:grid;grid-template-columns:minmax(220px,1fr) 160px auto;gap:10px;align-items:end;">
+        <div class="form-group">
+            <label class="form-label">Punto de venta</label>
+            <select class="form-control" name="punto_venta_id" required>
+                <option value="">Seleccionar punto</option>
+                {% for p in puntos_venta %}
+                <option value="{{ p.id }}" {% if menu.punto_venta_id == p.id %}selected{% endif %}>{{ p.nombre }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="form-group">
+            <label class="form-label">Precio por plato</label>
+            <input class="form-control" name="precio_base" type="number" min="0" step="0.01" value="0">
+        </div>
+        <button class="btn btn-success" type="submit"><i class="fas fa-upload"></i> Subir al terminal</button>
+    </form>
+    <p style="color:#94a3b8;font-size:12px;margin-top:8px;">Crea botones TPV con las recetas de este menu fijo en un punto de venta del centro actual.</p>
+</div>
+{% endif %}
+
+<hr>
+
+{% for seccion in secciones %}
+    <div style="margin-bottom: 30px; border:1px solid #ccc; padding:10px; border-radius:8px;">
+
+        <h4>
+            {{ seccion.departamento_nombre }} → {{ seccion.subdepartamento_nombre }}
+            {% if seccion.seccion %}
+                ({{ seccion.seccion }})
+            {% endif %}
+        </h4>
+
+        <div style="margin-bottom:10px;">
+            {% if tiene_permiso('produccion_editar') %}
+            <a href="{{ url_for('menus.editar_seccion_menu_fijo', seccion_id=seccion.id) }}" class="btn btn-sm btn-warning">Editar</a>
+
+            <form method="POST" action="{{ url_for('menus.eliminar_seccion_menu_fijo', seccion_id=seccion.id) }}" style="display:inline;">
+                <button class="btn btn-sm btn-danger" onclick="return confirm('Eliminar sección?')">Eliminar</button>
+            </form>
+            {% endif %}
+        </div>
+
+        <ul>
+            {% for plato in seccion.platos %}
+                <li>
+                    {{ plato.receta_nombre }}
+
+                    {% if tiene_permiso('produccion_editar') %}
+                    <form method="POST"
+                          action="{{ url_for('menus.eliminar_plato_menu_fijo', plato_id=plato.id) }}"
+                          style="display:inline;">
+                        <button class="btn btn-sm btn-danger">X</button>
+                    </form>
+                    {% endif %}
+                </li>
+            {% endfor %}
+        </ul>
+
+        {% if tiene_permiso('produccion_editar') %}
+        <form method="POST" action="{{ url_for('menus.nuevo_plato_menu_fijo', seccion_id=seccion.id) }}">
+            <select name="receta_id">
+                <option value="">-- Seleccionar receta --</option>
+                {% for r in recetas %}
+                    <option value="{{ r.id }}">{{ r.nombre }}</option>
+                {% endfor %}
+            </select>
+
+            <input type="text" name="nombre_plato" placeholder="o escribir plato">
+
+            <button class="btn btn-sm btn-success">Añadir plato</button>
+        </form>
+        {% endif %}
+
+    </div>
+{% endfor %}
+
+{% endblock %}

@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header">
+        <h2><i class="fas fa-calendar-plus"></i> Nueva regla de calendario</h2>
+        <a href="{{ url_for('proveedores.calendario_proveedor', proveedor_id=proveedor.id) }}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left"></i> Volver
+        </a>
+    </div>
+
+    <h3 style="color: #ff6b00; margin-bottom: 20px;">{{ proveedor.nombre }}</h3>
+    
+    <form method="POST">
+        <div class="form-group">
+            <label class="form-label"><i class="fas fa-tag"></i> Tipo:</label>
+            <select name="tipo" required class="form-control">
+                <option value="pedido"><i class="fas fa-box"></i> Día de pedido</option>
+                <option value="entrega"><i class="fas fa-truck"></i> Día de entrega</option>
+                <option value="visita"><i class="fas fa-user-friends"></i> Visita comercial</option>
+            </select>
+        </div>
+        
+        <div class="form-group">
+            <label class="form-label"><i class="fas fa-repeat"></i> Frecuencia:</label>
+            <div style="display: flex; gap: 20px;">
+                <label><input type="radio" name="frecuencia" value="semanal" checked> <i class="fas fa-calendar-week"></i> Semanal</label>
+                <label><input type="radio" name="frecuencia" value="mensual"> <i class="fas fa-calendar-alt"></i> Mensual</label>
+            </div>
+        </div>
+        
+        <div id="semanal" class="form-group">
+            <label class="form-label"><i class="fas fa-calendar-day"></i> Día de la semana:</label>
+            <select name="dia_semana" class="form-control">
+                <option value="0">Lunes</option>
+                <option value="1">Martes</option>
+                <option value="2">Miércoles</option>
+                <option value="3">Jueves</option>
+                <option value="4">Viernes</option>
+                <option value="5">Sábado</option>
+                <option value="6">Domingo</option>
+            </select>
+        </div>
+        
+        <div id="mensual" class="form-group" style="display: none;">
+            <label class="form-label"><i class="fas fa-calendar-day"></i> Día del mes (1-31):</label>
+            <input type="number" name="dia_mes" min="1" max="31" class="form-control">
+        </div>
+        
+        <div class="form-group">
+            <label class="form-label"><i class="fas fa-clock"></i> Hora (opcional):</label>
+            <input type="time" name="hora" class="form-control">
+        </div>
+        
+        <div style="margin-top: 30px;">
+            <button type="submit" class="btn btn-success">
+                <i class="fas fa-save"></i> Guardar regla
+            </button>
+            <a href="{{ url_for('proveedores.calendario_proveedor', proveedor_id=proveedor.id) }}" class="btn btn-secondary">
+                <i class="fas fa-times"></i> Cancelar
+            </a>
+        </div>
+    </form>
+</div>
+
+<script>
+    document.querySelectorAll('input[name="frecuencia"]').forEach(radio => {
+        radio.addEventListener('change', function() {
+            if (this.value === 'semanal') {
+                document.getElementById('semanal').style.display = 'block';
+                document.getElementById('mensual').style.display = 'none';
+                document.querySelector('select[name="dia_semana"]').disabled = false;
+                document.querySelector('input[name="dia_mes"]').disabled = true;
+            } else {
+                document.getElementById('semanal').style.display = 'none';
+                document.getElementById('mensual').style.display = 'block';
+                document.querySelector('select[name="dia_semana"]').disabled = true;
+                document.querySelector('input[name="dia_mes"]').disabled = false;
+            }
+        });
+    });
+</script>
+{% endblock %}

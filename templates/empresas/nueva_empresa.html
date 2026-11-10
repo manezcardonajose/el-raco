@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+
+{% block breadcrumb %}Nueva Empresa{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header">
+        <h2><i class="fas fa-plus-circle"></i> Crear Nueva Empresa</h2>
+        <a href="{{ url_for('empresas.listar_empresas') }}" class="btn btn-danger">
+            <i class="fas fa-arrow-left"></i> Volver
+        </a>
+    </div>
+    
+    <form method="POST" enctype="multipart/form-data">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+            <div class="form-group">
+                <label class="form-label">Nombre de la empresa</label>
+                <input type="text" name="nombre" class="form-control" required>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">NIF / CIF</label>
+                <input type="text" name="nif" class="form-control">
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">Teléfono</label>
+                <input type="text" name="telefono" class="form-control">
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">Email</label>
+                <input type="email" name="email" class="form-control">
+            </div>
+            
+            <div class="form-group" style="grid-column: span 2;">
+                <label class="form-label">Dirección</label>
+                <input type="text" name="direccion" class="form-control" placeholder="Calle, número, ciudad...">
+            </div>
+            <div class="form-group" style="grid-column: span 2;">
+                <label class="form-label">Logo / anagrama para documentos</label>
+                <input type="file" name="logo" class="form-control" accept="image/png,image/jpeg,image/webp,image/gif">
+            </div>
+        </div>
+        
+        <div style="margin-top: 30px;">
+            <button type="submit" class="btn btn-success">
+                <i class="fas fa-save"></i> Crear Empresa
+            </button>
+            <a href="{{ url_for('empresas.listar_empresas') }}" class="btn btn-danger">
+                <i class="fas fa-times"></i> Cancelar
+            </a>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+
+
+

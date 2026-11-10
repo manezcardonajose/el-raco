@@ -1,0 +1,179 @@
+{% extends 'base.html' %}
+{% block title %}Roles y permisos{% endblock %}
+{% block breadcrumb %}RRHH / Roles y permisos{% endblock %}
+{% block content %}
+<style>
+  .roles-top {
+    display:grid;
+    grid-template-columns: minmax(280px, 1fr) minmax(280px, 1fr);
+    gap:14px;
+    margin-bottom:16px;
+  }
+  .roles-tool {
+    border:1px solid #334155;
+    border-radius:8px;
+    padding:14px;
+    background:#111827;
+  }
+  .roles-tool h3 {
+    margin:0 0 10px;
+    color:#ff6b00;
+  }
+  .roles-inline {
+    display:flex;
+    gap:10px;
+    align-items:center;
+  }
+  .role-card {
+    border:1px solid #334155;
+    border-radius:8px;
+    padding:14px;
+    background:#111827;
+    margin-bottom:14px;
+  }
+  .roles-block {
+    border-top:1px solid #334155;
+    padding-top:16px;
+    margin-top:18px;
+  }
+  .roles-block-title {
+    display:flex;
+    justify-content:space-between;
+    gap:12px;
+    align-items:center;
+    margin-bottom:12px;
+  }
+  .roles-block-title h3 {
+    margin:0;
+    color:#e5eef9;
+  }
+  .role-head {
+    display:flex;
+    justify-content:space-between;
+    gap:12px;
+    align-items:flex-start;
+    margin-bottom:12px;
+  }
+  .role-head h3 {
+    color:#ff6b00;
+    margin:0;
+  }
+  .role-actions {
+    display:flex;
+    gap:8px;
+    flex-wrap:wrap;
+    justify-content:flex-end;
+  }
+  .perm-grid {
+    display:grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap:8px;
+  }
+  .perm-grid label {
+    display:flex;
+    gap:8px;
+    align-items:center;
+    background:#0f172a;
+    border:1px solid #263442;
+    border-radius:6px;
+    padding:8px;
+  }
+  .perm-block {
+    border:1px solid #263442;
+    border-radius:8px;
+    padding:10px;
+    margin-top:10px;
+    background:#0b1220;
+  }
+  .perm-block h4 {
+    margin:0 0 8px;
+    color:#cbd5e1;
+    font-size:14px;
+  }
+  @media (max-width: 900px) {
+    .roles-top { grid-template-columns: 1fr; }
+    .roles-inline { flex-direction:column; align-items:stretch; }
+  }
+</style>
+
+<div class="card">
+  <div class="card-header">
+    <h2><i class="fas fa-user-shield"></i> Roles y permisos</h2>
+    <a class="btn btn-secondary" href="{{ url_for('auth.auditoria_permisos') }}"><i class="fas fa-stethoscope"></i> Auditoria</a>
+  </div>
+
+  <div class="roles-top">
+    <div class="roles-tool">
+      <h3><i class="fas fa-search"></i> Buscar rol</h3>
+      <form method="get" action="{{ url_for('rrhh.lista_roles') }}" class="roles-inline">
+        <input class="form-control" name="q" value="{{ q or '' }}" placeholder="Buscar por nombre de rol">
+        <button class="btn btn-primary" type="submit">Buscar</button>
+        {% if q %}<a class="btn btn-secondary" href="{{ url_for('rrhh.lista_roles') }}">Limpiar</a>{% endif %}
+      </form>
+    </div>
+
+    <div class="roles-tool">
+      <h3><i class="fas fa-plus-circle"></i> Crear nuevo rol</h3>
+      <form method="post" action="{{ url_for('rrhh.nuevo_rol') }}" class="roles-inline">
+        <input class="form-control" name="nombre" placeholder="Nombre exacto del nuevo rol" autocomplete="off">
+        <button class="btn btn-success" type="submit">Crear rol</button>
+      </form>
+    </div>
+  </div>
+
+  {% for bloque in roles_bloques %}
+  <div class="roles-block">
+    <div class="roles-block-title">
+      <h3>{{ bloque.nombre }}</h3>
+      <span class="badge badge-secondary">{{ bloque.roles|length }} rol{{ '' if bloque.roles|length == 1 else 'es' }}</span>
+    </div>
+
+    {% for item in bloque.roles %}
+    {% set r = item.rol %}
+    {% set usuarios = item.usuarios %}
+    <div class="role-card">
+      <div class="role-head">
+        <div>
+          <h3>{{ r.nombre }}</h3>
+          <span class="badge badge-info">{{ usuarios }} usuario{{ '' if usuarios == 1 else 's' }}</span>
+          <span class="badge badge-secondary">{{ mapa.get(r.id, [])|length }} permisos directos</span>
+          <span class="badge badge-secondary">{{ item.permisos_efectivos_total }} permisos efectivos</span>
+        </div>
+        <div class="role-actions">
+          {% if usuarios == 0 %}
+            <form method="post" action="{{ url_for('rrhh.eliminar_rol', rol_id=r.id) }}" onsubmit="return confirm('Eliminar el rol {{ r.nombre }}? Se borraran tambien sus permisos directos.');">
+              <button class="btn btn-danger" type="submit"><i class="fas fa-trash"></i> Eliminar</button>
+            </form>
+          {% else %}
+            <button class="btn btn-secondary" type="button" disabled title="Tiene usuarios asignados">No eliminable</button>
+          {% endif %}
+        </div>
+      </div>
+
+      <form method="post" action="{{ url_for('rrhh.guardar_permisos_rol') }}">
+        <input type="hidden" name="rol_id" value="{{ r.id }}">
+        {% for grupo in permisos_bloques %}
+          <div class="perm-block">
+            <h4>{{ grupo.nombre }}</h4>
+            <div class="perm-grid">
+              {% for p in grupo.permisos %}
+                <label>
+                  <input type="checkbox" name="permisos" value="{{ p.id }}" {% if (r.id, p.id) in asignados %}checked{% endif %}>
+                  <span>{{ p.nombre }}</span>
+                </label>
+              {% endfor %}
+            </div>
+          </div>
+        {% else %}
+          <p>No hay permisos creados todavia.</p>
+          {% endfor %}
+        <button class="btn btn-primary" type="submit" style="margin-top:15px;">Guardar permisos</button>
+      </form>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+    <p>No hay roles que coincidan con la busqueda.</p>
+  {% endfor %}
+</div>
+{% endblock %}

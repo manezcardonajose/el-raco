@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Frutos con cascara">
+  <circle cx="32" cy="32" r="30" fill="#d99a22"/>
+  <g fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M32 12c11 8 17 20 15 29-2 8-8 13-15 13S19 49 17 41c-2-9 4-21 15-29z"/>
+    <path d="M32 14v38"/>
+    <path d="M24 34c4 2 12 2 16 0"/>
+  </g>
+</svg>

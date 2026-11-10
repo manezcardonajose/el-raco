@@ -1,0 +1,70 @@
+{% extends 'base.html' %}
+{% block title %}Importar RRHH desde Excel{% endblock %}
+{% block breadcrumb %}RRHH / Importar Excel{% endblock %}
+{% block content %}
+<div class="card">
+  <div class="card-header">
+    <h2><i class="fas fa-file-excel"></i> Importar RRHH desde Excel</h2>
+  </div>
+  <div class="alert alert-info">
+    Importa categorías/roles y empleados sin borrar datos. Sirve para el Excel OPS de Nexora y para migraciones de clientes.
+  </div>
+  <form method="post" enctype="multipart/form-data" class="card" style="padding:15px;">
+    <div class="form-group">
+      <label class="form-label">Archivo Excel</label>
+      <input type="file" name="archivo" class="form-control" accept=".xlsx" required>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;">
+      <div class="form-group">
+        <label class="form-label">Modo</label>
+        <select name="modo" class="form-control">
+          <option value="socios">Excel OPS: hoja SOCIOS</option>
+          <option value="operativa">Excel OPS: generar plantilla desde OPERATIVA_HOTEL</option>
+          <option value="generico">Excel genérico de cliente</option>
+          <option value="todo_ops">OPS: roles + socios</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Hoja genérica</label>
+        <input type="text" name="hoja" class="form-control" value="EMPLEADOS">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Límite empleados</label>
+        <input type="number" name="limite" class="form-control" placeholder="Ej. 44">
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;">
+      <div class="form-group">
+        <label class="form-label">Tipo empleado</label>
+        <select name="tipo_empleado" class="form-control">
+          <option value="plantilla">Plantilla / ficticio</option>
+          <option value="real">Empleado real</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Estrategia operativa</label>
+        <select name="estrategia_operativa" class="form-control">
+          <option value="sumatorio">Sumatorio por rol</option>
+          <option value="max_por_rol">Máximo por rol</option>
+        </select>
+      </div>
+      <div class="form-group" style="padding-top:28px;">
+        <label><input type="checkbox" name="solo_activos" value="1"> Solo activos</label>
+      </div>
+    </div>
+    <button class="btn btn-success"><i class="fas fa-upload"></i> Importar Excel</button>
+  </form>
+  {% if resultado %}
+  <div class="card" style="padding:15px;">
+    <h3 style="color:#ff6b00;">Resultado</h3>
+    <p>Categorías creadas: <strong>{{ resultado.categorias_creadas }}</strong></p>
+    <p>Categorías actualizadas: <strong>{{ resultado.categorias_actualizadas }}</strong></p>
+    <p>Empleados creados: <strong>{{ resultado.empleados_creados }}</strong></p>
+    <p>Empleados omitidos: <strong>{{ resultado.empleados_omitidos }}</strong></p>
+    <p>Centros creados: <strong>{{ resultado.centros_creados }}</strong></p>
+    {% if resultado.avisos %}<div class="alert alert-warning"><strong>Avisos:</strong><br>{% for a in resultado.avisos %}{{ a }}<br>{% endfor %}</div>{% endif %}
+    {% if resultado.errores %}<div class="alert alert-danger"><strong>Errores:</strong><br>{% for e in resultado.errores %}{{ e }}<br>{% endfor %}</div>{% endif %}
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

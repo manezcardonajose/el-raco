@@ -1,0 +1,194 @@
+{% extends "base.html" %}
+
+{% block title %}Expediente cliente{% endblock %}
+{% block breadcrumb %}Experiencia cliente / Expediente{% endblock %}
+
+{% block content %}
+<style>
+    .xp-head { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:16px; align-items:start; margin-bottom:18px; }
+    .xp-head h1 { margin:0 0 6px; color:#ff6b00; font-size:28px; }
+    .xp-mini, .xp-head p { color:var(--text-muted,#6b7280); }
+    .xp-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:12px; margin-bottom:16px; }
+    .xp-panel { border:1px solid var(--border-color,#d5dde7); background:var(--card-bg,#fff); border-radius:8px; overflow:hidden; margin-bottom:16px; }
+    .xp-panel h2 { margin:0; padding:14px 16px; color:#ff6b00; font-size:18px; border-bottom:1px solid var(--border-color,#d5dde7); background:rgba(255,107,0,.07); }
+    .xp-body { padding:14px 16px; }
+    .xp-kv { display:grid; grid-template-columns:130px minmax(0,1fr); gap:6px 10px; font-size:14px; }
+    .xp-kv span { color:var(--text-muted,#6b7280); }
+    .xp-table { width:100%; border-collapse:collapse; }
+    .xp-table th, .xp-table td { padding:10px 12px; border-bottom:1px solid var(--border-color,#d5dde7); text-align:left; vertical-align:top; }
+    .xp-table th { color:#ff6b00; font-size:12px; text-transform:uppercase; }
+    .xp-form { display:grid; gap:10px; }
+    .xp-form input, .xp-form select, .xp-form textarea {
+        width:100%; min-height:38px; border:1px solid var(--border-color,#d5dde7); border-radius:7px;
+        padding:8px 10px; background:var(--input-bg,#fff); color:var(--text-color,#16202a);
+    }
+    .xp-form textarea { min-height:84px; resize:vertical; }
+    .xp-badge { display:inline-flex; padding:3px 8px; border-radius:999px; color:#fff; background:#2563eb; font-size:12px; font-weight:700; }
+    .xp-badge.alta, .xp-badge.critica, .xp-badge.riesgo { background:#dc2626; }
+    .xp-badge.media, .xp-badge.escalado { background:#ea580c; }
+    .xp-badge.baja, .xp-badge.ok { background:#16a34a; }
+    .xp-badge.comprobacion, .xp-badge.accion, .xp-badge.cliente, .xp-badge.reincidencia, .xp-badge.seguridad { background:#2563eb; }
+    .xp-actions { display:flex; flex-wrap:wrap; gap:10px; }
+</style>
+
+<div class="xp-head">
+    <div>
+        <h1><i class="fas fa-search"></i> Expediente #{{ queja.id }}</h1>
+        <p>{{ queja.descripcion }}</p>
+    </div>
+    <div class="xp-actions">
+        <a class="btn btn-secondary" href="{{ url_for('experiencia.quejas') }}">Volver</a>
+        {% if queja.viajero_id %}
+        <a class="btn btn-primary" href="{{ url_for('experiencia.cliente_360', viajero_id=queja.viajero_id, reserva_id=queja.reserva_id) }}">Cliente 360</a>
+        {% elif queja.cliente_id %}
+        <a class="btn btn-primary" href="{{ url_for('experiencia.cliente_360', cliente_id=queja.cliente_id) }}">Cliente 360</a>
+        {% endif %}
+    </div>
+</div>
+
+<div class="xp-grid">
+    <section class="xp-panel">
+        <h2>Datos base</h2>
+        <div class="xp-body xp-kv">
+            <span>Cliente</span><strong>{{ queja.titular_nombre or '-' }}</strong>
+            <span>Habitacion</span><strong>{{ queja.habitacion or '-' }}</strong>
+            <span>Canal</span><strong>{{ queja.canal }}</strong>
+            <span>Categoria</span><strong>{{ queja.categoria }} / {{ queja.subcategoria or '-' }}</strong>
+            <span>Gravedad</span><strong><span class="xp-badge {{ queja.gravedad }}">{{ queja.gravedad }}</span></strong>
+            <span>Estado</span><strong>{{ queja.estado }}</strong>
+            <span>Responsable</span><strong>{{ queja.responsable or '-' }}</strong>
+            <span>Limite</span><strong>{{ queja.fecha_limite|fecha_es if queja.fecha_limite else '-' }}</strong>
+            <span>Incidencia</span><strong>{% if queja.incidencia_id %}#{{ queja.incidencia_id }}{% else %}-{% endif %}</strong>
+        </div>
+    </section>
+    <section class="xp-panel">
+        <h2>Analisis investigador</h2>
+        <div class="xp-body">
+            {% for item in analisis %}
+            <p><span class="xp-badge {{ item.tipo }}">{{ item.tipo }}</span> <strong>{{ item.titulo }}</strong><br><span class="xp-mini">{{ item.detalle }}</span></p>
+            {% endfor %}
+        </div>
+    </section>
+</div>
+
+{% if puede_gestionar %}
+<div class="xp-grid">
+    <section class="xp-panel">
+        <h2>Actualizar expediente</h2>
+        <div class="xp-body">
+            <form class="xp-form" method="post" action="{{ url_for('experiencia.actualizar_queja', queja_id=queja.id) }}">
+                <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:10px;">
+                    <select name="estado">
+                        {% for value, label in estados %}
+                        <option value="{{ value }}" {% if queja.estado == value %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                    <select name="gravedad">
+                        {% for value, label in gravedades %}
+                        <option value="{{ value }}" {% if queja.gravedad == value %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                    <input type="text" name="responsable" value="{{ queja.responsable or '' }}" placeholder="Responsable">
+                </div>
+                <textarea name="causa_raiz" placeholder="Causa raiz">{{ queja.causa_raiz or '' }}</textarea>
+                <textarea name="comprobaciones_resumen" placeholder="Resumen de comprobaciones">{{ queja.comprobaciones_resumen or '' }}</textarea>
+                <textarea name="acciones_correctivas" placeholder="Acciones correctivas">{{ queja.acciones_correctivas or '' }}</textarea>
+                <textarea name="seguimiento_cliente" placeholder="Seguimiento al cliente">{{ queja.seguimiento_cliente or '' }}</textarea>
+                <textarea name="resultado_cliente" placeholder="Resultado cliente">{{ queja.resultado_cliente or '' }}</textarea>
+                <textarea name="aprendizaje" placeholder="Aprendizaje para el hotel">{{ queja.aprendizaje or '' }}</textarea>
+                <button class="btn btn-success" type="submit"><i class="fas fa-save"></i> Guardar</button>
+            </form>
+        </div>
+    </section>
+    <section class="xp-panel">
+        <h2>Escalar si procede</h2>
+        <div class="xp-body">
+            <p class="xp-mini">Solo se escala cuando la investigacion confirma que hace falta parte operativo.</p>
+            <form class="xp-form" method="post" action="{{ url_for('experiencia.escalar_queja', queja_id=queja.id) }}">
+                <select name="destino">
+                    <option value="incidencias">Incidencia general</option>
+                    <option value="mantenimiento">Mantenimiento</option>
+                    <option value="pisos">Pisos</option>
+                    <option value="recepcion">Recepcion</option>
+                    <option value="appcc">APPCC</option>
+                </select>
+                <button class="btn btn-warning" type="submit"><i class="fas fa-share"></i> Escalar</button>
+            </form>
+        </div>
+    </section>
+</div>
+{% endif %}
+
+<div class="xp-grid">
+    <section class="xp-panel">
+        <h2>Comprobaciones</h2>
+        <div class="xp-body">
+            {% if puede_gestionar %}
+            <form class="xp-form" method="post" action="{{ url_for('experiencia.agregar_comprobacion', queja_id=queja.id) }}">
+                <input type="text" name="area" placeholder="Area comprobada">
+                <textarea name="comprobacion" placeholder="Que se comprueba"></textarea>
+                <textarea name="resultado" placeholder="Resultado"></textarea>
+                <input type="text" name="evidencia" placeholder="Evidencia: foto, parte, persona, documento...">
+                <button class="btn btn-primary" type="submit"><i class="fas fa-check"></i> Registrar comprobacion</button>
+            </form>
+            {% endif %}
+            <table class="xp-table" style="margin-top:12px;">
+                <tbody>
+                    {% for c in comprobaciones %}
+                    <tr>
+                        <td>{{ c.fecha|fecha_es }}<span class="xp-mini">{{ c.area or '-' }} / {{ c.usuario or '-' }}</span></td>
+                        <td><strong>{{ c.comprobacion }}</strong><span class="xp-mini">{{ c.resultado or '' }}</span><span class="xp-mini">{{ c.evidencia or '' }}</span></td>
+                    </tr>
+                    {% else %}
+                    <tr><td>No hay comprobaciones registradas.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+    <section class="xp-panel">
+        <h2>Acciones</h2>
+        <div class="xp-body">
+            {% if puede_gestionar %}
+            <form class="xp-form" method="post" action="{{ url_for('experiencia.agregar_accion', queja_id=queja.id) }}">
+                <input type="text" name="descripcion" placeholder="Accion inmediata/correctiva/seguimiento">
+                <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(130px,1fr)); gap:10px;">
+                    <select name="tipo">
+                        <option value="inmediata">Inmediata</option>
+                        <option value="correctiva">Correctiva</option>
+                        <option value="preventiva">Preventiva</option>
+                        <option value="compensacion">Compensacion</option>
+                    </select>
+                    <input type="text" name="responsable" placeholder="Responsable">
+                    <input type="date" name="fecha_limite">
+                    <input type="text" name="coste" placeholder="Coste">
+                </div>
+                <textarea name="resultado" placeholder="Resultado o avance"></textarea>
+                <button class="btn btn-primary" type="submit"><i class="fas fa-plus"></i> Registrar accion</button>
+            </form>
+            {% endif %}
+            <table class="xp-table" style="margin-top:12px;">
+                <tbody>
+                    {% for a in acciones %}
+                    <tr>
+                        <td>{{ a.tipo }}<span class="xp-mini">{{ a.estado }} / {{ a.responsable or '-' }}</span></td>
+                        <td><strong>{{ a.descripcion }}</strong><span class="xp-mini">Coste {{ (a.coste or 0)|euros }} / Limite {{ a.fecha_limite|fecha_es if a.fecha_limite else '-' }}</span><span class="xp-mini">{{ a.resultado or '' }}</span></td>
+                    </tr>
+                    {% else %}
+                    <tr><td>No hay acciones registradas.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+</div>
+
+<section class="xp-panel">
+    <h2>Comprobaciones sugeridas</h2>
+    <div class="xp-body">
+        {% for s in sugerencias %}
+        <p class="xp-mini">- {{ s }}</p>
+        {% endfor %}
+    </div>
+</section>
+{% endblock %}

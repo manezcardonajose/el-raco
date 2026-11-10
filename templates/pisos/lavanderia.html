@@ -1,0 +1,155 @@
+{% extends 'base.html' %}
+{% block title %}Lavanderia pisos{% endblock %}
+{% block breadcrumb %}Pisos / Lavanderia{% endblock %}
+{% block content %}
+<style>
+  .px-actions{display:flex;gap:6px;flex-wrap:wrap;align-items:center;}
+  .px-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;align-items:end;}
+  .px-card{border:1px solid #334155;border-radius:6px;background:#111827;padding:10px;}
+  .px-card span{display:block;color:#94a3b8;font-size:12px;}
+  .px-card strong{display:block;font-size:20px;margin-top:3px;}
+  .px-note{color:#94a3b8;font-size:12px;line-height:1.35;}
+  .px-pill{display:inline-block;border:1px solid #475569;border-radius:4px;padding:2px 6px;font-size:12px;background:#0f172a;}
+  .px-row-form{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:6px;align-items:end;min-width:420px;}
+  @media (max-width:900px){.px-row-form{min-width:0;}}
+</style>
+
+<div class="card">
+  <div class="card-header">
+    <h2><i class="fas fa-soap"></i> Control de lavanderia</h2>
+    <div class="px-actions">
+      <a class="btn btn-secondary" href="{{ url_for('pisos.lenceria', desde=filtros.desde, hasta=filtros.hasta) }}"><i class="fas fa-tshirt"></i> Lenceria</a>
+      <a class="btn btn-secondary" href="{{ url_for('pisos.dashboard') }}"><i class="fas fa-list"></i> Parte</a>
+      <a class="btn btn-secondary" href="{{ url_for('pisos.configuracion') }}"><i class="fas fa-cog"></i> Reglas</a>
+      <a class="btn btn-secondary" target="_blank" href="{{ url_for('pisos.lavanderia', desde=filtros.desde, hasta=filtros.hasta, circuito=filtros.circuito, estado=filtros.estado, imprimir=1) }}"><i class="fas fa-print"></i> Imprimir</a>
+    </div>
+  </div>
+  <p class="px-note">Modo actual: <strong>{{ modos_lavanderia.get(config.modo_lavanderia, config.modo_lavanderia or 'mixta') }}</strong>. Cada movimiento puede ir por lavanderia propia o externa.</p>
+  <form method="get" class="px-grid">
+    <div class="form-group"><label class="form-label">Desde</label><input class="form-control" type="date" name="desde" value="{{ filtros.desde }}"></div>
+    <div class="form-group"><label class="form-label">Hasta</label><input class="form-control" type="date" name="hasta" value="{{ filtros.hasta }}"></div>
+    <div class="form-group"><label class="form-label">Circuito</label><select class="form-control" name="circuito">
+      <option value="">Todos</option>
+      {% for key,label in circuitos.items() %}<option value="{{ key }}" {% if filtros.circuito == key %}selected{% endif %}>{{ label }}</option>{% endfor %}
+    </select></div>
+    <div class="form-group"><label class="form-label">Estado</label><select class="form-control" name="estado">
+      <option value="">Todos</option>
+      {% for key,label in estados.items() %}<option value="{{ key }}" {% if filtros.estado == key %}selected{% endif %}>{{ label }}</option>{% endfor %}
+    </select></div>
+    <button class="btn btn-primary" type="submit"><i class="fas fa-search"></i> Ver</button>
+  </form>
+</div>
+
+<div class="card">
+  <div class="card-header"><h2><i class="fas fa-chart-pie"></i> Resumen</h2></div>
+  <div class="px-grid">
+    {% for r in resumen %}
+    <div class="px-card">
+      <span>{{ circuitos.get(r.circuito, r.circuito) }} · {{ estados.get(r.estado, r.estado) }}</span>
+      <strong>S{{ r.sabanas or 0 }} T{{ r.toallas or 0 }}</strong>
+      <span>{{ r.movimientos }} mov. · {{ (r.coste_real or 0)|round(2) }} €</span>
+    </div>
+    {% else %}
+    <div class="px-note">Sin movimientos con estos filtros.</div>
+    {% endfor %}
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header"><h2><i class="fas fa-plus"></i> Lavanderias / proveedores</h2></div>
+  <form method="post" class="px-grid" style="margin-bottom:16px;">
+    <input type="hidden" name="accion" value="crear_lavanderia">
+    <div class="form-group"><label class="form-label">Nombre</label><input class="form-control" name="nombre" required></div>
+    <div class="form-group"><label class="form-label">Tipo</label><select class="form-control" name="tipo">
+      {% for key,label in circuitos.items() %}<option value="{{ key }}">{{ label }}</option>{% endfor %}
+    </select></div>
+    <div class="form-group"><label class="form-label">Contacto</label><input class="form-control" name="contacto"></div>
+    <div class="form-group"><label class="form-label">Telefono</label><input class="form-control" name="telefono"></div>
+    <div class="form-group"><label class="form-label">Productos lavado</label><input class="form-control" name="productos_lavado"></div>
+    <div class="form-group"><label class="form-label">Instrucciones</label><input class="form-control" name="instrucciones"></div>
+    <button class="btn btn-success" type="submit"><i class="fas fa-save"></i> Crear</button>
+  </form>
+  <div class="table-container">
+    <table>
+      <thead><tr><th>Nombre</th><th>Tipo</th><th>Contacto</th><th>Productos</th><th>Estado</th><th>Accion</th></tr></thead>
+      <tbody>
+        {% for l in lavanderias %}
+        <tr>
+          <td><strong>{{ l.nombre }}</strong><div class="px-note">{{ l.direccion or '' }}</div></td>
+          <td>{{ circuitos.get(l.tipo, l.tipo) }}</td>
+          <td>{{ l.contacto or '-' }}{% if l.telefono %}<div class="px-note">{{ l.telefono }}</div>{% endif %}</td>
+          <td>{{ l.productos_lavado or '-' }}{% if l.instrucciones %}<div class="px-note">{{ l.instrucciones }}</div>{% endif %}</td>
+          <td><span class="px-pill">{% if l.activo %}Activa{% else %}Inactiva{% endif %}</span></td>
+          <td>
+            <form method="post">
+              <input type="hidden" name="accion" value="toggle_lavanderia">
+              <input type="hidden" name="lavanderia_id" value="{{ l.id }}">
+              <button class="btn btn-sm btn-secondary" type="submit">{% if l.activo %}Desactivar{% else %}Activar{% endif %}</button>
+            </form>
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="6">Sin lavanderias registradas.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header"><h2><i class="fas fa-truck-loading"></i> Movimientos</h2></div>
+  <div class="table-container">
+    <table>
+      <thead><tr><th>Fecha</th><th>Origen</th><th>Cantidades</th><th>Lavanderia</th><th>Control</th></tr></thead>
+      <tbody>
+        {% for m in movimientos %}
+        <tr>
+          <td>{{ m.fecha }}<div class="px-note">Reg. {{ m.fecha_registro }}</div></td>
+          <td>
+            {{ m.habitacion_numero or m.habitacion_nombre or '-' }}
+            {% if m.reserva_codigo %}<div class="px-note">{{ m.reserva_codigo }} · {{ m.titular_nombre }}</div>{% endif %}
+          </td>
+          <td>S{{ m.sabanas or 0 }} T{{ m.toallas or 0 }} A{{ m.alfombrines or 0 }}</td>
+          <td>
+            <span class="px-pill">{{ circuitos.get(m.circuito_lavanderia, m.circuito_lavanderia or 'propia') }}</span>
+            <span class="px-pill">{{ estados.get(m.estado_lavanderia, m.estado_lavanderia or 'pendiente') }}</span>
+            <div class="px-note">{{ m.lavanderia_nombre or m.proveedor_lavanderia or '-' }}</div>
+            {% if m.lote_lavanderia %}<div class="px-note">Lote salida: {{ m.lote_lavanderia }}</div>{% endif %}
+            {% if m.lote_retorno %}<div class="px-note">Lote retorno: {{ m.lote_retorno }}</div>{% endif %}
+            {% if m.albaran_lavanderia %}<div class="px-note">Albaran: {{ m.albaran_lavanderia }}</div>{% endif %}
+          </td>
+          <td>
+            <form method="post" class="px-row-form">
+              <input type="hidden" name="accion" value="movimiento">
+              <input type="hidden" name="movimiento_id" value="{{ m.id }}">
+              <label class="form-group"><span class="form-label">Circuito</span><select class="form-control" name="circuito_lavanderia">
+                {% for key,label in circuitos.items() %}<option value="{{ key }}" {% if m.circuito_lavanderia == key %}selected{% endif %}>{{ label }}</option>{% endfor %}
+              </select></label>
+              <label class="form-group"><span class="form-label">Lavanderia</span><select class="form-control" name="lavanderia_proveedor_id">
+                <option value="">Sin asignar</option>
+                {% for l in lavanderias if l.activo %}
+                <option value="{{ l.id }}" {% if m.lavanderia_proveedor_id == l.id %}selected{% endif %}>{{ l.nombre }}</option>
+                {% endfor %}
+              </select></label>
+              <label class="form-group"><span class="form-label">Estado</span><select class="form-control" name="estado_lavanderia">
+                {% for key,label in estados.items() %}<option value="{{ key }}" {% if m.estado_lavanderia == key %}selected{% endif %}>{{ label }}</option>{% endfor %}
+              </select></label>
+              <label class="form-group"><span class="form-label">Salida</span><input class="form-control" type="date" name="fecha_salida" value="{{ m.fecha_salida or '' }}"></label>
+              <label class="form-group"><span class="form-label">Retorno prev.</span><input class="form-control" type="date" name="fecha_retorno_prevista" value="{{ m.fecha_retorno_prevista or '' }}"></label>
+              <label class="form-group"><span class="form-label">Retorno</span><input class="form-control" type="date" name="fecha_retorno" value="{{ m.fecha_retorno or '' }}"></label>
+              <label class="form-group"><span class="form-label">Kg</span><input class="form-control" type="number" step="0.01" name="kg_estimados" value="{{ m.kg_estimados or 0 }}"></label>
+              <label class="form-group"><span class="form-label">Coste real</span><input class="form-control" type="number" step="0.01" name="coste_real" value="{{ m.coste_real or 0 }}"></label>
+              <label class="form-group"><span class="form-label">Albaran</span><input class="form-control" name="albaran_lavanderia" value="{{ m.albaran_lavanderia or '' }}"></label>
+              <label class="form-group"><span class="form-label">Lote retorno</span><input class="form-control" name="lote_retorno" value="{{ m.lote_retorno or '' }}"></label>
+              <button class="btn btn-sm btn-primary" type="submit"><i class="fas fa-save"></i> Guardar</button>
+            </form>
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="5">No hay movimientos de lavanderia.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

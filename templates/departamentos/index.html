@@ -1,0 +1,176 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="card">
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+        <div>
+            <h2 style="color: #ff6b00;">Departamentos</h2>
+            <p style="color: #999;">Estructura organizativa del hotel/restaurante</p>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            {% if mostrar_inactivos %}
+            <a href="{{ url_for('departamentos.index') }}" class="btn btn-secondary">Ver solo activos</a>
+            {% else %}
+            <a href="{{ url_for('departamentos.index', inactivos=1) }}" class="btn btn-secondary">Ver inactivos</a>
+            {% endif %}
+            <a href="{{ url_for('departamentos.nuevo_departamento', centro_id=centro_id) if centro_id else url_for('departamentos.nuevo_departamento') }}" class="btn btn-success">Nuevo departamento</a>
+        </div>
+    </div>
+
+    <form method="get" style="display:flex;gap:10px;flex-wrap:wrap;margin-top:15px;align-items:end;">
+        <div>
+            <label>Centro / hotel</label>
+            <select name="centro_id" class="form-control">
+                {% if not centro_activo_id %}
+                <option value="">Todos</option>
+                {% endif %}
+                {% for c in centros %}
+                <option value="{{ c.id }}" {% if centro_id|string == c.id|string %}selected{% endif %}>{{ c.nombre }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        {% if mostrar_inactivos %}<input type="hidden" name="inactivos" value="1">{% endif %}
+        <button class="btn btn-primary" type="submit">Filtrar</button>
+    </form>
+    
+    <div class="departamentos-grid">
+        {% for d in departamentos %}
+        <div class="departamento-card">
+            <div class="departamento-header">
+                <h3>{{ d.nombre }}</h3>
+                <span class="estado {% if d.activo %}activo{% else %}inactivo{% endif %}">
+                    {% if d.activo %}Activo{% else %}Inactivo{% endif %}
+                </span>
+            </div>
+            
+            {% if d.descripcion %}
+            <p class="descripcion">{{ d.descripcion }}</p>
+            {% endif %}
+            
+            <div class="estadisticas">
+                <div><span class="numero">{{ d.num_sub }}</span> subdeptos.</div>
+                <div><span class="numero">{{ d.num_puntos }}</span> puntos venta</div>
+            </div>
+            
+            <div class="acciones">
+                <a href="/departamentos/{{ d.id }}" class="btn-small btn-info">Ver</a>
+                <a href="/departamentos/{{ d.id }}/editar" class="btn-small btn-primary">Editar</a>
+                <a href="{{ url_for('departamentos.nuevo_subdepartamento', depto=d.id) }}" class="btn-small btn-success">Subdepto</a>
+                <form method="POST" action="/departamentos/{{ d.id }}/eliminar" style="display:inline;">
+                    <button type="submit" class="btn-small btn-danger" onclick="return confirm('¿Eliminar departamento?')">Eliminar</button>
+                </form>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<style>
+    .departamentos-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+        gap: 20px;
+        margin-top: 30px;
+    }
+    
+    .departamento-card {
+        background: linear-gradient(135deg, #3a3f44 0%, #2b2f33 100%);
+        border-radius: 8px;
+        overflow: hidden;
+        border-left: 4px solid #ff6b00;
+        padding: 20px;
+    }
+    
+    .departamento-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 10px;
+    }
+    
+    .departamento-header h3 {
+        margin: 0;
+        color: #ff6b00;
+        font-size: 18px;
+    }
+    
+    .estado {
+        color: white;
+        padding: 3px 8px;
+        border-radius: 12px;
+        font-size: 11px;
+        font-weight: bold;
+    }
+    
+    .estado.activo {
+        background: #28a745;
+    }
+    
+    .estado.inactivo {
+        background: #dc3545;
+    }
+    
+    .descripcion {
+        color: #ccc;
+        font-size: 13px;
+        margin: 10px 0;
+        line-height: 1.4;
+    }
+    
+    .estadisticas {
+        display: flex;
+        gap: 15px;
+        margin: 15px 0;
+        color: #999;
+    }
+    
+    .numero {
+        color: #ff6b00;
+        font-weight: bold;
+        font-size: 16px;
+    }
+    
+    .acciones {
+        display: flex;
+        gap: 10px;
+        margin-top: 15px;
+        flex-wrap: wrap;
+    }
+    
+    .btn-small {
+        padding: 5px 10px;
+        border-radius: 4px;
+        text-decoration: none;
+        font-size: 12px;
+        transition: all 0.2s;
+        display: inline-block;
+        border: none;
+        cursor: pointer;
+    }
+    
+    .btn-small:hover {
+        opacity: 0.8;
+        transform: translateY(-2px);
+    }
+    
+    .btn-info {
+        background: #17a2b8;
+        color: white;
+    }
+    
+    .btn-primary {
+        background: #007bff;
+        color: white;
+    }
+    
+    .btn-success {
+        background: #28a745;
+        color: white;
+    }
+
+    .btn-danger {
+        background: #dc3545;
+        color: white;
+    }
+</style>
+{% endblock %}

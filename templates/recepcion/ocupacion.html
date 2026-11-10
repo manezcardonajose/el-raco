@@ -1,0 +1,179 @@
+{% extends 'base.html' %}
+{% block title %}Ocupacion{% endblock %}
+{% block breadcrumb %}Recepcion / Ocupacion{% endblock %}
+{% block content %}
+<style>
+  .rx-occ-wrap{overflow:auto;border:1px solid #334155;border-radius:8px;}
+  .rx-occ-table{min-width:980px;border-collapse:collapse;width:100%;}
+  .rx-occ-table th,.rx-occ-table td{border:1px solid #334155;padding:6px;vertical-align:top;}
+  .rx-occ-table th{background:#111827;position:sticky;top:0;z-index:1;}
+  .rx-room{min-width:150px;background:#0f172a;font-weight:700;position:sticky;left:0;z-index:2;}
+  .rx-room small{display:block;color:#94a3b8;font-weight:500;margin-top:2px;}
+  .rx-cell{min-width:112px;min-height:64px;border-radius:6px;padding:7px;font-size:12px;line-height:1.25;}
+  .rx-free{background:#10251f;color:#bbf7d0;}
+  .rx-busy{background:#2d1f10;color:#fed7aa;}
+  .rx-block{background:#2b1220;color:#fecdd3;}
+  .rx-conflict{background:#3b0b0b;color:#fecaca;}
+  .rx-out{background:#172554;color:#bfdbfe;}
+  .rx-cell a{color:inherit;text-decoration:underline;}
+  .rx-cell strong{display:block;margin-bottom:3px;}
+  .rx-badges{display:flex;gap:4px;flex-wrap:wrap;margin-top:5px;}
+  .rx-badge{border:1px solid currentColor;border-radius:4px;padding:1px 4px;font-size:10px;}
+  .rx-legend{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:10px 0 16px;}
+  .rx-chip{border:1px solid #334155;border-radius:6px;padding:9px 10px;background:#111827;}
+  .rx-chip strong{display:block;font-size:18px;margin-top:2px;}
+  .rx-alert-list{display:grid;gap:8px;margin:12px 0;}
+  .rx-alert-item{border:1px solid #334155;border-radius:6px;padding:10px;background:#111827;}
+  .rx-muted{color:#94a3b8;}
+</style>
+
+<div class="card">
+  <div class="card-header">
+    <h2><i class="fas fa-th"></i> Ocupacion</h2>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+      <a class="btn btn-success" href="{{ url_for('recepcion.reserva_form') }}"><i class="fas fa-plus"></i> Nueva reserva</a>
+      <a class="btn btn-warning" href="{{ url_for('recepcion.overbooking_control', desde=desde, dias=dias) }}"><i class="fas fa-shield-halved"></i> Control overbooking</a>
+      <a class="btn btn-secondary" href="{{ url_for('recepcion.bloqueos') }}"><i class="fas fa-ban"></i> Bloqueos</a>
+      <a class="btn btn-secondary" href="{{ url_for('recepcion.habitaciones') }}"><i class="fas fa-bed"></i> Habitaciones</a>
+    </div>
+  </div>
+
+  <form method="get" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;align-items:end;margin-bottom:16px;">
+    <div class="form-group"><label class="form-label">Desde</label><input class="form-control" type="date" name="desde" value="{{ desde }}"></div>
+    <div class="form-group"><label class="form-label">Dias</label><input class="form-control" type="number" min="1" max="31" name="dias" value="{{ dias }}"></div>
+    <div class="form-group"><label class="form-label">Bloque</label><select class="form-control" name="bloque">
+      <option value="">Todos</option>
+      {% for b in bloques %}
+      <option value="{{ b.bloque }}" {% if filtros.bloque == b.bloque %}selected{% endif %}>{{ b.bloque }}</option>
+      {% endfor %}
+    </select></div>
+    <div class="form-group"><label class="form-label">Planta</label><select class="form-control" name="planta">
+      <option value="">Todas</option>
+      {% for p in plantas %}
+      <option value="{{ p.planta }}" {% if filtros.planta == p.planta %}selected{% endif %}>{% if p.planta|string == '0' %}PB{% else %}{{ p.planta }}{% endif %}</option>
+      {% endfor %}
+    </select></div>
+    <div class="form-group"><label class="form-label">Tipo</label><select class="form-control" name="tipo_habitacion_id">
+      <option value="">Todos</option>
+      {% for t in tipos %}
+      <option value="{{ t.id }}" {% if filtros.tipo_habitacion_id == t.id %}selected{% endif %}>{{ t.nombre }} ({{ t.codigo }})</option>
+      {% endfor %}
+    </select></div>
+    <button class="btn btn-primary" type="submit">Ver</button>
+  </form>
+
+  <div class="rx-legend">
+    <span class="rx-chip">Habitaciones<strong>{{ resumen.habitaciones }}</strong></span>
+    <span class="rx-chip">Ocupacion<strong>{{ resumen.ocupacion_pct }}%</strong></span>
+    <span class="rx-chip">Bloqueadas<strong>{{ resumen.bloqueos_pct }}%</strong></span>
+    <span class="rx-chip">Llegadas<strong>{{ resumen.llegadas }}</strong></span>
+    <span class="rx-chip">Salidas<strong>{{ resumen.salidas }}</strong></span>
+    <span class="rx-chip">Sin habitacion<strong>{{ resumen.sin_asignar }}</strong></span>
+    <span class="rx-chip">Conflictos<strong>{{ resumen.conflictos }}</strong></span>
+  </div>
+
+  {% if conflictos %}
+  <div class="alert alert-danger">
+    Hay conflictos que revisar antes de vender o asignar mas habitaciones.
+  </div>
+  <div class="rx-alert-list">
+    {% for c in conflictos %}
+    <div class="rx-alert-item">
+      <strong>{{ c.fecha or '-' }} · {{ c.habitacion }}</strong>
+      <div>{{ c.descripcion }}</div>
+      {% for r in c.reservas %}
+      <div class="rx-muted">
+        Reserva:
+        <a href="{{ url_for('recepcion.reserva_detalle', id=r.id) }}">{{ r.codigo or r.localizador_externo or r.id }}</a>
+        · {{ r.titular_nombre or 'Sin titular' }} · {{ r.fecha_entrada }} / {{ r.fecha_salida }}
+      </div>
+      {% endfor %}
+      {% for b in c.bloqueos %}
+      <div class="rx-muted">Bloqueo: {{ b.motivo or 'bloqueo' }} · {{ b.fecha_inicio }} / {{ b.fecha_fin }}</div>
+      {% endfor %}
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  {% if reservas_sin_asignar %}
+  <div class="alert alert-warning">
+    Hay reservas sin habitacion asignada en el periodo seleccionado.
+  </div>
+  <div class="table-container" style="margin-bottom:16px;">
+    <table>
+      <thead><tr><th>Reserva</th><th>Titular</th><th>Fechas</th><th>Regimen</th><th>Canal</th><th>Accion</th></tr></thead>
+      <tbody>
+        {% for r in reservas_sin_asignar %}
+        <tr>
+          <td>{{ r.codigo or r.localizador_externo or r.id }}</td>
+          <td>{{ r.titular_nombre or '-' }}</td>
+          <td>{{ r.fecha_entrada }}<br><small>{{ r.fecha_salida }}</small></td>
+          <td>{{ r.regimen or '-' }}</td>
+          <td>{{ r.canal_nombre or r.origen or '-' }}</td>
+          <td><a class="btn btn-sm btn-primary" href="{{ url_for('recepcion.reserva_detalle', id=r.id) }}">Asignar</a></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% endif %}
+
+  <div class="rx-occ-wrap">
+    <table class="rx-occ-table">
+      <thead>
+        <tr>
+          <th class="rx-room">Habitacion</th>
+          {% for f in fechas %}
+          <th>{{ f.strftime('%d/%m') }}<br><small>{{ f.strftime('%a') }}</small></th>
+          {% endfor %}
+        </tr>
+      </thead>
+      <tbody>
+        {% for fila in matriz %}
+        <tr>
+          <td class="rx-room">
+            {{ fila.habitacion.numero }}
+            {% if fila.habitacion.nombre %}<small>{{ fila.habitacion.nombre }}</small>{% endif %}
+            <small>{% if fila.habitacion.bloque %}Bloque {{ fila.habitacion.bloque }} · {% endif %}{% if fila.habitacion.planta %}{% if fila.habitacion.planta|string == '0' %}Planta baja{% else %}Planta {{ fila.habitacion.planta }}{% endif %}{% endif %}</small>
+          </td>
+          {% for c in fila.celdas %}
+          <td>
+            <div class="rx-cell {% if c.tipo == 'conflicto' %}rx-conflict{% elif c.tipo == 'ocupada' %}rx-busy{% elif c.tipo == 'bloqueo' %}rx-block{% elif c.tipo == 'salida' %}rx-out{% else %}rx-free{% endif %}">
+              {% if c.reservas %}
+                <strong>{{ c.texto }}</strong>
+                {% for r in c.reservas %}
+                <div>
+                  <a href="{{ url_for('recepcion.reserva_detalle', id=r.id) }}">{{ r.codigo or r.localizador_externo or r.id }}</a>
+                </div>
+                {% endfor %}
+                <div class="rx-badges">
+                  {% if c.llegadas %}<span class="rx-badge">Entrada</span>{% endif %}
+                  {% if c.salida_manana %}<span class="rx-badge">Salida sig.</span>{% endif %}
+                  {% if c.tipo == 'conflicto' %}<span class="rx-badge">Revisar</span>{% endif %}
+                </div>
+              {% elif c.bloqueos %}
+                <strong>{{ c.texto }}</strong>
+                {% for b in c.bloqueos %}
+                <small>{{ b.fecha_inicio }} / {{ b.fecha_fin }}</small>
+                {% endfor %}
+              {% elif c.salidas %}
+                <strong>Salida</strong>
+                {% for r in c.salidas %}
+                <div><a href="{{ url_for('recepcion.reserva_detalle', id=r.id) }}">{{ r.titular_nombre or r.codigo or r.id }}</a></div>
+                {% endfor %}
+              {% else %}
+                {{ c.texto }}
+              {% endif %}
+            </div>
+          </td>
+          {% endfor %}
+        </tr>
+        {% else %}
+        <tr><td colspan="{{ fechas|length + 1 }}">No hay habitaciones activas con estos filtros.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

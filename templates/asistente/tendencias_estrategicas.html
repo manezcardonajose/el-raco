@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+
+{% block title %}Tendencias estrategicas{% endblock %}
+{% block breadcrumb %}<a href="{{ url_for('asistente.dashboard') }}">Asistente El Raco</a> / <a href="{{ url_for('asistente.radar_estrategico') }}">Radar estrategico</a> / Tendencias{% endblock %}
+
+{% block content %}
+<style>
+    .trend-head { margin-bottom: 16px; }
+    .trend-head h1 { margin: 0 0 6px; color: #ff6b00; font-size: 28px; }
+    .trend-head p { margin: 0; max-width: 980px; color: var(--text-muted,#5f6b7a); line-height: 1.45; }
+    .trend-actions { display:flex; gap:10px; flex-wrap:wrap; margin-bottom:16px; }
+    .trend-card-actions { display:flex; gap:8px; flex-wrap:wrap; margin-top:12px; }
+    .trend-grid { display:grid; gap:12px; }
+    .trend-card {
+        border:1px solid var(--border-color,#d5dde7);
+        border-radius:8px;
+        background:var(--card-bg,#fff);
+        padding:15px;
+        box-shadow:0 1px 2px rgba(0,0,0,.04);
+    }
+    .trend-card h2 { margin:8px 0; color:var(--text-color,#16202a); font-size:20px; }
+    .trend-card p { color:var(--text-muted,#5f6b7a); line-height:1.45; margin:7px 0; }
+    .trend-meta { display:flex; gap:8px; flex-wrap:wrap; }
+    .trend-badge {
+        border:1px solid var(--border-color,#d5dde7);
+        border-radius:999px;
+        padding:4px 9px;
+        font-size:12px;
+        font-weight:700;
+        color:var(--text-muted,#5f6b7a);
+        background:rgba(148,163,184,.08);
+    }
+    .trend-badge.alta { border-color:#f0a199; color:#b42318; }
+    .trend-badge.media { border-color:#f2c16d; color:#9a5b00; }
+    .trend-badge.info { border-color:#8fd3a2; color:#16803a; }
+    .trend-sources { display:grid; gap:7px; margin-top:10px; }
+    .trend-source {
+        border-top:1px solid var(--border-color,#d5dde7);
+        padding-top:7px;
+        color:var(--text-muted,#5f6b7a);
+        font-size:13px;
+    }
+</style>
+
+<div class="trend-head">
+    <h1><i class="fas fa-wave-square"></i> Tendencias estrategicas</h1>
+    <p>Agrupa las fuentes externas e internas por temas repetidos. Sirve para ver hacia donde se mueve el mercado antes de crear escenarios o decisiones.</p>
+</div>
+
+<div class="trend-actions">
+    <a class="btn btn-primary" href="{{ url_for('asistente.radar_estrategico') }}"><i class="fas fa-satellite-dish"></i> Radar</a>
+    <a class="btn btn-primary" href="{{ url_for('asistente.chat_estrategico') }}"><i class="fas fa-comments"></i> Chat</a>
+    <a class="btn btn-secondary" href="{{ url_for('asistente.aprendizaje') }}"><i class="fas fa-rss"></i> Fuentes</a>
+</div>
+
+<p style="color:var(--text-muted,#5f6b7a);">Fuentes analizadas: {{ fuentes_total }}.</p>
+
+<div class="trend-grid">
+    {% for t in tendencias %}
+    <article class="trend-card">
+        <div class="trend-meta">
+            <span class="trend-badge {{ t.prioridad }}">{{ t.prioridad|upper }}</span>
+            <span class="trend-badge">{{ t.senales }} senales</span>
+            <span class="trend-badge">Confianza {{ t.confianza_pct }}%</span>
+        </div>
+        <h2>{{ t.titulo }}</h2>
+        <p><strong>Lectura:</strong> {{ t.lectura }}</p>
+        <p><strong>Siguiente paso:</strong> {{ t.accion }}</p>
+        <div class="trend-card-actions">
+            <a class="btn btn-primary" href="{{ url_for('asistente.chat_estrategico', pregunta='Analiza esta tendencia sectorial: ' ~ t.titulo ~ '. ' ~ t.lectura ~ ' Siguiente paso: ' ~ t.accion) }}"><i class="fas fa-comments"></i> Preguntar al chat</a>
+            <form method="post" action="{{ url_for('asistente.guardar_tendencia_estrategica') }}">
+                <input type="hidden" name="tema" value="{{ t.tema }}">
+                <input type="hidden" name="titulo" value="{{ t.titulo }}">
+                <input type="hidden" name="prioridad" value="{{ t.prioridad }}">
+                <input type="hidden" name="lectura" value="{{ t.lectura }}">
+                <input type="hidden" name="accion" value="{{ t.accion }}">
+                <input type="hidden" name="senales" value="{{ t.senales }}">
+                <input type="hidden" name="confianza_pct" value="{{ t.confianza_pct }}">
+                <button class="btn btn-success" type="submit"><i class="fas fa-save"></i> Guardar tendencia</button>
+            </form>
+        </div>
+        <div class="trend-sources">
+            {% for f in t.fuentes %}
+            <div class="trend-source">
+                <strong>{{ f.titulo }}</strong>
+                <br><small>{{ f.autor or f.tipo }} - {{ f.confianza_pct }}% - {{ f.hits|join(', ') }}</small>
+                {% if f.url %}<br><a href="{{ f.url }}" target="_blank" rel="noopener noreferrer">{{ f.url }}</a>{% endif %}
+            </div>
+            {% endfor %}
+        </div>
+    </article>
+    {% else %}
+    <article class="trend-card">
+        <h2>Sin tendencias suficientes</h2>
+        <p>Lee mas fuentes externas o guarda mas conocimiento sectorial para que la IA detecte patrones.</p>
+    </article>
+    {% endfor %}
+</div>
+{% endblock %}

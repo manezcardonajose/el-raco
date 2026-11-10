@@ -1,0 +1,168 @@
+{% extends 'base.html' %}
+{% block title %}{{ factura.numero_completo }}{% endblock %}
+{% block breadcrumb %}Recepcion / Facturacion / {{ factura.numero_completo }}{% endblock %}
+{% block content %}
+<style>
+  .rx-invoice-head{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:16px;}
+  .rx-panel{border:1px solid #334155;background:#111827;border-radius:8px;padding:14px;}
+  .rx-letter-head{background:#fff;color:#111;border-radius:8px;padding:14px;margin-bottom:16px;}
+  .rx-print-only{display:none;}
+  @media print{
+    .sidebar,.topbar,.breadcrumb,.card-header .btn,.card-header form,.no-print{display:none!important;}
+    .main-content{margin:0!important;padding:0!important;}
+    .card{box-shadow:none!important;border:none!important;}
+    .rx-letter-head{background:#fff!important;color:#111!important;}
+    .rx-print-only{display:block;}
+  }
+  @media(max-width:800px){.rx-invoice-head{grid-template-columns:1fr;}}
+</style>
+
+<div class="card">
+  <div class="card-header">
+    <h2><i class="fas fa-file-invoice-dollar"></i> {{ factura.numero_completo }}</h2>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+      <button class="btn btn-info" onclick="window.print()">Imprimir</button>
+      {% if next_doc %}
+      <a class="btn btn-success" href="{{ url_for('recepcion.documentacion_cliente_checkin', id=next_doc, autoprint=1) }}">Documentacion cliente</a>
+      {% endif %}
+      <a class="btn btn-primary" href="{{ url_for('recepcion.reserva_detalle', id=factura.reserva_id) }}">Reserva</a>
+      <a class="btn btn-secondary" href="{{ url_for('recepcion.facturas') }}">Facturas</a>
+    </div>
+  </div>
+
+  <div class="rx-letter-head">
+    {% include 'recepcion/_empresa_print_header.html' %}
+  </div>
+
+  <div class="rx-invoice-head">
+    <div class="rx-panel">
+      <h3 style="margin-top:0;">{{ txt.documento }}</h3>
+      <p><strong>{{ txt.numero }}:</strong> {{ factura.numero_completo }}</p>
+      <p><strong>{{ txt.tipo }}:</strong> {{ factura.tipo }}</p>
+      <p><strong>{{ txt.fecha }}:</strong> {{ factura.fecha }}</p>
+      <p><strong>{{ txt.estado }}:</strong> {{ factura.estado }}</p>
+      <p><strong>{{ txt.reserva }}:</strong> {{ factura.reserva_codigo or ('#' ~ factura.reserva_id) }}</p>
+      <p><strong>{{ txt.habitacion }}:</strong> {{ factura.habitacion_numero or factura.habitacion_nombre or '-' }}</p>
+      <p><strong>Idioma:</strong> {{ idiomas_documento.get(factura.idioma, factura.idioma or 'es') }}</p>
+      <p><strong>Fiscalidad:</strong> {{ factura.impuesto_jurisdiccion or '-' }}</p>
+      <p><strong>VERI*FACTU:</strong> {{ factura.verifactu_estado or (config_fiscal.modo_verifactu if config_fiscal else 'pendiente') }}</p>
+      {% if factura.hash_factura %}<p><strong>Huella:</strong> <code>{{ factura.hash_factura[:24] }}...</code></p>{% endif %}
+      {% if factura.factura_rectificada_id %}
+      <p><strong>Rectifica:</strong> <a href="{{ url_for('recepcion.factura_detalle', id=factura.factura_rectificada_id) }}">{{ factura.factura_rectificada_numero or ('#' ~ factura.factura_rectificada_id) }}</a></p>
+      {% endif %}
+      {% if factura.rectificativa_id %}
+      <p><strong>Rectificada con:</strong> <a href="{{ url_for('recepcion.factura_detalle', id=factura.rectificativa_id) }}">{{ factura.rectificativa_numero or ('#' ~ factura.rectificativa_id) }}</a></p>
+      {% endif %}
+      {% if factura.motivo_rectificacion %}
+      <p><strong>Motivo:</strong> {{ factura.motivo_rectificacion }}</p>
+      {% endif %}
+    </div>
+    <div class="rx-panel">
+      <h3 style="margin-top:0;">{{ txt.cliente }}</h3>
+      <p><strong>{{ txt.nombre }}:</strong> {{ factura.cliente_nombre or '-' }}</p>
+      <p><strong>{{ txt.nif }}:</strong> {{ factura.cliente_nif or '-' }}</p>
+      <p><strong>{{ txt.email }}:</strong> {{ factura.cliente_email or '-' }}</p>
+      <p><strong>{{ txt.direccion }}:</strong> {{ factura.cliente_direccion or '-' }}</p>
+    </div>
+  </div>
+
+  {% if factura.tipo != 'rectificativa' and factura.estado not in ['anulada','rectificada'] %}
+  {% if (factura.total or 0) <= 0 and not lineas %}
+  <div class="rx-panel no-print" style="margin-bottom:16px;border-color:#f59e0b;">
+    <h3 style="margin-top:0;">Factura vacia</h3>
+    <p>Esta factura no tiene lineas ni importe. Puedes recalcularla desde la reserva si el precio, cargos e impuestos ya estan revisados.</p>
+    <form method="post" action="{{ url_for('recepcion.recalcular_factura_vacia', id=factura.id) }}">
+      <button class="btn btn-warning" type="submit">Recalcular factura vacia</button>
+    </form>
+  </div>
+  {% endif %}
+  <div class="rx-panel no-print" style="margin-bottom:16px;">
+    <h3 style="margin-top:0;">Rectificativa / abono</h3>
+    <form method="post" action="{{ url_for('recepcion.rectificar_factura', id=factura.id) }}" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;align-items:end;">
+      <div class="form-group">
+        <label class="form-label">Fecha</label>
+        <input class="form-control" type="date" name="fecha" value="{{ factura.fecha }}">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Serie</label>
+        <input class="form-control" name="serie" value="REC-R">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Motivo</label>
+        <input class="form-control" name="motivo" value="Rectificacion total de {{ factura.numero_completo }}">
+      </div>
+      <button class="btn btn-danger" type="submit">Crear rectificativa</button>
+    </form>
+  </div>
+  {% endif %}
+
+  <div class="table-container">
+    <table>
+      <thead><tr><th>{{ txt.concepto }}</th><th>{{ txt.cantidad }}</th><th>{{ txt.precio }}</th><th>{{ txt.base }}</th><th>{{ txt.impuesto }}</th><th>%</th><th>{{ txt.impuesto }}</th><th>{{ txt.total }}</th></tr></thead>
+      <tbody>
+        {% for l in lineas %}
+        <tr>
+          <td>{{ l.concepto }}</td>
+          <td>{{ '%.2f'|format(l.cantidad or 0) }}</td>
+          <td>{{ '%.2f'|format(l.precio_unitario or 0) }} &euro;</td>
+          <td>{{ '%.2f'|format(l.base or 0) }} &euro;</td>
+          <td>{{ l.impuesto_nombre or l.impuesto_codigo or '-' }}</td>
+          <td>{{ '%.2f'|format(l.impuesto_pct or 0) }}</td>
+          <td>{{ '%.2f'|format(l.impuesto or 0) }} &euro;</td>
+          <td>{{ '%.2f'|format(l.total or 0) }} &euro;</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="8">{{ txt.sin_lineas }}</td></tr>
+        {% endfor %}
+      </tbody>
+      <tfoot>
+        <tr><th colspan="3"></th><th>{{ '%.2f'|format(factura.base or 0) }} &euro;</th><th></th><th></th><th>{{ '%.2f'|format(factura.impuestos or 0) }} &euro;</th><th>{{ '%.2f'|format(factura.total or 0) }} &euro;</th></tr>
+      </tfoot>
+    </table>
+  </div>
+
+  <div class="rx-invoice-head" style="margin-top:16px;">
+    <div class="rx-panel">
+      <h3 style="margin-top:0;">{{ txt.pagos }}</h3>
+      {% for p in pagos %}
+      <p>{{ p.fecha }} - {{ p.concepto or 'Pago' }}: <strong>{{ '%.2f'|format(p.importe or 0) }} &euro;</strong> ({{ p.estado }})</p>
+      {% else %}
+      <p>{{ txt.sin_pagos }}</p>
+      {% endfor %}
+    </div>
+    <div class="rx-panel">
+      <h3 style="margin-top:0;">{{ txt.total }}</h3>
+      <p><strong>{{ txt.total }}:</strong> {{ '%.2f'|format(factura.total or 0) }} &euro;</p>
+      <p><strong>{{ txt.pagado }}:</strong> {{ '%.2f'|format(factura.pagado or 0) }} &euro;</p>
+      <p><strong>{{ txt.saldo }}:</strong> {{ '%.2f'|format(factura.saldo or 0) }} &euro;</p>
+      {% if factura.estado != 'rectificada' %}
+      <form class="no-print" method="post" action="{{ url_for('recepcion.cambiar_estado_factura', id=factura.id) }}" style="display:flex;gap:8px;flex-wrap:wrap;align-items:end;">
+        <select class="form-control" name="estado" style="min-width:150px;">
+          {% for e in ['emitida','cobrada','anulada'] %}
+          <option value="{{ e }}" {% if factura.estado == e %}selected{% endif %}>{{ e }}</option>
+          {% endfor %}
+        </select>
+        <button class="btn btn-success" type="submit">Actualizar</button>
+      </form>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="rx-panel" style="margin-top:16px;">
+    <h3 style="margin-top:0;">Trazabilidad fiscal</h3>
+    <p><strong>Huella factura:</strong> {{ factura.hash_factura or '-' }}</p>
+    <p><strong>Huella anterior:</strong> {{ factura.hash_anterior or '-' }}</p>
+    <p><strong>Texto QR / cotejo:</strong> {{ factura.qr_texto or '-' }}</p>
+    {% if config_fiscal and config_fiscal.texto_pie_factura %}
+    <p style="white-space:pre-wrap;">{{ config_fiscal.texto_pie_factura }}</p>
+    {% endif %}
+  </div>
+</div>
+{% if autoprint %}
+<script>
+  window.addEventListener('load', function(){
+    setTimeout(function(){ window.print(); }, 350);
+  });
+</script>
+{% endif %}
+{% endblock %}

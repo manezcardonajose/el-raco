@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="card">
+    <div class="card-header">
+        <h2><i class="fas fa-edit"></i> Editar proveedor: {{ proveedor.nombre }}</h2>
+        <a href="{{ url_for('proveedores.proveedores') }}" class="btn btn-secondary">Volver</a>
+    </div>
+    <form method="POST">
+        <div class="form-group">
+            <label class="form-label">Nombre</label>
+            <input type="text" name="nombre" value="{{ proveedor.nombre }}" required class="form-control">
+        </div>
+        <div class="form-group">
+            <label class="form-label">NIF</label>
+            <input type="text" name="nif" value="{{ proveedor.nif or '' }}" class="form-control">
+        </div>
+        <div class="form-group">
+            <label class="form-label">Email</label>
+            <input type="email" name="email" value="{{ proveedor.email or '' }}" class="form-control">
+        </div>
+        <div class="form-group">
+            <label class="form-label">Email pedidos</label>
+            <input type="email" name="email_pedidos" value="{{ proveedor.email_pedidos or '' }}" class="form-control">
+        </div>
+        <div class="form-group">
+            <label class="form-label">Teléfono</label>
+            <input type="text" name="telefono" value="{{ proveedor.telefono or '' }}" class="form-control">
+        </div>
+        <div class="form-group">
+            <label class="form-label">Telefono pedidos</label>
+            <input type="text" name="telefono_pedidos" value="{{ proveedor.telefono_pedidos or '' }}" class="form-control">
+        </div>
+        <div class="form-group">
+            <label class="form-label">Dirección</label>
+            <input type="text" name="direccion" value="{{ proveedor.direccion or '' }}" class="form-control">
+        </div>
+        <div class="form-group">
+            <label class="form-label">Contacto</label>
+            <input type="text" name="contacto" value="{{ proveedor.contacto or '' }}" class="form-control">
+        </div>
+        <div class="form-group">
+            <label class="form-label">Contacto pedidos</label>
+            <input type="text" name="contacto_pedidos" value="{{ proveedor.contacto_pedidos or '' }}" class="form-control">
+        </div>
+        <div class="form-group">
+            <label class="form-label">Centro</label>
+            <select name="centro_id" class="form-control">
+                <option value="global" {% if not proveedor.centro_id %}selected{% endif %}>Proveedor matriz / cadena</option>
+                {% for c in centros %}
+                <option value="{{ c.id }}" {% if proveedor.centro_id and c.id == proveedor.centro_id %}selected{% endif %}>{{ c.nombre }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="form-group">
+            <label class="form-label">Proveedor matriz</label>
+            <select name="proveedor_padre_id" class="form-control">
+                <option value="">Sin matriz</option>
+                {% for p in matrices %}
+                <option value="{{ p.id }}" {% if p.id == proveedor.proveedor_padre_id %}selected{% endif %}>{{ p.nombre }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="form-group">
+            <label class="form-label">Delegacion</label>
+            <input type="text" name="delegacion" value="{{ proveedor.delegacion or '' }}" class="form-control">
+        </div>
+        <div class="form-group">
+            <label class="form-label">Observaciones</label>
+            <textarea name="observaciones" rows="3" class="form-control">{{ proveedor.observaciones or '' }}</textarea>
+        </div>
+        <div class="form-group">
+            <label>
+                <input type="checkbox" name="activo" {% if proveedor.activo %}checked{% endif %}> Activo
+            </label>
+        </div>
+        <button type="submit" class="btn btn-success"><i class="fas fa-save"></i> Guardar cambios</button>
+    </form>
+</div>
+{% endblock %}

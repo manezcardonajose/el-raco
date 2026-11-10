@@ -1,0 +1,97 @@
+{% extends 'base.html' %}
+{% block title %}Caja recepcion{% endblock %}
+{% block breadcrumb %}Recepcion / Caja{% endblock %}
+{% block content %}
+<style>
+  .rx-summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:16px;}
+  .rx-box{border:1px solid #334155;background:#111827;border-radius:8px;padding:14px;}
+  .rx-box span{display:block;color:#94a3b8;font-size:12px;}
+  .rx-box strong{font-size:22px;}
+</style>
+
+<div class="card">
+  <div class="card-header">
+    <h2><i class="fas fa-cash-register"></i> Caja recepcion</h2>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+      <a class="btn btn-info" href="{{ url_for('recepcion.exportar_caja_recepcion', fecha=fecha) }}"><i class="fas fa-file-csv"></i> Exportar CSV</a>
+    </div>
+  </div>
+
+  <form method="get" action="{{ url_for('recepcion.caja_recepcion') }}" style="display:flex;gap:10px;flex-wrap:wrap;align-items:end;margin-bottom:16px;">
+    <div class="form-group" style="margin:0;">
+      <label class="form-label">Fecha</label>
+      <input class="form-control" type="date" name="fecha" value="{{ fecha }}">
+    </div>
+    <button class="btn btn-primary" type="submit">Ver caja</button>
+  </form>
+
+  <div class="rx-summary">
+    <div class="rx-box"><span>Efectivo</span><strong>{{ '%.2f'|format(resumen.efectivo or 0) }} &euro;</strong></div>
+    <div class="rx-box"><span>Tarjeta / TPV</span><strong>{{ '%.2f'|format(resumen.tarjeta or 0) }} &euro;</strong></div>
+    <div class="rx-box"><span>Transferencia</span><strong>{{ '%.2f'|format(resumen.transferencia or 0) }} &euro;</strong></div>
+    <div class="rx-box"><span>Bizum</span><strong>{{ '%.2f'|format(resumen.bizum or 0) }} &euro;</strong></div>
+    <div class="rx-box"><span>Otros</span><strong>{{ '%.2f'|format(resumen.otros or 0) }} &euro;</strong></div>
+    <div class="rx-box"><span>Total sistema</span><strong>{{ '%.2f'|format(resumen.total or 0) }} &euro;</strong><br><small>{{ resumen.movimientos }} movimientos</small></div>
+  </div>
+</div>
+
+<div class="card" style="margin-top:16px;">
+  <div class="card-header"><h2><i class="fas fa-lock"></i> Cierre de caja</h2></div>
+  <form method="post" action="{{ url_for('recepcion.caja_recepcion') }}" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;align-items:end;">
+    <input type="hidden" name="fecha" value="{{ fecha }}">
+    <div class="form-group"><label class="form-label">Turno</label><input class="form-control" name="turno" value="dia"></div>
+    <div class="form-group"><label class="form-label">Efectivo real</label><input class="form-control" type="number" step="0.01" name="efectivo_real" value="{{ '%.2f'|format(resumen.efectivo or 0) }}"></div>
+    <div class="form-group"><label class="form-label">Tarjeta real</label><input class="form-control" type="number" step="0.01" name="tarjeta_real" value="{{ '%.2f'|format(resumen.tarjeta or 0) }}"></div>
+    <div class="form-group"><label class="form-label">Transferencia real</label><input class="form-control" type="number" step="0.01" name="transferencia_real" value="{{ '%.2f'|format(resumen.transferencia or 0) }}"></div>
+    <div class="form-group"><label class="form-label">Bizum real</label><input class="form-control" type="number" step="0.01" name="bizum_real" value="{{ '%.2f'|format(resumen.bizum or 0) }}"></div>
+    <div class="form-group"><label class="form-label">Otros real</label><input class="form-control" type="number" step="0.01" name="otros_real" value="{{ '%.2f'|format(resumen.otros or 0) }}"></div>
+    <div class="form-group" style="grid-column:1/-1;"><label class="form-label">Observaciones</label><input class="form-control" name="observaciones" placeholder="Diferencias, incidencias, arqueo efectivo..."></div>
+    <button class="btn btn-success" type="submit">Guardar cierre</button>
+  </form>
+
+  <div class="table-container" style="margin-top:16px;">
+    <table>
+      <thead><tr><th>Fecha cierre</th><th>Turno</th><th>Total sistema</th><th>Total real</th><th>Diferencia</th><th>Observaciones</th></tr></thead>
+      <tbody>
+        {% for c in cierres %}
+        <tr>
+          <td>{{ c.fecha_creacion }}</td>
+          <td>{{ c.turno }}</td>
+          <td>{{ '%.2f'|format(c.total_sistema or 0) }} &euro;</td>
+          <td>{{ '%.2f'|format(c.total_real or 0) }} &euro;</td>
+          <td><strong>{{ '%.2f'|format(c.diferencia or 0) }} &euro;</strong></td>
+          <td>{{ c.observaciones or '-' }}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="6">Sin cierres guardados para esta fecha.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="card" style="margin-top:16px;">
+  <div class="card-header"><h2><i class="fas fa-list"></i> Movimientos de caja</h2></div>
+  <div class="table-container">
+    <table>
+      <thead><tr><th>Hora</th><th>Reserva</th><th>Habitacion</th><th>Cliente</th><th>Concepto</th><th>Forma</th><th>Referencia</th><th>Importe</th></tr></thead>
+      <tbody>
+        {% for p in pagos %}
+        <tr>
+          <td>{{ p.fecha_creacion or p.fecha }}</td>
+          <td>{% if p.reserva_id %}<a href="{{ url_for('recepcion.reserva_detalle', id=p.reserva_id) }}">{{ p.reserva_codigo or ('#' ~ p.reserva_id) }}</a>{% else %}-{% endif %}</td>
+          <td>{{ p.habitacion_numero or p.habitacion_nombre or '-' }}</td>
+          <td>{{ p.titular_nombre or '-' }}</td>
+          <td>{{ p.concepto or '-' }}</td>
+          <td>{{ p.forma_pago or '-' }}</td>
+          <td>{{ p.referencia or '-' }}</td>
+          <td><strong>{{ '%.2f'|format(p.importe or 0) }} &euro;</strong></td>
+        </tr>
+        {% else %}
+        <tr><td colspan="8">Sin movimientos de caja para esta fecha.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

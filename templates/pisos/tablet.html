@@ -1,0 +1,218 @@
+{% extends 'base.html' %}
+{% block title %}Tablet pisos{% endblock %}
+{% block breadcrumb %}Pisos / Tablet{% endblock %}
+{% block content %}
+<style>
+  .tb-head{display:flex;gap:10px;flex-wrap:wrap;align-items:end;margin-bottom:14px;}
+  .tb-head .form-control{min-width:170px;}
+  .tb-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px;}
+  .tb-card{border:1px solid #334155;border-radius:8px;background:#111827;padding:14px;}
+  .tb-title{display:flex;justify-content:space-between;gap:8px;align-items:start;margin-bottom:8px;}
+  .tb-title strong{font-size:22px;}
+  .tb-note{color:#94a3b8;font-size:13px;line-height:1.35;}
+  .tb-pill{display:inline-block;border:1px solid #475569;border-radius:4px;padding:2px 6px;font-size:12px;background:#0f172a;margin:2px;}
+  .tb-actions{display:grid;gap:8px;margin-top:12px;}
+  .tb-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+  .tb-summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;margin-bottom:14px;}
+  .tb-box{border:1px solid #334155;border-radius:6px;background:#0f172a;padding:10px;}
+  .tb-box span{display:block;color:#94a3b8;font-size:12px;}
+  .tb-box strong{display:block;font-size:22px;}
+  .tb-close{border:1px solid #334155;border-radius:6px;padding:8px;background:#0f172a;display:grid;gap:8px;}
+  .tb-field{display:grid;gap:4px;}
+  .tb-field label{font-size:12px;color:#94a3b8;}
+  .tb-details{border:1px solid #334155;border-radius:6px;padding:8px;background:#111827;}
+  .tb-details summary{cursor:pointer;color:#bfdbfe;}
+  .tb-card .btn{min-height:44px;}
+  @media (max-width:700px){.tb-grid{grid-template-columns:1fr}.tb-row{grid-template-columns:1fr}.tb-head{display:grid}.tb-head .form-control,.tb-head .btn{width:100%;}}
+</style>
+
+<div class="card">
+  <div class="card-header">
+    <h2><i class="fas fa-tablet-alt"></i> Tablet pisos</h2>
+    <div>
+      {% if puede_gestionar %}
+      <a class="btn btn-secondary" href="{{ url_for('pisos.panel', fecha=fecha) }}"><i class="fas fa-chart-line"></i> Panel</a>
+      <a class="btn btn-secondary" href="{{ url_for('pisos.asignacion', fecha=fecha) }}"><i class="fas fa-user-check"></i> Asignacion</a>
+      <a class="btn btn-secondary" href="{{ url_for('pisos.dashboard', fecha=fecha) }}"><i class="fas fa-list"></i> Parte</a>
+      <a class="btn btn-secondary" href="{{ url_for('pisos.productos') }}"><i class="fas fa-boxes"></i> Stock</a>
+      <a class="btn btn-secondary" target="_blank" href="{{ url_for('pisos.imprimir', fecha=fecha, trabajador=trabajador) }}"><i class="fas fa-print"></i> Imprimir</a>
+      {% endif %}
+      <a class="btn btn-secondary" href="{{ url_for('pisos.objetos_perdidos') }}"><i class="fas fa-key"></i> Objetos</a>
+    </div>
+  </div>
+
+  <div class="tb-summary">
+    <div class="tb-box"><span>Total</span><strong>{{ resumen_tablet.total }}</strong></div>
+    <div class="tb-box"><span>Pendientes</span><strong>{{ resumen_tablet.pendiente }}</strong></div>
+    <div class="tb-box"><span>En curso</span><strong>{{ resumen_tablet.en_curso }}</strong></div>
+    <div class="tb-box"><span>Hechas</span><strong>{{ resumen_tablet.hecha }}</strong></div>
+    <div class="tb-box"><span>Incidencias</span><strong>{{ resumen_tablet.incidencia }}</strong></div>
+  </div>
+
+  <form method="get" class="tb-head">
+    <div class="form-group"><label class="form-label">Fecha</label><input class="form-control" type="date" name="fecha" value="{{ fecha }}"></div>
+    {% if puede_gestionar %}
+    <div class="form-group"><label class="form-label">Trabajadora</label><select class="form-control" name="trabajador">
+      <option value="">Todas</option>
+      {% for p in personal %}<option value="{{ p.nombre }}" {% if trabajador == p.nombre %}selected{% endif %}>{{ p.nombre }}</option>{% endfor %}
+    </select></div>
+    {% else %}
+    <div class="form-group"><label class="form-label">Trabajadora</label><input class="form-control" value="{{ trabajador or 'Mi parte' }}" readonly></div>
+    {% endif %}
+    <div class="form-group"><label class="form-label">Estado</label><select class="form-control" name="estado">
+      <option value="">Todos</option>
+      {% for key,label in estados.items() %}<option value="{{ key }}" {% if estado == key %}selected{% endif %}>{{ label }}</option>{% endfor %}
+    </select></div>
+    <button class="btn btn-primary" type="submit"><i class="fas fa-search"></i> Ver</button>
+  </form>
+
+  <div class="tb-grid">
+    {% for t in trabajos %}
+    {% set registrar_limpieza = (t.tarea_codigo in tareas_registro_limpieza) and (t.target_tipo != 'zona' or t.zona_appcc_critico) %}
+    <div class="tb-card">
+      <div class="tb-title">
+        <div>
+          <strong>{% if t.target_tipo == 'zona' %}{{ t.zona_nombre or 'Zona comun' }}{% else %}{{ t.habitacion_numero or t.habitacion_nombre or '-' }}{% endif %}</strong>
+          <div class="tb-note">{{ t.tarea_nombre }}</div>
+        </div>
+        <div>
+          <span class="tb-pill">{{ t.estado }}</span>
+          <span class="tb-pill">{{ t.prioridad }}</span>
+        </div>
+      </div>
+      <div class="tb-note">
+        {% if t.bloque %}Bloque {{ t.bloque }} {% endif %}
+        {% if t.planta %}Planta {{ t.planta }}{% endif %}
+        {% if t.asignado_a %}<br>Asignado: {{ t.asignado_a }}{% endif %}
+        {% if t.tipo_cama %}<br>Cama: {{ tipos_cama.get(t.tipo_cama, t.tipo_cama) }}{% endif %}
+        {% if t.supletorias_max %}<br>Supletoria max: {{ t.supletorias_max }}{% endif %}
+      </div>
+      {% if t.checklist %}<p>{{ t.checklist }}</p>{% endif %}
+      {% if t.alergias_resumen %}<p><strong>Avisos:</strong> {{ t.alergias_resumen }}</p>{% endif %}
+      {% if t.observaciones_operativas %}<p class="tb-note">{{ t.observaciones_operativas }}</p>{% endif %}
+      {% if t.supletoria_solicitada or t.cuna_solicitada or t.preferencia_cama or t.observaciones_habitacion %}
+      <p class="tb-note">
+        <strong>Pisos:</strong>
+        {% if t.supletoria_solicitada %}supletoria; {% endif %}
+        {% if t.cuna_solicitada %}cuna; {% endif %}
+        {% if t.preferencia_cama %}{{ tipos_cama.get(t.preferencia_cama, t.preferencia_cama) }}; {% endif %}
+        {{ t.observaciones_habitacion or '' }}
+      </p>
+      {% endif %}
+      {% if t.sabanas_previstas or t.toallas_previstas or t.alfombrines_previstos %}
+      <div class="tb-note">Previsto lenceria: S{{ t.sabanas_previstas or 0 }} T{{ t.toallas_previstas or 0 }} A{{ t.alfombrines_previstos or 0 }}</div>
+      {% endif %}
+      {% if t.mantenimiento_orden_id %}
+      <div class="tb-note">OT mantenimiento #{{ t.mantenimiento_orden_id }}</div>
+      {% endif %}
+
+      <div class="tb-actions">
+        {% if t.estado != 'hecha' %}
+        <form method="post" action="{{ url_for('pisos.cambiar_estado_trabajo', trabajo_id=t.id) }}">
+          <input type="hidden" name="estado" value="en_curso">
+          <input type="hidden" name="asignado_a" value="{{ trabajador or t.asignado_a or '' }}">
+          <button class="btn btn-secondary" type="submit"><i class="fas fa-play"></i> Iniciar</button>
+        </form>
+        <form method="post" action="{{ url_for('pisos.cambiar_estado_trabajo', trabajo_id=t.id) }}">
+          <input type="hidden" name="estado" value="hecha">
+          {% if registrar_limpieza %}
+          <input type="hidden" name="registrar_appcc" value="1">
+          {% else %}
+          <input type="hidden" name="registrar_appcc" value="0">
+          {% endif %}
+          <div class="tb-close">
+            <div class="tb-field">
+              <label>Productos usados</label>
+              <input class="form-control" name="productos_usados" value="{{ t.productos_usados or t.productos_previstos or '' }}" placeholder="Producto o mezcla usada">
+            </div>
+            <details class="tb-details">
+              <summary>Lenceria y lote</summary>
+              <div class="tb-row" style="margin-top:8px;">
+                <div class="tb-field">
+                  <label>Sabanas</label>
+                  <input class="form-control" type="number" min="0" name="sabanas_usadas" value="{{ t.sabanas_previstas or 0 }}">
+                </div>
+                <div class="tb-field">
+                  <label>Toallas</label>
+                  <input class="form-control" type="number" min="0" name="toallas_usadas" value="{{ t.toallas_previstas or 0 }}">
+                </div>
+              </div>
+              <div class="tb-field" style="margin-top:8px;">
+                <label>Lote lavanderia</label>
+                <input class="form-control" name="lavanderia_lote" value="{{ t.lavanderia_lote or '' }}" placeholder="Lote">
+              </div>
+              <div class="tb-row" style="margin-top:8px;">
+                <div class="tb-field">
+                  <label>Circuito</label>
+                  <select class="form-control" name="circuito_lavanderia">
+                    {% for key,label in circuitos_lavanderia.items() %}
+                    <option value="{{ key }}">{{ label }}</option>
+                    {% endfor %}
+                  </select>
+                </div>
+                <div class="tb-field">
+                  <label>Lavanderia</label>
+                  <select class="form-control" name="lavanderia_proveedor_id">
+                    <option value="">Sin asignar</option>
+                    {% for lav in lavanderias %}
+                    <option value="{{ lav.id }}">{{ lav.nombre }} - {{ lav.tipo }}</option>
+                    {% endfor %}
+                  </select>
+                </div>
+              </div>
+              <div class="tb-field">
+                <label>Productos lavado</label>
+                <input class="form-control" name="productos_lavado" value="{{ t.productos_lavado or '' }}" placeholder="Detergente/desinfectante">
+              </div>
+              <div class="tb-field" style="margin-top:8px;">
+                <label>Consumo de stock</label>
+              </div>
+              {% for _ in [1,2,3,4] %}
+              <div class="tb-row">
+                <div class="tb-field">
+                  <select class="form-control" name="producto_pisos_id">
+                    <option value="">Sin consumo</option>
+                    {% for prod in productos_pisos %}
+                    <option value="{{ prod.id }}">{{ prod.nombre }} ({{ (prod.stock_actual or 0)|round(2) }} {{ prod.unidad }})</option>
+                    {% endfor %}
+                  </select>
+                </div>
+                <div class="tb-field">
+                  <input class="form-control" type="number" step="0.01" min="0" name="cantidad_consumo" placeholder="Cantidad">
+                </div>
+              </div>
+              {% endfor %}
+            </details>
+            {% if not registrar_limpieza %}
+            <div class="tb-note">No genera APPCC; queda en trazabilidad de pisos.</div>
+            {% endif %}
+            <button class="btn btn-success" type="submit"><i class="fas fa-check"></i> Hecho</button>
+          </div>
+        </form>
+        <form method="post" action="{{ url_for('pisos.cambiar_estado_trabajo', trabajo_id=t.id) }}">
+          <input type="hidden" name="estado" value="incidencia">
+          <input class="form-control" name="observaciones" placeholder="Describe incidencia">
+          <details class="tb-details">
+            <summary>Tipo y urgencia</summary>
+            <div class="tb-row" style="margin-top:8px;">
+              <select class="form-control" name="incidencia_tipo">
+                {% for key,label in tipos_incidencia.items() %}<option value="{{ key }}">{{ label }}</option>{% endfor %}
+              </select>
+              <select class="form-control" name="incidencia_gravedad">
+                {% for key,label in gravedades_incidencia.items() %}<option value="{{ key }}" {% if key == (t.prioridad or 'media') %}selected{% endif %}>{{ label }}</option>{% endfor %}
+              </select>
+            </div>
+          </details>
+          <button class="btn btn-danger" type="submit"><i class="fas fa-exclamation-triangle"></i> Incidencia</button>
+        </form>
+        {% else %}
+        <div class="tb-note">Trabajo cerrado. No vuelve a sumar lenceria.</div>
+        {% endif %}
+      </div>
+    </div>
+    {% else %}
+    <div class="tb-card">No hay trabajos para estos filtros.</div>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,125 @@
+{% extends 'base.html' %}
+{% block title %}Asignacion pisos{% endblock %}
+{% block breadcrumb %}Pisos / Asignacion{% endblock %}
+{% block content %}
+<style>
+  .px-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:12px 0 16px;}
+  .px-card{border:1px solid #334155;border-radius:6px;background:#111827;padding:10px;}
+  .px-card span{display:block;color:#94a3b8;font-size:12px;}
+  .px-card strong{display:block;font-size:20px;margin-top:3px;}
+  .px-filters{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;align-items:end;margin-bottom:16px;}
+  .px-actions{display:flex;gap:6px;flex-wrap:wrap;align-items:center;}
+  .px-note{color:#94a3b8;font-size:12px;line-height:1.35;}
+  .px-pill{display:inline-block;border:1px solid #475569;border-radius:4px;padding:2px 6px;font-size:12px;background:#0f172a;margin:2px;}
+  .px-table td{vertical-align:top;}
+</style>
+
+<div class="card">
+  <div class="card-header">
+    <h2><i class="fas fa-user-check"></i> Asignacion de pisos</h2>
+    <div class="px-actions">
+      <a class="btn btn-secondary" href="{{ url_for('pisos.dashboard', fecha=fecha, bloque=filtros.bloque, planta=filtros.planta) }}"><i class="fas fa-list"></i> Parte</a>
+      <a class="btn btn-secondary" href="{{ url_for('pisos.tablet', fecha=fecha) }}"><i class="fas fa-tablet-alt"></i> Tablet</a>
+      <a class="btn btn-secondary" target="_blank" href="{{ url_for('pisos.imprimir', fecha=fecha, bloque=filtros.bloque, planta=filtros.planta) }}"><i class="fas fa-print"></i> Imprimir todo</a>
+      <form method="post">
+        <input type="hidden" name="accion" value="auto">
+        <input type="hidden" name="fecha" value="{{ fecha }}">
+        <input type="hidden" name="bloque" value="{{ filtros.bloque }}">
+        <input type="hidden" name="planta" value="{{ filtros.planta }}">
+        <button class="btn btn-success" type="submit"><i class="fas fa-random"></i> Reparto automatico</button>
+      </form>
+    </div>
+  </div>
+
+  <form method="get" class="px-filters">
+    <div class="form-group"><label class="form-label">Fecha</label><input class="form-control" type="date" name="fecha" value="{{ fecha }}"></div>
+    <div class="form-group"><label class="form-label">Bloque</label><select class="form-control" name="bloque">
+      <option value="">Todos</option>
+      {% for b in bloques %}<option value="{{ b.valor }}" {% if filtros.bloque == b.valor %}selected{% endif %}>{{ b.valor }}</option>{% endfor %}
+    </select></div>
+    <div class="form-group"><label class="form-label">Planta</label><select class="form-control" name="planta">
+      <option value="">Todas</option>
+      {% for p in plantas %}<option value="{{ p.valor }}" {% if filtros.planta == p.valor %}selected{% endif %}>{% if p.valor|string == '0' %}PB{% else %}{{ p.valor }}{% endif %}</option>{% endfor %}
+    </select></div>
+    <button class="btn btn-primary" type="submit"><i class="fas fa-search"></i> Ver</button>
+  </form>
+
+  <div class="px-grid">
+    {% for r in resumen_personal %}
+    <div class="px-card">
+      <span>{{ r.asignado_a }}</span>
+      <strong>{{ r.total }}</strong>
+      <div class="px-note">Pendientes {{ r.pendientes or 0 }} &middot; Hechas {{ r.hechas or 0 }}</div>
+    </div>
+    {% else %}
+    <div class="px-card"><span>Sin reparto</span><strong>0</strong></div>
+    {% endfor %}
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header"><h2><i class="fas fa-users"></i> Personal</h2></div>
+  <form method="post" class="px-filters">
+    <input type="hidden" name="accion" value="nuevo_personal">
+    <input type="hidden" name="fecha" value="{{ fecha }}">
+    <div class="form-group"><label class="form-label">Nombre</label><input class="form-control" name="nombre" placeholder="Nombre trabajadora"></div>
+    <div class="form-group"><label class="form-label">Rol</label><select class="form-control" name="rol">
+      <option value="camarera">Camarera</option>
+      <option value="supervisora">Supervisora</option>
+      <option value="gobernanta">Gobernanta</option>
+      <option value="lavanderia">Lavanderia</option>
+    </select></div>
+    <div class="form-group"><label class="form-label">Telefono</label><input class="form-control" name="telefono"></div>
+    <button class="btn btn-success" type="submit"><i class="fas fa-plus"></i> Anadir</button>
+  </form>
+  <div class="px-actions">
+    {% for p in personal %}
+    <a class="btn btn-sm btn-secondary" href="{{ url_for('pisos.tablet', fecha=fecha, trabajador=p.nombre) }}">{{ p.nombre }} &middot; {{ p.rol }}</a>
+    <a class="btn btn-sm btn-info" target="_blank" href="{{ url_for('pisos.imprimir', fecha=fecha, trabajador=p.nombre, bloque=filtros.bloque, planta=filtros.planta) }}"><i class="fas fa-print"></i> {{ p.nombre }}</a>
+    {% else %}
+    <span class="px-note">No hay personal de pisos creado.</span>
+    {% endfor %}
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header"><h2><i class="fas fa-tasks"></i> Trabajos del dia</h2></div>
+  <form method="post">
+    <input type="hidden" name="accion" value="asignar">
+    <input type="hidden" name="fecha" value="{{ fecha }}">
+    <input type="hidden" name="bloque" value="{{ filtros.bloque }}">
+    <input type="hidden" name="planta" value="{{ filtros.planta }}">
+    <div class="px-actions" style="margin-bottom:10px;">
+      <select class="form-control" name="personal_id" style="max-width:260px;">
+        <option value="">Elegir personal</option>
+        {% for p in personal %}<option value="{{ p.id }}">{{ p.nombre }} &middot; {{ p.rol }}</option>{% endfor %}
+      </select>
+      <input class="form-control" name="asignado_a" placeholder="O escribir nombre" style="max-width:220px;">
+      <button class="btn btn-primary" type="submit"><i class="fas fa-user-check"></i> Asignar seleccionados</button>
+    </div>
+
+    <div class="table-container">
+      <table class="px-table">
+        <thead><tr><th></th><th>Destino</th><th>Trabajo</th><th>Prioridad</th><th>Estado</th><th>Asignado</th></tr></thead>
+        <tbody>
+          {% for t in trabajos %}
+          <tr>
+            <td><input type="checkbox" name="trabajo_ids" value="{{ t.id }}"></td>
+            <td>
+              <strong>{% if t.target_tipo == 'zona' %}{{ t.zona_nombre or 'Zona comun' }}{% else %}{{ t.habitacion_numero or t.habitacion_nombre or '-' }}{% endif %}</strong>
+              <div class="px-note">{% if t.bloque %}Bloque {{ t.bloque }} {% endif %}{% if t.planta %}Planta {{ t.planta }}{% endif %}</div>
+            </td>
+            <td>{{ t.tarea_nombre }}{% if t.checklist %}<div class="px-note">{{ t.checklist }}</div>{% endif %}</td>
+            <td><span class="px-pill">{{ t.prioridad }}</span></td>
+            <td>{{ t.estado }}</td>
+            <td>{{ t.asignado_a or '-' }}</td>
+          </tr>
+          {% else %}
+          <tr><td colspan="6">No hay trabajos.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </form>
+</div>
+{% endblock %}

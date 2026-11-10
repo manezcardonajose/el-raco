@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Soja">
+  <circle cx="32" cy="32" r="30" fill="#d82266"/>
+  <g fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M17 46c16-2 26-12 32-29"/>
+    <path d="M25 36c-8 1-12-4-12-4 7-7 13-6 18-1"/>
+    <path d="M35 28c-1-8 4-13 4-13 8 6 7 13 1 18"/>
+    <path d="M41 38c-7 4-13 2-13 2 3-9 9-12 16-9"/>
+  </g>
+</svg>

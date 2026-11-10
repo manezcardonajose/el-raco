@@ -1,0 +1,237 @@
+{% extends "base.html" %}
+{% block content %}
+
+<style>
+    .rp-grid {
+        display: grid;
+        grid-template-columns: 1.35fr .55fr .45fr .65fr .7fr .75fr;
+        gap: 8px;
+        align-items: end;
+    }
+    .rp-grid.rp-con-precios {
+        grid-template-columns: 1.35fr .55fr .45fr .55fr .65fr .7fr .75fr;
+    }
+    .rp-card {
+        border:1px solid rgba(255,255,255,.12);
+        border-radius:10px;
+        padding:12px;
+        margin-bottom:10px;
+        background:rgba(255,255,255,.035);
+    }
+    .rp-label { font-size:12px; opacity:.78; margin-bottom:3px; }
+    @media (max-width:900px) {
+        .rp-grid { grid-template-columns:1fr 1fr; }
+        .rp-grid > div:first-child { grid-column:1 / -1; }
+    }
+    @media (max-width:520px) {
+        .rp-grid { grid-template-columns:1fr; }
+    }
+</style>
+
+<div class="card">
+    <div class="card-header" style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;">
+        <h3 style="margin:0;">
+            <i class="fas fa-truck-loading"></i> Recepción pedido {{ pedido.numero_pedido }}
+        </h3>
+
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <a href="{{ url_for('compras.hoja_conformidad', numero_pedido=pedido.numero_pedido) }}" class="btn btn-outline-primary btn-sm">
+                <i class="fas fa-print"></i> Conformidad
+            </a>
+            <a href="{{ url_for('compras.hoja_incidencias_recepcion', numero_pedido=pedido.numero_pedido) }}" class="btn btn-outline-danger btn-sm">
+                <i class="fas fa-exclamation-triangle"></i> Incidencias
+            </a>
+            <a href="{{ url_for('compras.ver_pedido', pedido_id=pedido.id) }}" class="btn btn-secondary btn-sm">Ver pedido</a>
+            <a href="{{ url_for('compras.lista_pedidos') }}" class="btn btn-secondary btn-sm">Volver</a>
+        </div>
+    </div>
+
+    <form method="POST" enctype="multipart/form-data">
+        <input type="hidden" name="documento_id" value="{{ documento_id or '' }}">
+        <input type="hidden" name="modo_tablet" value="{{ 1 if modo_tablet else 0 }}">
+        <div class="card-body">
+            <div class="alert alert-info">
+                Recepción operativa: cantidades/pesos, almacén e incidencias APPCC. El stock físico se actualiza al guardar.
+                La validación económica queda pendiente para administración. Solo se muestran las líneas todavía pendientes de recibir.
+            </div>
+
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;margin-bottom:16px;">
+                <div>
+                    <label>Proveedor</label>
+                    <input class="form-control" value="{{ pedido.proveedor_nombre }}" readonly>
+                </div>
+                <div>
+                    <label>Departamento pedido</label>
+                    <input class="form-control" value="{{ pedido.departamento_nombre or '-' }}" readonly>
+                </div>
+                <div>
+                    <label>Nº albarán</label>
+                    <input type="text" name="numero_albaran" class="form-control" value="{{ albaran_detectado or '' }}">
+                </div>
+                <div>
+                    <label>Fecha recepción</label>
+                    <input type="date" name="fecha_recepcion" class="form-control" value="{{ now.strftime('%Y-%m-%d') }}">
+                </div>
+                <div>
+                    <label>Recibido por</label>
+                    <input type="text" name="recibido_por" class="form-control" value="{{ session.get('user_nombre') or 'admin' }}">
+                </div>
+                <div>
+                    <label>Adjuntar albarán/foto/PDF</label>
+                    <input type="file" name="documento_compra" class="form-control" accept="image/*,.pdf" capture="environment">
+                </div>
+                <label style="display:flex;gap:8px;align-items:center;margin-top:24px;">
+                    <input type="checkbox" name="imprimir_etiquetas" value="1">
+                    Imprimir etiquetas al guardar
+                </label>
+            </div>
+
+            <div style="margin-bottom:14px;">
+                <label>Observaciones generales</label>
+                <textarea name="observaciones" rows="2" class="form-control"></textarea>
+            </div>
+
+            <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;">
+                <button type="submit" name="accion_recepcion" value="leer" class="btn btn-info">
+                    <i class="fas fa-magic"></i> Leer / analizar albarán
+                </button>
+                <button type="submit" name="accion_recepcion" value="recibir_todo" class="btn btn-success">
+                    Recibir todo pendiente
+                </button>
+                <button type="button" onclick="window.print()" class="btn btn-light">
+                    <i class="fas fa-print"></i> Imprimir pantalla
+                </button>
+            </div>
+
+            {% if incidencias_preview %}
+            <div class="alert alert-warning">
+                <strong>Avisos detectados por OCR:</strong>
+                <ul style="margin-bottom:0;">
+                    {% for inc in incidencias_preview %}
+                    <li><strong>{{ inc.tipo }}:</strong> {{ inc.descripcion }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+            {% endif %}
+
+            {% if texto_ocr and not modo_tablet %}
+            <details style="margin-bottom:14px;">
+                <summary>Texto leído por OCR</summary>
+                <pre style="white-space:pre-wrap;max-height:240px;overflow:auto;background:#111;padding:10px;border-radius:6px;">{{ texto_ocr }}</pre>
+            </details>
+            {% endif %}
+
+            <h4>Líneas del pedido</h4>
+
+            {% for l in lineas %}
+            {% set pendiente = (l.cantidad_solicitada or 0) - (l.cantidad_recibida or 0) %}
+            <div class="rp-card">
+                <div class="rp-grid {% if ver_precios %}rp-con-precios{% endif %}">
+                    <div>
+                        <div class="rp-label">Producto</div>
+                        <strong>{{ l.nombre }}</strong>
+                        <div style="font-size:12px;opacity:.75;">
+                            Pedido: {{ l.cantidad_solicitada }} {{ l.unidad or '' }} ·
+                            Recibido previo: {{ l.cantidad_recibida or 0 }} ·
+                            Pendiente: {{ pendiente }}
+                        </div>
+                    </div>
+
+                    <div>
+                        <div class="rp-label">Recibido ahora</div>
+                        <input type="number" step="0.001" min="0" name="cantidad_{{ l.id }}" class="form-control" value="{{ cantidades_ocr.get(l.producto_id, pendiente if pendiente > 0 else 0) if cantidades_ocr else (pendiente if pendiente > 0 else 0) }}">
+                    </div>
+
+                    <div>
+                        <div class="rp-label">Envases</div>
+                        <input type="number" step="1" min="1" name="envases_{{ l.id }}" class="form-control" value="1">
+                    </div>
+
+                    {% if ver_precios %}
+                    <div>
+                        <div class="rp-label">Precio pedido</div>
+                        <input type="number" step="0.0001" name="precio_{{ l.id }}" class="form-control" value="{{ l.precio_unitario or '' }}">
+                    </div>
+                    {% endif %}
+
+                    <div>
+                        <div class="rp-label">Estado / APPCC</div>
+                        <select name="estado_{{ l.id }}" class="form-control incidencia-select" data-id="{{ l.id }}">
+                            <option value="ok">OK</option>
+                            <option value="falta_unidades">Falta unidades</option>
+                            <option value="falta_peso">Falta peso</option>
+                            <option value="rotura">Rotura</option>
+                            <option value="mal_estado">Mal estado</option>
+                            <option value="temperatura_incorrecta">Temperatura incorrecta</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <div class="rp-label">Almacén línea</div>
+                        <select name="almacen_{{ l.id }}" class="form-control">
+                            <option value="">Seleccionar almacén</option>
+                            {% for a in almacenes %}
+                            <option value="{{ a.id }}">{{ a.nombre }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div>
+                        <div class="rp-label">Lote / caducidad</div>
+                        <input name="lote_{{ l.id }}" class="form-control" placeholder="Lote">
+                        <input type="date" name="caducidad_{{ l.id }}" class="form-control" style="margin-top:4px;">
+                    </div>
+                </div>
+
+                <div style="display:grid;grid-template-columns:180px 1fr;gap:8px;margin-top:8px;">
+                    <div>
+                        <div class="rp-label">Temperatura</div>
+                        <input type="number" step="0.1" name="temperatura_{{ l.id }}" class="form-control">
+                    </div>
+                    <div class="incidencia-box" id="incidencia_{{ l.id }}" style="display:none;">
+                        <div class="rp-label">Decisión / observación incidencia APPCC</div>
+                        <input type="hidden" name="incidencia_tipo_{{ l.id }}" value="">
+                        <textarea name="incidencia_texto_{{ l.id }}" class="form-control" rows="2" placeholder="Ej: falta peso, rotura, rechazo, decisión tomada..."></textarea>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        <div class="card-footer" style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;">
+            <a href="{{ url_for('compras.recepcion_pedido') }}" class="btn btn-secondary">Cancelar</a>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                <button type="submit" name="accion_recepcion" value="guardar" class="btn btn-primary">
+                    <i class="fas fa-save"></i> Guardar recepción
+                </button>
+                <button type="submit" name="accion_recepcion" value="guardar_cerrar_pendiente" class="btn btn-warning" onclick="return confirm('Se guardará esta recepción y el pedido quedará cerrado manualmente. Úsalo cuando el proveedor no vaya a servir lo pendiente.');">
+                    Guardar y cerrar pedido pendiente
+                </button>
+            </div>
+        </div>
+    </form>
+</div>
+
+<script>
+document.querySelectorAll('.incidencia-select').forEach(sel => {
+    function toggle() {
+        const box = document.getElementById('incidencia_' + sel.dataset.id);
+        if (box) box.style.display = sel.value === 'ok' ? 'none' : 'block';
+        const hidden = document.querySelector(`input[name="incidencia_tipo_${sel.dataset.id}"]`);
+        if (hidden) {
+            const mapa = {
+                falta_unidades: 'Falta de unidades',
+                falta_peso: 'Falta de peso',
+                rotura: 'Rotura',
+                mal_estado: 'Mal estado',
+                temperatura_incorrecta: 'Temperatura incorrecta'
+            };
+            hidden.value = mapa[sel.value] || '';
+        }
+    }
+    sel.addEventListener('change', toggle);
+    toggle();
+});
+</script>
+
+{% endblock %}

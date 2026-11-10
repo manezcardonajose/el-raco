@@ -1,0 +1,161 @@
+{% extends "base.html" %}
+{% block title %}Bloques, plantas y zonas{% endblock %}
+{% block breadcrumb %}Establecimiento / Bloques, plantas y zonas{% endblock %}
+{% block content %}
+<style>
+  .es-head{display:flex;justify-content:space-between;gap:16px;align-items:flex-start;margin-bottom:18px;}
+  .es-head h1{color:#fff;margin:0 0 6px;font-size:26px;letter-spacing:0;}
+  .es-head p{color:#aeb8c6;margin:0;line-height:1.45;}
+  .es-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px;margin-bottom:18px;}
+  .es-panel{background:#252b33;border:1px solid #2c3e50;border-radius:8px;padding:18px;}
+  .es-panel h2{color:#fff;font-size:18px;margin:0 0 14px;display:flex;gap:10px;align-items:center;}
+  .es-panel h2 i{color:#ff6b00;}
+  .es-form-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;}
+  .es-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;}
+  .es-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:18px;}
+  .es-kpi{background:#111827;border:1px solid #2c3e50;border-radius:8px;padding:14px;}
+  .es-kpi span{display:block;color:#aeb8c6;font-size:12px;text-transform:uppercase;}
+  .es-kpi strong{display:block;color:#fff;font-size:26px;margin-top:8px;}
+  .es-table table{min-width:760px;}
+  .es-muted{color:#aeb8c6;font-size:12px;}
+  .es-badge{display:inline-block;border-radius:999px;padding:4px 8px;background:#1d2530;border:1px solid #34465c;color:#d7dee8;font-size:11px;}
+  .es-badge.ok{background:#12351f;color:#95f0b6;border-color:#1d7d3c;}
+  @media(max-width:760px){.es-head{display:block}.es-head .btn{margin-top:12px}}
+</style>
+
+<div class="es-head">
+  <div>
+    <h1>Bloques, plantas y zonas</h1>
+    <p>Mapa maestro del establecimiento para habitaciones, pisos, mantenimiento, APPCC, ISO y futuras recomendaciones de IA.</p>
+  </div>
+  <form method="post">
+    <input type="hidden" name="accion" value="sincronizar">
+    <button class="btn btn-secondary" type="submit"><i class="fas fa-rotate"></i> Sincronizar datos actuales</button>
+  </form>
+</div>
+
+<div class="es-kpis">
+  <div class="es-kpi"><span>Bloques</span><strong>{{ bloques|length }}</strong></div>
+  <div class="es-kpi"><span>Plantas</span><strong>{{ plantas|length }}</strong></div>
+  <div class="es-kpi"><span>Zonas comunes</span><strong>{{ zonas|length }}</strong></div>
+  <div class="es-kpi"><span>APPCC critico</span><strong>{{ zonas|selectattr('appcc_critico')|list|length }}</strong></div>
+</div>
+
+<div class="es-grid">
+  <section class="es-panel">
+    <h2><i class="fas fa-building"></i> Nuevo bloque</h2>
+    <form method="post">
+      <input type="hidden" name="accion" value="crear_bloque">
+      <div class="es-form-grid">
+        <div class="form-group"><label class="form-label">Nombre</label><input class="form-control" name="nombre" required placeholder="Bloque A"></div>
+        <div class="form-group"><label class="form-label">Codigo</label><input class="form-control" name="codigo" placeholder="A"></div>
+        <div class="form-group"><label class="form-label">Centro</label><select class="form-control" name="centro_id">
+          <option value="">General</option>
+          {% for c in centros %}<option value="{{ c.id }}">{{ c.nombre }}</option>{% endfor %}
+        </select></div>
+      </div>
+      <div class="form-group"><label class="form-label">Descripcion</label><input class="form-control" name="descripcion"></div>
+      <button class="btn btn-success" type="submit"><i class="fas fa-save"></i> Guardar bloque</button>
+    </form>
+  </section>
+
+  <section class="es-panel">
+    <h2><i class="fas fa-layer-group"></i> Nueva planta</h2>
+    <form method="post">
+      <input type="hidden" name="accion" value="crear_planta">
+      <div class="es-form-grid">
+        <div class="form-group"><label class="form-label">Bloque</label><select class="form-control" name="bloque_id" required>
+          <option value="">Selecciona</option>
+          {% for b in bloques %}<option value="{{ b.id }}">{{ b.nombre }}</option>{% endfor %}
+        </select></div>
+        <div class="form-group"><label class="form-label">Numero</label><input class="form-control" name="numero" required placeholder="0, 1, 2"></div>
+        <div class="form-group"><label class="form-label">Nombre</label><input class="form-control" name="nombre" placeholder="Planta baja"></div>
+      </div>
+      <div class="form-group"><label class="form-label">Descripcion</label><input class="form-control" name="descripcion"></div>
+      <button class="btn btn-success" type="submit"><i class="fas fa-save"></i> Guardar planta</button>
+    </form>
+  </section>
+
+  <section class="es-panel">
+    <h2><i class="fas fa-map"></i> Nueva zona comun</h2>
+    <form method="post">
+      <input type="hidden" name="accion" value="crear_zona">
+      <div class="es-form-grid">
+        <div class="form-group"><label class="form-label">Nombre</label><input class="form-control" name="nombre" required placeholder="Recepcion"></div>
+        <div class="form-group"><label class="form-label">Tipo</label><select class="form-control" name="tipo">
+          {% for t in ['zona_comun','bano_publico','piscina','restaurante_bar','oficina','pasillo','almacen','otro'] %}
+          <option value="{{ t }}">{{ t|replace('_',' ') }}</option>
+          {% endfor %}
+        </select></div>
+        <div class="form-group"><label class="form-label">Bloque</label><select class="form-control" name="bloque_id">
+          <option value="">General</option>
+          {% for b in bloques %}<option value="{{ b.id }}">{{ b.nombre }}</option>{% endfor %}
+        </select></div>
+        <div class="form-group"><label class="form-label">Planta</label><select class="form-control" name="planta_id">
+          <option value="">Sin planta</option>
+          {% for p in plantas %}<option value="{{ p.id }}">{{ p.bloque_nombre }} - {{ p.nombre or p.numero }}</option>{% endfor %}
+        </select></div>
+        <div class="form-group"><label class="form-label">Departamento responsable</label><select class="form-control" name="departamento_responsable_id">
+          <option value="">Sin asignar</option>
+          {% for d in departamentos %}<option value="{{ d.id }}">{{ d.nombre }}</option>{% endfor %}
+        </select></div>
+        <div class="form-group"><label class="form-label">Frecuencia limpieza</label><input class="form-control" name="frecuencia_limpieza" placeholder="diaria"></div>
+      </div>
+      <label style="display:flex;align-items:center;gap:8px;margin-bottom:12px;"><input type="checkbox" name="appcc_critico"> Zona critica APPCC / ISO</label>
+      <button class="btn btn-success" type="submit"><i class="fas fa-save"></i> Guardar zona</button>
+    </form>
+  </section>
+</div>
+
+<div class="es-grid">
+  <section class="es-panel es-table">
+    <h2><i class="fas fa-building"></i> Bloques</h2>
+    <div class="table-container"><table>
+      <thead><tr><th>Codigo</th><th>Nombre</th><th>Centro</th><th>Plantas</th><th>Habitaciones</th><th>Estado</th></tr></thead>
+      <tbody>
+      {% for b in bloques %}
+        <tr><td>{{ b.codigo }}</td><td><strong>{{ b.nombre }}</strong></td><td>{{ b.centro_nombre or '-' }}</td><td>{{ b.total_plantas }}</td><td>{{ b.total_habitaciones }}</td><td><span class="es-badge {% if b.activo %}ok{% endif %}">{{ 'activo' if b.activo else 'inactivo' }}</span></td></tr>
+      {% else %}
+        <tr><td colspan="6">No hay bloques creados.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table></div>
+  </section>
+
+  <section class="es-panel es-table">
+    <h2><i class="fas fa-layer-group"></i> Plantas</h2>
+    <div class="table-container"><table>
+      <thead><tr><th>Bloque</th><th>Numero</th><th>Nombre</th><th>Habitaciones</th><th>Estado</th></tr></thead>
+      <tbody>
+      {% for p in plantas %}
+        <tr><td>{{ p.bloque_nombre or '-' }}</td><td>{{ p.numero }}</td><td><strong>{{ p.nombre or '-' }}</strong></td><td>{{ p.total_habitaciones }}</td><td><span class="es-badge {% if p.activo %}ok{% endif %}">{{ 'activo' if p.activo else 'inactivo' }}</span></td></tr>
+      {% else %}
+        <tr><td colspan="5">No hay plantas creadas.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table></div>
+  </section>
+</div>
+
+<section class="es-panel es-table">
+  <h2><i class="fas fa-map"></i> Zonas comunes</h2>
+  <div class="table-container"><table>
+    <thead><tr><th>Zona</th><th>Tipo</th><th>Ubicacion</th><th>Responsable</th><th>Frecuencia</th><th>APPCC</th><th>Estado</th></tr></thead>
+    <tbody>
+    {% for z in zonas %}
+      <tr>
+        <td><strong>{{ z.nombre }}</strong></td>
+        <td>{{ z.tipo|replace('_',' ') }}</td>
+        <td>{% if z.bloque_nombre %}{{ z.bloque_nombre }}{% endif %}{% if z.planta_nombre %}<br><span class="es-muted">{{ z.planta_nombre }}</span>{% endif %}</td>
+        <td>{{ z.departamento_nombre or '-' }}</td>
+        <td>{{ z.frecuencia_limpieza or '-' }}</td>
+        <td>{% if z.appcc_critico %}<span class="badge badge-warning">Critico</span>{% else %}-{% endif %}</td>
+        <td><span class="es-badge {% if z.activo %}ok{% endif %}">{{ 'activo' if z.activo else 'inactivo' }}</span></td>
+      </tr>
+    {% else %}
+      <tr><td colspan="7">No hay zonas creadas.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+</section>
+{% endblock %}

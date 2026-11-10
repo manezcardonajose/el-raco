@@ -1,0 +1,476 @@
+{% extends 'base.html' %}
+{% block title %}Mi jornada{% endblock %}
+{% block breadcrumb %}RRHH / Mi jornada{% endblock %}
+{% block content %}
+<style>
+  .employee-grid{display:grid;grid-template-columns:1.1fr 1.9fr;gap:16px;align-items:start;}
+  .clock-actions{display:grid;grid-template-columns:repeat(2,minmax(140px,1fr));gap:10px;margin-top:14px;}
+  .clock-actions button{min-height:54px;font-size:16px;font-weight:700;}
+  .fichar-card{position:relative;}
+  .status-chip{display:inline-flex;align-items:center;gap:8px;border-radius:999px;padding:7px 12px;background:#1e2a3a;border:1px solid #334155;font-weight:700;}
+  .portal-alerts{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:10px;margin-top:16px;}
+  .portal-alert{border:1px solid #334155;border-radius:8px;padding:12px;background:#111827;}
+  .portal-alert.warning{border-color:#f59e0b;background:#2f250f;}
+  .portal-alert.danger{border-color:#ef4444;background:#321515;}
+  .portal-alert.info{border-color:#38bdf8;background:#102637;}
+  .portal-alert strong{display:block;margin-bottom:4px;}
+  .legal-notice{border:1px solid #334155;border-radius:8px;background:#111827;padding:12px;color:#cbd5e1;line-height:1.45;}
+  .week-grid{display:grid;grid-template-columns:repeat(7,minmax(130px,1fr));gap:10px;}
+  .day-box{border:1px solid #334155;border-radius:8px;padding:10px;min-height:150px;background:#111827;}
+  .day-box.today{border-color:#ff6b00;}
+  .day-title{font-weight:800;margin-bottom:8px;}
+  .shift-chip,.absence-chip,.punch-chip{display:block;border-radius:7px;padding:7px 8px;margin:6px 0;font-size:12px;line-height:1.3;}
+  .shift-chip{background:#17324a;border:1px solid #2563eb;color:#dbeafe;}
+  .absence-chip{background:#422006;border:1px solid #f59e0b;color:#fde68a;}
+  .punch-chip{background:#152e23;border:1px solid #16a34a;color:#dcfce7;}
+  .portal-panels{display:grid;grid-template-columns:repeat(3,minmax(260px,1fr));gap:16px;margin-top:16px;align-items:start;}
+  .compact-table th,.compact-table td{padding:9px 8px;font-size:13px;vertical-align:top;}
+  .empty-note{color:#94a3b8;padding:12px 0;}
+  .doc-upload-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;}
+  .sign-form{display:flex;flex-direction:column;gap:8px;min-width:170px;}
+  .sign-form label{display:flex;gap:8px;align-items:flex-start;font-size:12px;line-height:1.35;color:#cbd5e1;}
+  .request-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;align-items:end;}
+  .request-grid .wide{grid-column:span 2;}
+  .vac-balance{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-top:12px;}
+  .vac-balance .box{background:#111827;border:1px solid #334155;border-radius:8px;padding:12px;}
+  .vac-balance span{display:block;color:#94a3b8;font-size:12px;}
+  .vac-balance strong{font-size:24px;}
+  .status-pill{display:inline-block;border-radius:999px;padding:3px 8px;font-size:12px;font-weight:700;}
+  .status-solicitada,.status-pendiente{background:#334155;color:#dbeafe;}.status-aprobada{background:#124d2f;color:#b6f7cd;}.status-rechazada{background:#5b1c1c;color:#ffd7d7;}.status-cancelada{background:#3f3f46;color:#e4e4e7;}
+  @media(max-width:1100px){.employee-grid{grid-template-columns:1fr}.week-grid{grid-template-columns:repeat(2,minmax(140px,1fr));}}
+  @media(max-width:1200px){.portal-panels{grid-template-columns:1fr;}}
+  @media(max-width:800px){.request-grid{grid-template-columns:1fr}.request-grid .wide{grid-column:1/-1;}}
+  @media(pointer:coarse){.clock-actions button{min-height:74px;font-size:18px;}.status-chip{font-size:16px;padding:10px 14px;}.fichar-card h3{font-size:22px;}}
+  @media(max-width:650px){.clock-actions,.week-grid,.doc-upload-grid{grid-template-columns:1fr;}.portal-alerts{grid-template-columns:1fr;}.card-header{gap:8px;flex-wrap:wrap;}.compact-table th,.compact-table td{font-size:12px;}}
+</style>
+
+{% if not empleado %}
+<div class="card">
+  <div class="card-header"><h2><i class="fas fa-user-lock"></i> Mi jornada</h2></div>
+  <div class="alert alert-warning">Tu usuario no esta vinculado a una ficha de empleado activa.</div>
+</div>
+{% else %}
+<div class="employee-grid">
+  <div class="card fichar-card">
+    <div class="card-header">
+      <h2><i class="fas fa-fingerprint"></i> Fichar</h2>
+    </div>
+    <h3 style="margin:0 0 4px;">{{ empleado.nombre }} {{ empleado.apellidos or '' }}</h3>
+    <div style="color:#94a3b8;margin-bottom:12px;">
+      {{ empleado.departamento_nombre or 'Sin departamento' }}{% if empleado.subdepartamento_nombre %} / {{ empleado.subdepartamento_nombre }}{% endif %}
+    </div>
+    <span class="status-chip">
+      <i class="fas fa-circle"></i>
+      {% if estado_jornada == 'trabajando' %}Trabajando{% elif estado_jornada == 'pausa' %}En pausa{% else %}Fuera de jornada{% endif %}
+    </span>
+
+    <form method="post" action="{{ url_for('rrhh.fichar_empleado') }}">
+      <input type="hidden" name="fecha" value="{{ inicio.isoformat() }}">
+      <div class="clock-actions">
+        <button class="btn btn-success" name="tipo" value="entrada" {% if 'entrada' not in acciones_permitidas %}disabled{% endif %}><i class="fas fa-play"></i> Entrada</button>
+        <button class="btn btn-warning" name="tipo" value="pausa" {% if 'pausa' not in acciones_permitidas %}disabled{% endif %}><i class="fas fa-pause"></i> Pausa</button>
+        <button class="btn btn-info" name="tipo" value="reanudacion" {% if 'reanudacion' not in acciones_permitidas %}disabled{% endif %}><i class="fas fa-forward"></i> Reanudar</button>
+        <button class="btn btn-danger" name="tipo" value="salida" {% if 'salida' not in acciones_permitidas %}disabled{% endif %}><i class="fas fa-stop"></i> Salida</button>
+      </div>
+      <div class="form-group" style="margin-top:12px;">
+        <label class="form-label">Observaciones</label>
+        <input class="form-control" name="observaciones" maxlength="250">
+      </div>
+    </form>
+
+    <h3 style="margin-top:20px;">Hoy</h3>
+    {% for f in fichajes_hoy %}
+      <span class="punch-chip"><strong>{{ f.tipo|replace('_',' ')|capitalize }}</strong> · {{ f.fecha_hora }}</span>
+    {% else %}
+      <div style="color:#94a3b8;">Sin fichajes hoy.</div>
+    {% endfor %}
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <h2><i class="fas fa-calendar-week"></i> Mi cuadrante</h2>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <a class="btn btn-secondary" href="{{ url_for('rrhh.portal_empleado', fecha=(inicio - timedelta(days=7)).isoformat()) }}"><i class="fas fa-chevron-left"></i></a>
+        <a class="btn btn-secondary" href="{{ url_for('rrhh.portal_empleado', fecha=(inicio + timedelta(days=7)).isoformat()) }}"><i class="fas fa-chevron-right"></i></a>
+      </div>
+    </div>
+    <div class="week-grid">
+      {% for dia in dias %}
+      {% set clave = dia.isoformat() %}
+      <div class="day-box {% if clave == hoy %}today{% endif %}">
+        <div class="day-title">{{ ['Lun','Mar','Mie','Jue','Vie','Sab','Dom'][dia.weekday()] }}<br><small>{{ clave }}</small></div>
+        {% for t in turnos_por_dia.get(clave, []) %}
+          <span class="shift-chip">
+            <strong>{% if t.tipo == 'libre' %}Libre{% else %}{{ t.hora_inicio or '--:--' }} - {{ t.hora_fin or '--:--' }}{% endif %}</strong>
+            {% if t.puesto_nombre %}<br>{{ t.puesto_nombre }}{% endif %}
+            {% if t.observaciones %}<br>{{ t.observaciones }}{% endif %}
+          </span>
+        {% endfor %}
+        {% for a in ausencias_por_dia.get(clave, []) %}
+          <span class="absence-chip">{{ a.tipo|replace('_',' ')|capitalize }} · {{ a.estado }}</span>
+        {% endfor %}
+        {% if not turnos_por_dia.get(clave) and not ausencias_por_dia.get(clave) %}
+          <span style="color:#64748b;">Sin turno</span>
+        {% endif %}
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+
+{% if avisos_portal %}
+<div class="portal-alerts">
+  {% for aviso in avisos_portal %}
+    <div class="portal-alert {{ aviso.nivel }}">
+      <strong>{{ aviso.titulo }}</strong>
+      <span>{{ aviso.detalle }}</span>
+    </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+{% if not acuse_jornada %}
+<div class="card" style="margin-top:16px;">
+  <div class="card-header"><h2><i class="fas fa-scale-balanced"></i> Aviso registro de jornada</h2></div>
+  <div class="legal-notice">{{ aviso_legal_jornada.texto }}</div>
+  <form method="post" action="{{ url_for('rrhh.aceptar_aviso_jornada_empleado') }}" style="margin-top:12px;">
+    <label style="display:flex;gap:8px;align-items:flex-start;margin-bottom:10px;">
+      <input type="checkbox" name="acepto" value="1" required>
+      <span>He leido y recibido esta informacion.</span>
+    </label>
+    <button class="btn btn-success" type="submit"><i class="fas fa-check"></i> Aceptar aviso</button>
+  </form>
+</div>
+{% endif %}
+
+{% if saldo_vacaciones %}
+<div class="card" style="margin-top:16px;">
+  <div class="card-header"><h2><i class="fas fa-umbrella-beach"></i> Mi saldo de vacaciones {{ saldo_vacaciones.anio }}</h2></div>
+  <div class="vac-balance">
+    <div class="box"><span>Generadas</span><strong>{{ "%.2f"|format(saldo_vacaciones.devengadas or 0) }}</strong></div>
+    <div class="box"><span>Aprobadas</span><strong>{{ "%.2f"|format(saldo_vacaciones.aprobadas or 0) }}</strong></div>
+    <div class="box"><span>Disfrutadas</span><strong>{{ "%.2f"|format(saldo_vacaciones.disfrutadas or 0) }}</strong></div>
+    <div class="box"><span>Solicitadas</span><strong>{{ "%.2f"|format(saldo_vacaciones.solicitadas or 0) }}</strong></div>
+    <div class="box"><span>Disponible</span><strong>{{ "%.2f"|format(saldo_vacaciones.disponible or 0) }}</strong></div>
+  </div>
+</div>
+{% endif %}
+
+<div class="card" style="margin-top:16px;">
+  <div class="card-header"><h2><i class="fas fa-file-csv"></i> Mi registro mensual de jornada</h2></div>
+  <form method="get" action="{{ url_for('rrhh.portal_empleado') }}" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;align-items:end;">
+    <input type="hidden" name="fecha" value="{{ inicio.isoformat() }}">
+    <div class="form-group">
+      <label class="form-label">Mes</label>
+      <input class="form-control" type="number" name="jornada_mes" min="1" max="12" value="{{ jornada_mes }}" required>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Anio</label>
+      <input class="form-control" type="number" name="jornada_anio" min="2020" max="2100" value="{{ jornada_anio }}" required>
+    </div>
+    <div class="form-group">
+      <button class="btn btn-secondary" type="submit"><i class="fas fa-search"></i> Ver</button>
+    </div>
+    <div class="form-group">
+      <a class="btn btn-primary" href="{{ url_for('rrhh.informe_jornada_empleado_csv', anio=jornada_anio, mes=jornada_mes) }}"><i class="fas fa-download"></i> Descargar CSV</a>
+    </div>
+  </form>
+  {% if jornada_resumen %}
+    <div class="vac-balance">
+      <div class="box"><span>Periodo</span><strong style="font-size:16px;">{{ jornada_mensual.inicio }}<br>{{ jornada_mensual.fin_visible }}</strong></div>
+      <div class="box"><span>Horas reales</span><strong>{{ "%.2f"|format(jornada_resumen.horas_reales or 0) }}</strong></div>
+      <div class="box"><span>Planificadas</span><strong>{{ "%.2f"|format(jornada_resumen.horas_planificadas or 0) }}</strong></div>
+      <div class="box"><span>Diferencia</span><strong>{{ "%.2f"|format(jornada_resumen.diferencia or 0) }}</strong></div>
+      <div class="box"><span>Fichajes</span><strong>{{ jornada_resumen.fichajes or 0 }}</strong></div>
+      <div class="box"><span>Correcciones</span><strong>{{ jornada_resumen.correcciones_pendientes or 0 }}</strong></div>
+    </div>
+    <small style="display:block;color:#94a3b8;margin-top:10px;">
+      Estado cierre: {% if jornada_mensual.cierre %}{{ jornada_mensual.cierre.estado }}{% else %}abierto{% endif %}
+      {% if acuse_jornada %}<br>Aviso recibido: {{ acuse_jornada.fecha }}{% endif %}
+    </small>
+  {% else %}
+    <div class="empty-note">No hay datos de jornada para ese periodo.</div>
+  {% endif %}
+</div>
+
+<div class="card" style="margin-top:16px;">
+  <div class="card-header"><h2><i class="fas fa-key"></i> Mi PIN de fichaje</h2></div>
+  <form method="post" action="{{ url_for('rrhh.cambiar_pin_fichaje_empleado') }}" autocomplete="off" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;align-items:end;">
+    {% if empleado.pin_fichaje_hash %}
+    <div class="form-group">
+      <label class="form-label">PIN actual</label>
+      <input class="form-control" type="password" name="pin_actual" inputmode="numeric" autocomplete="current-password" required>
+    </div>
+    {% endif %}
+    <div class="form-group">
+      <label class="form-label">Nuevo PIN</label>
+      <input class="form-control" type="password" name="pin_nuevo" inputmode="numeric" autocomplete="new-password" minlength="4" maxlength="8" required>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Repetir PIN</label>
+      <input class="form-control" type="password" name="pin_repetir" inputmode="numeric" autocomplete="new-password" minlength="4" maxlength="8" required>
+    </div>
+    <div class="form-group">
+      <button class="btn btn-success" type="submit"><i class="fas fa-save"></i> Guardar PIN</button>
+    </div>
+  </form>
+  {% if empleado.pin_fichaje_updated_at %}
+    <small style="color:#94a3b8;">Ultima actualizacion: {{ empleado.pin_fichaje_updated_at }}</small>
+  {% endif %}
+</div>
+
+<div class="card" style="margin-top:16px;">
+  <div class="card-header"><h2><i class="fas fa-lock"></i> Mi contrasena de acceso</h2></div>
+  <form method="post" action="{{ url_for('auth.cambiar_password') }}" autocomplete="off" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;align-items:end;">
+    <input type="hidden" name="next" value="portal_empleado">
+    <div class="form-group">
+      <label class="form-label">Contrasena actual</label>
+      <input class="form-control" type="password" name="password_actual" autocomplete="current-password" required>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Nueva contrasena</label>
+      <input class="form-control" type="password" name="password_nueva" autocomplete="new-password" minlength="8" required>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Repetir contrasena</label>
+      <input class="form-control" type="password" name="confirm_password" autocomplete="new-password" minlength="8" required>
+    </div>
+    <div class="form-group">
+      <button class="btn btn-success" type="submit"><i class="fas fa-save"></i> Guardar contrasena</button>
+    </div>
+  </form>
+</div>
+
+<div class="card" style="margin-top:16px;">
+  <div class="card-header"><h2><i class="fas fa-umbrella-beach"></i> Mis solicitudes</h2></div>
+  <form method="post" action="{{ url_for('rrhh.solicitar_ausencia_empleado') }}" enctype="multipart/form-data">
+    <div class="request-grid">
+      <div class="form-group">
+        <label class="form-label">Tipo</label>
+        <select class="form-control" name="tipo" required>
+          {% for valor, nombre in tipos_ausencia %}
+            <option value="{{ valor }}">{{ nombre }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Inicio</label>
+        <input class="form-control" type="date" name="fecha_inicio" required>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Fin</label>
+        <input class="form-control" type="date" name="fecha_fin" required>
+      </div>
+      <div class="form-group wide">
+        <label class="form-label">Motivo / comentario</label>
+        <input class="form-control" name="observaciones" maxlength="250">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Justificante</label>
+        <input class="form-control" type="file" name="archivo_documento" accept=".pdf,.jpg,.jpeg,.png,.webp,.doc,.docx">
+      </div>
+    </div>
+    <button class="btn btn-primary" type="submit"><i class="fas fa-paper-plane"></i> Enviar solicitud</button>
+  </form>
+
+  <div class="table-container" style="margin-top:14px;">
+    <table class="compact-table">
+      <thead><tr><th>Tipo</th><th>Fechas</th><th>Estado</th><th>Justificante</th><th></th></tr></thead>
+      <tbody>
+      {% for s in solicitudes %}
+        <tr>
+          <td>{{ s.tipo|replace('_',' ')|capitalize }}{% if s.observaciones %}<br><small>{{ s.observaciones }}</small>{% endif %}</td>
+          <td>{{ s.fecha_inicio }}{% if s.fecha_fin != s.fecha_inicio %}<br>{{ s.fecha_fin }}{% endif %}<br><small>{{ s.dias or 0 }} dia(s)</small></td>
+          <td><span class="status-pill status-{{ s.estado or 'solicitada' }}">{{ s.estado or 'solicitada' }}</span></td>
+          <td>
+            {% if s.documento_id %}
+              <span class="badge badge-success">Adjunto</span>
+              {% if s.documento_archivo %}<br><a href="{{ url_for('rrhh.descargar_documento_empleado', id=s.documento_id) }}">Descargar</a>{% endif %}
+            {% elif s.requiere_documento %}
+              <span style="color:#fbbf24;">Pendiente</span>
+            {% else %}
+              <span style="color:#94a3b8;">No obligatorio</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if (s.estado or 'solicitada') == 'solicitada' %}
+              <form method="post" action="{{ url_for('rrhh.cancelar_solicitud_empleado', id=s.id) }}">
+                <button class="btn btn-secondary" type="submit"><i class="fas fa-ban"></i></button>
+              </form>
+            {% endif %}
+          </td>
+        </tr>
+      {% else %}
+        <tr><td colspan="5">No tienes solicitudes registradas.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="portal-panels">
+  <div class="card">
+    <div class="card-header"><h2><i class="fas fa-file-invoice-dollar"></i> Mis nominas</h2></div>
+    <div class="table-container">
+      <table class="compact-table">
+        <thead><tr><th>Periodo</th><th>Estado</th><th></th></tr></thead>
+        <tbody>
+        {% for n in nominas %}
+          <tr>
+            <td>{{ "%02d"|format(n.mes or 0) }}/{{ n.anio }}<br><small>Neto: {{ "%.2f"|format(n.neto or 0) }} EUR</small></td>
+            <td><span class="badge badge-info">{{ n.estado or 'pendiente' }}</span></td>
+            <td>
+              {% if n.archivo %}
+                <a class="btn btn-secondary" href="{{ url_for('rrhh.descargar_nomina_empleado', id=n.id) }}"><i class="fas fa-download"></i></a>
+              {% else %}
+                <span style="color:#64748b;">Sin archivo</span>
+              {% endif %}
+            </td>
+          </tr>
+        {% else %}
+          <tr><td colspan="3">No hay nominas publicadas.</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header"><h2><i class="fas fa-file-signature"></i> Mis contratos</h2></div>
+    <div class="table-container">
+      <table class="compact-table">
+        <thead><tr><th>Contrato</th><th>Firma</th><th></th></tr></thead>
+        <tbody>
+        {% for c in contratos %}
+          <tr>
+            <td>
+              <strong>{{ c.tipo_contrato or 'Contrato' }}</strong><br>
+              <small>{{ c.fecha_inicio or '' }}{% if c.fecha_fin %} - {{ c.fecha_fin }}{% endif %}</small>
+            </td>
+            <td>
+              {% if c.firmado_empleado %}
+                <span class="badge badge-success">Firmado</span>
+                {% if c.firma_empleado_at %}<br><small>{{ c.firma_empleado_at }}</small>{% endif %}
+              {% else %}
+                <form class="sign-form" method="post" action="{{ url_for('rrhh.firmar_contrato_empleado', id=c.id) }}">
+                  <label><input type="checkbox" name="acepto" value="1" required> He leido y acepto este contrato.</label>
+                  <button class="btn btn-success" type="submit"><i class="fas fa-signature"></i> Firmar</button>
+                </form>
+              {% endif %}
+            </td>
+            <td>
+              {% if c.archivo %}
+                <a class="btn btn-secondary" href="{{ url_for('rrhh.descargar_contrato_empleado', id=c.id) }}"><i class="fas fa-download"></i></a>
+              {% else %}
+                <span style="color:#64748b;">Sin archivo</span>
+              {% endif %}
+            </td>
+          </tr>
+        {% else %}
+          <tr><td colspan="3">No hay contratos publicados.</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header"><h2><i class="fas fa-folder-open"></i> Mis documentos</h2></div>
+    <form method="post" action="{{ url_for('rrhh.subir_documento_empleado') }}" enctype="multipart/form-data">
+      <div class="doc-upload-grid">
+        <div class="form-group"><label class="form-label">Tipo</label><input class="form-control" name="tipo_documento" placeholder="DNI, justificante, certificado..."></div>
+        <div class="form-group"><label class="form-label">Nombre</label><input class="form-control" name="nombre" placeholder="Nombre del documento"></div>
+      </div>
+      <div class="form-group"><label class="form-label">Archivo</label><input class="form-control" type="file" name="archivo" accept=".pdf,.jpg,.jpeg,.png,.webp,.doc,.docx" required></div>
+      <div class="form-group"><label class="form-label">Observaciones</label><input class="form-control" name="observaciones" maxlength="250"></div>
+      <button class="btn btn-primary" type="submit"><i class="fas fa-upload"></i> Subir documento</button>
+    </form>
+    <div class="table-container" style="margin-top:14px;">
+      <table class="compact-table">
+        <thead><tr><th>Documento</th><th>Estado</th><th></th></tr></thead>
+        <tbody>
+        {% for d in documentos %}
+          <tr>
+            <td>{{ d.nombre or d.tipo_documento }}<br><small>{{ d.tipo_documento }}{% if d.fecha_documento %} - {{ d.fecha_documento }}{% endif %}</small></td>
+            <td><span class="badge badge-info">{{ d.estado or 'vigente' }}</span></td>
+            <td>
+              {% if d.archivo %}
+                <a class="btn btn-secondary" href="{{ url_for('rrhh.descargar_documento_empleado', id=d.id) }}"><i class="fas fa-download"></i></a>
+              {% endif %}
+            </td>
+          </tr>
+        {% else %}
+          <tr><td colspan="3">No hay documentos publicados.</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div class="card" style="margin-top:16px;">
+  <div class="card-header"><h2><i class="fas fa-list"></i> Mis fichajes recientes</h2></div>
+  <form method="post" action="{{ url_for('rrhh.solicitar_correccion_fichaje_empleado') }}" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:14px;">
+    <div class="form-group">
+      <label class="form-label">Fecha</label>
+      <input class="form-control" type="date" name="fecha" required>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Hora</label>
+      <input class="form-control" type="time" name="hora" required>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Tipo</label>
+      <select class="form-control" name="tipo" required>
+        <option value="entrada">Entrada</option>
+        <option value="pausa">Pausa</option>
+        <option value="reanudacion">Reanudar</option>
+        <option value="salida">Salida</option>
+      </select>
+    </div>
+    <div class="form-group" style="grid-column:span 2;">
+      <label class="form-label">Motivo</label>
+      <input class="form-control" name="motivo" maxlength="250" required>
+    </div>
+    <div class="form-group" style="align-self:end;">
+      <button class="btn btn-warning" type="submit"><i class="fas fa-pen"></i> Pedir correccion</button>
+    </div>
+  </form>
+  <div class="table-container" style="margin-bottom:14px;">
+    <table class="compact-table">
+      <thead><tr><th>Solicitud</th><th>Tipo</th><th>Estado</th><th>Respuesta</th></tr></thead>
+      <tbody>
+      {% for c in correcciones_fichaje %}
+        <tr>
+          <td>{{ c.fecha_hora_solicitada }}<br><small>{{ c.motivo or '' }}</small></td>
+          <td>{{ c.tipo }}</td>
+          <td><span class="status-pill status-{{ c.estado or 'pendiente' }}">{{ c.estado or 'pendiente' }}</span></td>
+          <td>{{ c.respuesta_rrhh or '' }}</td>
+        </tr>
+      {% else %}
+        <tr><td colspan="4">Sin solicitudes de correccion.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <div class="table-container">
+    <table>
+      <thead><tr><th>Fecha/hora</th><th>Tipo</th><th>Origen</th><th>Estado</th><th>Observaciones</th></tr></thead>
+      <tbody>
+      {% for f in fichajes_recientes %}
+        <tr>
+          <td>{{ f.fecha_hora }}</td>
+          <td><span class="badge badge-info">{{ f.tipo }}</span></td>
+          <td>{{ f.origen or 'manual' }}</td>
+          <td>{{ f.estado or 'activo' }}</td>
+          <td>{{ f.observaciones or '' }}</td>
+        </tr>
+      {% else %}
+        <tr><td colspan="5">Sin fichajes registrados.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
+{% endblock %}

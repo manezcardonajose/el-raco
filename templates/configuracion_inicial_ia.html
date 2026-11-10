@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+{% block content %}
+<style>
+  .ai-wrap{display:grid;grid-template-columns:minmax(320px,520px) 1fr;gap:16px;align-items:start}
+  .ai-card{background:#252b33;border:1px solid #2c3e50;border-radius:8px;padding:18px}
+  .ai-card h1,.ai-card h2{margin:0 0 10px;color:#fff;letter-spacing:0}
+  .ai-card p,.ai-muted{color:#aeb8c6;line-height:1.45}
+  .ai-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+  .ai-field{display:flex;flex-direction:column;gap:6px;margin-bottom:12px}
+  .ai-field label{font-weight:700;color:#d7dee8}
+  .ai-field input,.ai-field select{background:#1d2530;border:1px solid #34465c;color:#fff;border-radius:6px;padding:10px}
+  .ai-checks{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:10px 0 14px}
+  .ai-checks label{background:#1d2530;border:1px solid #34465c;border-radius:6px;padding:10px;color:#fff}
+  .ai-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px}
+  .ai-pill{background:#111827;border:1px solid #34465c;border-radius:8px;padding:10px;color:#d7dee8}
+  .ai-pill strong{display:block;color:#fff;margin-bottom:4px}
+  .ai-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
+  @media(max-width:1000px){.ai-wrap{grid-template-columns:1fr}.ai-grid,.ai-checks{grid-template-columns:1fr}}
+</style>
+
+<div class="ai-wrap">
+  <section class="ai-card">
+    <h1>Asistente IA de centro</h1>
+    <p>Genera una propuesta aislada por centro: estructura, departamentos, zonas, almacenes, puntos de venta, APPCC, limpieza y trazabilidad ISO.</p>
+
+    <form method="post">
+      <div class="ai-field">
+        <label>Nombre del centro</label>
+        <input name="nombre" required value="{{ form_data.get('nombre','') }}" placeholder="Ej. Hotel 1">
+      </div>
+      <div class="ai-grid">
+        <div class="ai-field">
+          <label>Tipo</label>
+          <select name="tipo">
+            <option value="hotel" {% if form_data.get('tipo') == 'hotel' %}selected{% endif %}>Hotel</option>
+            <option value="restaurante" {% if form_data.get('tipo') == 'restaurante' %}selected{% endif %}>Restaurante</option>
+            <option value="apartamentos" {% if form_data.get('tipo') == 'apartamentos' %}selected{% endif %}>Apartamentos</option>
+          </select>
+        </div>
+        <div class="ai-field">
+          <label>Habitaciones</label>
+          <input type="number" min="0" name="habitaciones" value="{{ form_data.get('habitaciones','0') }}">
+        </div>
+        <div class="ai-field">
+          <label>Plantas</label>
+          <input type="number" min="1" name="plantas" value="{{ form_data.get('plantas','1') }}">
+        </div>
+        <div class="ai-field">
+          <label>Restaurantes</label>
+          <input type="number" min="0" name="restaurantes" value="{{ form_data.get('restaurantes','0') }}">
+        </div>
+        <div class="ai-field">
+          <label>Bares</label>
+          <input type="number" min="0" name="bares" value="{{ form_data.get('bares','0') }}">
+        </div>
+      </div>
+
+      <div class="ai-checks">
+        <label><input type="checkbox" name="cocina_central" {% if form_data.get('cocina_central') %}checked{% endif %}> Cocina propia</label>
+        <label><input type="checkbox" name="buffet" {% if form_data.get('buffet') %}checked{% endif %}> Buffet</label>
+        <label><input type="checkbox" name="piscina" {% if form_data.get('piscina') %}checked{% endif %}> Piscina</label>
+        <label><input type="checkbox" name="spa" {% if form_data.get('spa') %}checked{% endif %}> Spa</label>
+      </div>
+
+      <div class="ai-actions">
+        <button class="btn btn-primary" name="accion" value="previsualizar">
+          <i class="fas fa-eye"></i> Previsualizar
+        </button>
+        {% if plan %}
+        <button class="btn btn-success" name="accion" value="aplicar">
+          <i class="fas fa-check"></i> Crear centro
+        </button>
+        {% endif %}
+        <a class="btn btn-secondary" href="{{ url_for('configuracion_inicial') }}">Volver</a>
+      </div>
+    </form>
+  </section>
+
+  <section class="ai-card">
+    <h2>Propuesta</h2>
+    {% if not plan %}
+      <p class="ai-muted">Rellena los datos y pulsa previsualizar. No se creara nada hasta confirmar.</p>
+    {% else %}
+      <div class="ai-list">
+        <div class="ai-pill"><strong>{{ plan.departamentos|length }}</strong>Departamentos</div>
+        <div class="ai-pill"><strong>{{ plan.zonas|length }}</strong>Zonas</div>
+        <div class="ai-pill"><strong>{{ plan.almacenes|length }}</strong>Almacenes</div>
+        <div class="ai-pill"><strong>{{ plan.puntos_venta|length }}</strong>Puntos de venta</div>
+        <div class="ai-pill"><strong>{{ plan.controles|length }}</strong>Controles APPCC/ISO base</div>
+      </div>
+
+      <h2 style="margin-top:18px;">Departamentos</h2>
+      <div class="ai-list">
+        {% for d in plan.departamentos %}
+        <div class="ai-pill"><strong>{{ d.nombre }}</strong>{{ d.descripcion }}</div>
+        {% endfor %}
+      </div>
+
+      <h2 style="margin-top:18px;">APPCC e ISO</h2>
+      <div class="ai-list">
+        {% for c in plan.controles %}
+        <div class="ai-pill">{{ c }}</div>
+        {% endfor %}
+      </div>
+      <p class="ai-muted" style="margin-top:14px;">Base normativa usada como checklist:</p>
+      <div class="ai-list">
+        {% for ref in plan.referencias %}
+        <div class="ai-pill">{{ ref }}</div>
+        {% endfor %}
+      </div>
+    {% endif %}
+  </section>
+</div>
+{% endblock %}

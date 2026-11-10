@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="es">
+<head>
+    <meta charset="utf-8">
+    <title>Etiquetas recepcion {{ recepcion.id }}</title>
+    <style>
+        :root {
+            --label-w: {{ label_css.ancho_mm }}mm;
+            --label-h: {{ label_css.alto_mm }}mm;
+            --label-gap: {{ label_css.separacion_mm }}mm;
+            --label-pad: {{ label_css.padding_mm }}mm;
+            --label-font: {{ label_css.fuente_base_px }}px;
+            --page-margin: {{ label_css.margen_mm }}mm;
+        }
+        @page { size: {{ label_css.page_size }}; margin: {{ label_css.page_margin }}; }
+        body { font-family: Arial, sans-serif; color:#111; margin:0; padding:var(--page-margin); font-size:var(--label-font); background:#f3f4f6; }
+        .toolbar { display:flex; gap:8px; flex-wrap:wrap; align-items:end; margin-bottom:14px; background:#fff; border:1px solid #ddd; padding:10px; }
+        .toolbar a, .toolbar button { padding:8px 10px; border:1px solid #222; background:#fff; color:#111; text-decoration:none; cursor:pointer; }
+        .toolbar label { display:flex; flex-direction:column; gap:4px; font-size:12px; color:#555; }
+        .toolbar select { min-width:220px; padding:7px; border:1px solid #999; }
+        .printer-chip { padding:7px 9px; border:1px solid #bbb; background:#f8fafc; font-size:12px; color:#333; }
+        .meta { border:1px solid #ccc; padding:10px; margin-bottom:12px; font-size:13px; }
+        .label-grid { display:grid; grid-template-columns:repeat({{ label_css.columnas }}, var(--label-w)); gap:var(--label-gap); align-items:start; }
+        .label { width:var(--label-w); min-height:var(--label-h); border:1.6px solid #111; padding:var(--label-pad); background:#fff; box-sizing:border-box; page-break-inside:avoid; overflow:hidden; }
+        .label-mode-rollo .label-grid { display:block; }
+        .label-mode-rollo .label { page-break-after:always; break-after:page; }
+        .title { font-size:calc(var(--label-font) * 1.5); line-height:1.05; font-weight:800; margin-bottom:calc(var(--label-pad) * .7); }
+        .muted { color:#555; font-size:calc(var(--label-font) * .9); }
+        .code { font-size:calc(var(--label-font) * 1.75); font-weight:800; letter-spacing:.4px; border:1px solid #111; padding:calc(var(--label-pad) * .65); text-align:center; margin:calc(var(--label-pad) * .8) 0; }
+        .row { display:flex; justify-content:space-between; gap:6px; border-bottom:1px solid #ddd; padding:2px 0; line-height:1.15; }
+        .row span { text-align:right; overflow-wrap:anywhere; }
+        .badge { display:inline-block; border:1px solid #111; padding:2px 5px; margin-top:4px; font-size:calc(var(--label-font) * .85); font-weight:700; }
+        @media print {
+            body { padding:0; background:#fff; }
+            .toolbar, .meta { display:none; }
+            .label { margin:0; border-width:1px; }
+        }
+    </style>
+</head>
+<body class="label-mode-{{ config_etiqueta.formato }}">
+    <form class="toolbar" method="get">
+        <label>Formato etiqueta
+            <select name="formato" onchange="this.form.submit()">
+                {% for f in formatos_etiqueta %}
+                <option value="{{ f.codigo }}" {% if f.codigo == config_etiqueta.codigo %}selected{% endif %}>{{ f.nombre }}</option>
+                {% endfor %}
+            </select>
+        </label>
+        <button type="button" onclick="window.print()">Imprimir etiquetas</button>
+        <button type="button" onclick="queuePrintJob()">Enviar a impresora asignada</button>
+        {% if dispositivo_impresion %}
+        <span class="printer-chip">Equipo: {{ dispositivo_impresion.nombre }} · Etiquetas: {{ dispositivo_impresion.impresora_etiquetas_nombre or 'sin impresora asignada' }}</span>
+        {% else %}
+        <a href="{{ url_for('empresas.dispositivos_impresion') }}">Asignar este equipo</a>
+        {% endif %}
+        <a href="{{ url_for('empresas.configurar_etiquetas') }}">Configurar formatos</a>
+        <a href="{{ url_for('compras.validar_recepciones') }}">Recepciones</a>
+        <a href="{{ url_for('compras.desinfeccion_recepcion', recepcion_id=recepcion.id) }}">Desinfeccion</a>
+        <a href="{{ url_for('compras.hoja_conformidad_recepcion_id', recepcion_id=recepcion.id) }}">Conformidad</a>
+    </form>
+
+    <form id="queuePrintForm" method="post" action="{{ url_for('empresas.crear_trabajo_impresion') }}" style="display:none;">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="tipo" value="etiquetas_recepcion">
+        <input type="hidden" name="origen_tabla" value="recepciones">
+        <input type="hidden" name="origen_id" value="{{ recepcion.id }}">
+        <input type="hidden" name="titulo" value="Etiquetas recepcion {{ recepcion.id }}">
+        <input type="hidden" name="formato_codigo" value="{{ config_etiqueta.codigo }}">
+        <input type="hidden" name="lenguaje_impresion" value="{% if config_etiqueta.tipo_impresora in ['zebra_zpl','termica'] %}zpl{% else %}html{% endif %}">
+        <input type="hidden" name="next_url" value="{{ request.full_path }}">
+        <textarea name="contenido_html" id="printJobHtml"></textarea>
+        <textarea name="contenido_raw">{{ zpl_contenido }}</textarea>
+    </form>
+
+    <div class="meta">
+        <strong>Recepcion:</strong> {{ recepcion.id }}
+        {% if recepcion.numero_pedido %} - <strong>Pedido:</strong> {{ recepcion.numero_pedido }}{% endif %}
+        - <strong>Proveedor:</strong> {{ recepcion.proveedor_nombre or '-' }}
+        - <strong>Departamento:</strong> {{ recepcion.departamento_nombre or '-' }}
+        - <strong>Fecha:</strong> {{ recepcion.fecha_recepcion or '-' }}
+    </div>
+
+    {% if etiquetas %}
+    <div class="label-grid">
+        {% for e in etiquetas %}
+        {% set l = e.linea %}
+        <section class="label">
+            <div class="title">{{ l.producto_nombre }}</div>
+            <div class="muted">{{ l.familia or '-' }} / {{ l.tipo_conservacion or '-' }}</div>
+            <div class="code">{{ e.codigo_lote }}</div>
+            <div class="row"><strong>Envase</strong><span>{{ e.copia }} / {{ e.total_copias }}</span></div>
+            <div class="row"><strong>Cantidad envase</strong><span>{{ '%.3f'|format(e.cantidad_envase or 0) }} {{ l.unidad or '' }}</span></div>
+            <div class="row"><strong>Cantidad total</strong><span>{{ '%.3f'|format(e.cantidad_total or 0) }} {{ l.unidad or '' }}</span></div>
+            <div class="row"><strong>Lote proveedor</strong><span>{{ l.lote_proveedor or l.lote or '-' }}</span></div>
+            <div class="row"><strong>Proveedor</strong><span>{{ recepcion.proveedor_nombre or '-' }}</span></div>
+            <div class="row"><strong>Recepcion</strong><span>{{ recepcion.fecha_recepcion or '-' }}</span></div>
+            <div class="row"><strong>Caducidad</strong><span>{{ l.fecha_caducidad or '-' }}</span></div>
+            <div class="row"><strong>Almacen</strong><span>{{ l.almacen_nombre or '-' }}</span></div>
+            {% if l.temperatura is not none %}
+            <div class="row"><strong>Temp. recepcion</strong><span>{{ l.temperatura }} C</span></div>
+            {% endif %}
+            {% if l.requiere_desinfeccion %}
+                {% if l.num_desinfecciones %}
+                <span class="badge">Desinfeccion registrada</span>
+                {% else %}
+                <span class="badge">Pendiente desinfeccion APPCC</span>
+                {% endif %}
+            {% endif %}
+            <div class="muted" style="margin-top:8px;">Impresa: {{ now.strftime('%Y-%m-%d %H:%M') }}</div>
+        </section>
+        {% endfor %}
+    </div>
+    {% else %}
+    <p>No hay lineas aptas con cantidad para imprimir etiquetas.</p>
+    {% endif %}
+    {% if config_etiqueta.auto_print or (dispositivo_impresion and dispositivo_impresion.auto_print_etiquetas) %}
+    <script>
+        window.addEventListener('load', function () { window.print(); });
+    </script>
+    {% endif %}
+    <script>
+        function queuePrintJob() {
+            const styles = Array.from(document.querySelectorAll('style')).map(s => s.outerHTML).join('\n');
+            const content = document.querySelector('.label-grid');
+            document.getElementById('printJobHtml').value = `<!doctype html><html lang="es"><head><meta charset="utf-8"><title>Etiquetas</title>${styles}</head><body class="${document.body.className}">${content.outerHTML}</body></html>`;
+            document.getElementById('queuePrintForm').submit();
+        }
+    </script>
+</body>
+</html>

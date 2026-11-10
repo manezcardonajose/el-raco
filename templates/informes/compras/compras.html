@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="card">
+    <div class="card-header">
+        <h2><i class="fas fa-shopping-cart"></i> Informes de compras</h2>
+        <a href="{{ url_for('informes.stock') }}" class="btn btn-secondary">Stock</a>
+        <a href="{{ url_for('informes.produccion') }}" class="btn btn-secondary">Producción</a>
+    </div>
+    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px;">
+        <a href="{{ url_for('informes.compras_por_producto') }}" class="informe-card">
+            <i class="fas fa-chart-bar" style="font-size: 48px; color: #007bff;"></i>
+            <h3>Compras por producto</h3>
+            <p>Análisis de compras agrupadas por producto</p>
+        </a>
+        <a href="{{ url_for('informes.compras_historico') }}" class="informe-card">
+            <i class="fas fa-chart-line" style="font-size: 48px; color: #28a745;"></i>
+            <h3>Histórico de compras</h3>
+            <p>Evolución mensual de compras y gastos</p>
+        </a>
+        <a href="{{ url_for('informes.compras_comparativa') }}" class="informe-card">
+            <i class="fas fa-balance-scale" style="font-size: 48px; color: #ffc107;"></i>
+            <h3>Comparativa de precios</h3>
+            <p>Precios de productos por proveedor</p>
+        </a>
+        <a href="{{ url_for('informes.compras_evolucion') }}" class="informe-card">
+            <i class="fas fa-chart-line" style="font-size: 48px; color: #17a2b8;"></i>
+            <h3>Evolución de precios</h3>
+            <p>Seguimiento de precios en el tiempo</p>
+        </a>
+    </div>
+</div>
+
+<style>
+    .informe-card {
+        background: #1e252b;
+        padding: 25px;
+        border-radius: 8px;
+        text-align: center;
+        text-decoration: none;
+        color: #e0e0e0;
+        transition: transform 0.2s;
+    }
+
+        .informe-card:hover {
+            transform: translateY(-5px);
+            background: #2b2f33;
+        }
+
+        .informe-card h3 {
+            color: #ff6b00;
+            margin: 15px 0 10px;
+        }
+
+        .informe-card p {
+            color: #999;
+            font-size: 13px;
+        }
+</style>
+{% endblock %}

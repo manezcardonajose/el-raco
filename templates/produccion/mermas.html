@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="card">
+
+    <div class="card-header" style="display:flex; justify-content:space-between;">
+        <h2><i class="fas fa-trash"></i> Mermas</h2>
+
+        <a href="{{ url_for('produccion.nueva_merma') }}" class="btn btn-danger">
+            Nueva merma
+        </a>
+    </div>
+
+    <div style="padding:15px;">
+        <input type="text" id="buscador" placeholder="Buscar..." class="form-control">
+    </div>
+
+    <table class="table table-hover" id="tabla">
+        <thead>
+            <tr>
+                <th>Fecha</th>
+                <th>Receta</th>
+                <th>Cantidad</th>
+                <th>Motivo</th>
+                <th>Parte</th>
+            </tr>
+        </thead>
+
+        <tbody>
+            {% for m in mermas %}
+            <tr>
+                <td>{{ m.fecha }}</td>
+                <td>{{ m.receta_nombre }}</td>
+                <td>{{ m.cantidad }}</td>
+                <td>{{ m.motivo }}</td>
+                <td>#{{ m.parte_id }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+</div>
+
+<script>
+document.getElementById('buscador').addEventListener('keyup', function() {
+    let f = this.value.toLowerCase();
+    document.querySelectorAll("#tabla tbody tr").forEach(tr => {
+        tr.style.display = tr.innerText.toLowerCase().includes(f) ? "" : "none";
+    });
+});
+</script>
+
+{% endblock %}

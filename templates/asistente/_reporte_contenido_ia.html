@@ -1,0 +1,36 @@
+{% set reporte_modulo = modulo|default('asistente_ia') %}
+{% set reporte_origen = origen|default(request.path) %}
+{% set reporte_contenido = contenido|default('') %}
+{% set reporte_referencia = referencia_id|default('') %}
+<details class="ia-report-box">
+    <summary><i class="fas fa-flag"></i> Reportar contenido IA</summary>
+    <p class="muted" style="margin:8px 0 10px;">
+        Esta salida puede estar generada o asistida por IA. Revisala antes de usarla en decisiones operativas, legales,
+        laborales, fiscales o alimentarias. Si ves contenido inapropiado, falso o peligroso, envialo para revision.
+    </p>
+    <form method="post" action="{{ url_for('asistente.reportar_contenido_ia') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="modulo" value="{{ reporte_modulo }}">
+        <input type="hidden" name="origen" value="{{ reporte_origen }}">
+        <input type="hidden" name="referencia_id" value="{{ reporte_referencia }}">
+        <input type="hidden" name="return_to" value="{{ request.full_path if request.full_path else request.path }}">
+        <input type="hidden" name="dispositivo" value="Microsoft Surface Laptop">
+        <textarea name="contenido" hidden>{{ reporte_contenido }}</textarea>
+        <label>
+            Motivo
+            <select name="motivo">
+                <option value="contenido_inapropiado">Contenido inapropiado</option>
+                <option value="dato_falso">Dato falso o inventado</option>
+                <option value="riesgo_operativo">Puede provocar un error operativo</option>
+                <option value="riesgo_legal">Riesgo legal, fiscal o laboral</option>
+                <option value="riesgo_seguridad_alimentaria">Riesgo de seguridad alimentaria o APPCC</option>
+                <option value="otro">Otro</option>
+            </select>
+        </label>
+        <label>
+            Comentario
+            <textarea name="comentario" rows="3" placeholder="Explica que no esta bien o que debemos revisar."></textarea>
+        </label>
+        <button class="btn btn-secondary" type="submit"><i class="fas fa-paper-plane"></i> Enviar reporte</button>
+    </form>
+</details>

@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="card">
+    <div class="card-header" style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;">
+        <h2 style="margin:0;"><i class="fas fa-shield-alt"></i> Desinfeccion de lote</h2>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <a href="{{ url_for('lotes.historial_lote', lote_id=lote.id) }}" class="btn btn-secondary">Historial</a>
+            <a href="{{ url_for('lotes.lista_lotes') }}" class="btn btn-secondary">Lotes</a>
+        </div>
+    </div>
+
+    <div style="padding:12px;border:1px solid #374151;border-radius:8px;margin-bottom:16px;">
+        <strong>{{ lote.producto_nombre }}</strong> - lote {{ lote.codigo_lote }}
+        <div class="text-muted" style="font-size:12px;">Stock: {{ lote.cantidad_actual }} {{ lote.unidad }} - familia {{ lote.familia or '-' }}</div>
+    </div>
+
+    <form method="post" class="card" style="margin-bottom:16px;">
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;">
+            <div>
+                <label>Producto desinfectante</label>
+                <input type="text" name="producto_usado" class="form-control" placeholder="Ej: higienizante alimentario">
+            </div>
+            <div>
+                <label>Dosis</label>
+                <input type="text" name="dosis" class="form-control" placeholder="Ej: 5 ml/l">
+            </div>
+            <div>
+                <label>Tiempo contacto</label>
+                <input type="text" name="tiempo_contacto" class="form-control" placeholder="Ej: 10 min">
+            </div>
+            <div>
+                <label>Resultado</label>
+                <select name="resultado" class="form-control">
+                    <option value="apto">Apto</option>
+                    <option value="repetir">Repetir limpieza</option>
+                    <option value="no_apto">No apto</option>
+                </select>
+            </div>
+        </div>
+        <label style="display:flex;gap:8px;align-items:center;margin:12px 0;">
+            <input type="checkbox" name="aclarado" checked> Aclarado realizado si procede
+        </label>
+        <label>Observaciones</label>
+        <textarea name="observaciones" rows="3" class="form-control"></textarea>
+        <div style="margin-top:14px;">
+            <button class="btn btn-success"><i class="fas fa-save"></i> Registrar APPCC</button>
+        </div>
+    </form>
+
+    <h3>Registros anteriores</h3>
+    {% if registros %}
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Fecha</th>
+                <th>Producto</th>
+                <th>Dosis</th>
+                <th>Tiempo</th>
+                <th>Resultado</th>
+                <th>Responsable</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for r in registros %}
+            <tr>
+                <td>{{ r.fecha[:16] }}</td>
+                <td>{{ r.producto_usado or '-' }}</td>
+                <td>{{ r.dosis or '-' }}</td>
+                <td>{{ r.tiempo_contacto or '-' }}</td>
+                <td>{{ r.resultado or '-' }}</td>
+                <td>{{ r.responsable or '-' }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p class="text-muted">No hay desinfecciones registradas para este lote.</p>
+    {% endif %}
+</div>
+
+{% endblock %}

@@ -1,0 +1,111 @@
+{% extends 'base.html' %}
+{% block title %}{% if reserva %}Editar reserva{% else %}Nueva reserva{% endif %}{% endblock %}
+{% block breadcrumb %}Recepcion / Reservas / {% if reserva %}Editar{% else %}Nueva{% endif %}{% endblock %}
+{% block content %}
+<div class="card">
+  <div class="card-header"><h2><i class="fas fa-calendar-plus"></i> {% if reserva %}Editar reserva{% else %}Nueva reserva{% endif %}</h2></div>
+  {% set fc = form_cache or {} %}
+  <form method="post">
+    <h3 style="color:#ff6b00;margin:10px 0 15px;">Datos de estancia</h3>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;">
+      <div class="form-group"><label class="form-label">Tipo reservado</label><select class="form-control" name="tipo_habitacion_id">
+        <option value="">Sin tipo / se define por habitacion</option>
+        {% for tipo in tipos_habitacion %}
+        <option value="{{ tipo.id }}" {% if (fc.get('tipo_habitacion_id') and fc.get('tipo_habitacion_id')|string == tipo.id|string) or (not fc and reserva and reserva.tipo_habitacion_id == tipo.id) %}selected{% endif %}>
+          {{ tipo.codigo }} - {{ tipo.nombre }}{% if tipo.capacidad_max %} ({{ tipo.capacidad_max }} pax){% endif %}
+        </option>
+        {% endfor %}
+      </select>
+      <small>Permite aceptar reservas por tipo antes de asignar numero de habitacion.</small></div>
+      <div class="form-group"><label class="form-label">Habitacion</label><select class="form-control" name="habitacion_id">
+        <option value="">Sin asignar</option>
+        {% for h in habitaciones %}
+        <option value="{{ h.id }}" {% if (fc.get('habitacion_id') and fc.get('habitacion_id')|string == h.id|string) or (not fc and reserva and reserva.habitacion_id == h.id) %}selected{% endif %}>
+          {{ h.numero }}{% if h.nombre %} - {{ h.nombre }}{% endif %}{% if h.tipo_nombre %} - {{ h.tipo_nombre }}{% endif %} ({{ h.capacidad }} pax{% if h.supletorias_max %} + {{ h.supletorias_max }} supl.{% endif %}){% if h.tipo_cama %} - {{ {'matrimonio':'Matrimonio','dos_juntas':'2 camas juntas','dos_separadas':'2 camas separadas','individual':'Individual','sofa_cama':'Sofa cama','mixto':'Mixto'}.get(h.tipo_cama, h.tipo_cama) }}{% endif %}
+        </option>
+        {% endfor %}
+      </select></div>
+      <div class="form-group"><label class="form-label">Entrada *</label><input class="form-control" type="date" name="fecha_entrada" required value="{{ fc.get('fecha_entrada', reserva.fecha_entrada if reserva else '') }}"></div>
+      <div class="form-group"><label class="form-label">Salida *</label><input class="form-control" type="date" name="fecha_salida" required value="{{ fc.get('fecha_salida', reserva.fecha_salida if reserva else '') }}"></div>
+      <div class="form-group"><label class="form-label">Hora llegada</label><input class="form-control" type="time" name="hora_llegada" value="{{ fc.get('hora_llegada', reserva.hora_llegada if reserva else '') }}"></div>
+      <div class="form-group"><label class="form-label">Hora salida</label><input class="form-control" type="time" name="hora_salida" value="{{ fc.get('hora_salida', reserva.hora_salida if reserva else '') }}"></div>
+      <div class="form-group"><label class="form-label">Regimen contratado</label><select class="form-control" name="regimen">
+        {% for key,label in regimenes.items() %}
+        <option value="{{ key }}" {% if (fc.get('regimen') and fc.get('regimen') == key) or (not fc and reserva and reserva.regimen == key) %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select></div>
+      <div class="form-group"><label class="form-label">Adultos</label><input class="form-control" type="number" min="1" name="adultos" value="{{ fc.get('adultos', reserva.adultos if reserva else 1) }}"></div>
+      <div class="form-group"><label class="form-label">Menores</label><input class="form-control" type="number" min="0" name="menores" value="{{ fc.get('menores', reserva.menores if reserva else 0) }}"></div>
+      <div class="form-group"><label class="form-label">Preferencia cama</label><select class="form-control" name="preferencia_cama">
+        {% set pref_cama = fc.get('preferencia_cama', reserva.preferencia_cama if reserva and 'preferencia_cama' in reserva.keys() else '') %}
+        <option value="" {% if not pref_cama %}selected{% endif %}>Sin preferencia</option>
+        <option value="matrimonio" {% if pref_cama == 'matrimonio' %}selected{% endif %}>Matrimonio</option>
+        <option value="dos_juntas" {% if pref_cama == 'dos_juntas' %}selected{% endif %}>2 camas juntas</option>
+        <option value="dos_separadas" {% if pref_cama == 'dos_separadas' %}selected{% endif %}>2 camas separadas</option>
+        <option value="individual" {% if pref_cama == 'individual' %}selected{% endif %}>Individual</option>
+        <option value="sofa_cama" {% if pref_cama == 'sofa_cama' %}selected{% endif %}>Sofa cama</option>
+        <option value="mixto" {% if pref_cama == 'mixto' %}selected{% endif %}>Mixto</option>
+      </select></div>
+      <label style="display:flex;gap:8px;align-items:center;margin-top:28px;">
+        <input type="checkbox" name="supletoria_solicitada" value="1" {% if fc.get('supletoria_solicitada') or (not fc and reserva and 'supletoria_solicitada' in reserva.keys() and reserva.supletoria_solicitada) %}checked{% endif %}>
+        Cama supletoria
+      </label>
+      <label style="display:flex;gap:8px;align-items:center;margin-top:28px;">
+        <input type="checkbox" name="cuna_solicitada" value="1" {% if fc.get('cuna_solicitada') or (not fc and reserva and 'cuna_solicitada' in reserva.keys() and reserva.cuna_solicitada) %}checked{% endif %}>
+        Cuna
+      </label>
+      <div class="form-group"><label class="form-label">Estado</label><select class="form-control" name="estado">
+        {% for key,label in estados.items() %}
+        <option value="{{ key }}" {% if (fc.get('estado') and fc.get('estado') == key) or (not fc and reserva and reserva.estado == key) %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select></div>
+      <div class="form-group"><label class="form-label">Origen</label><input class="form-control" name="origen" value="{{ fc.get('origen', reserva.origen if reserva else 'manual') }}"></div>
+      <div class="form-group"><label class="form-label">Canal</label><select class="form-control" name="canal_id">
+        <option value="">Sin canal</option>
+        {% for canal in canales %}
+        <option value="{{ canal.id }}" {% if (fc.get('canal_id') and fc.get('canal_id')|string == canal.id|string) or (not fc and reserva and reserva.canal_id == canal.id) %}selected{% endif %}>{{ canal.nombre }}{% if canal.comision_pct %} ({{ canal.comision_pct }}%){% endif %}</option>
+        {% endfor %}
+      </select></div>
+      <div class="form-group"><label class="form-label">Localizador externo</label><input class="form-control" name="localizador_externo" value="{{ fc.get('localizador_externo', reserva.localizador_externo if reserva else '') }}"></div>
+      <div class="form-group"><label class="form-label">Comision canal</label><input class="form-control" type="number" step="0.01" name="comision_canal" value="{{ fc.get('comision_canal', reserva.comision_canal if reserva else 0) }}"></div>
+      <div class="form-group"><label class="form-label">Estado externo</label><input class="form-control" name="estado_externo" value="{{ fc.get('estado_externo', reserva.estado_externo if reserva else '') }}"></div>
+      <div class="form-group"><label class="form-label">Ultima sincronizacion</label><input class="form-control" type="datetime-local" name="ultima_sincronizacion" value="{{ fc.get('ultima_sincronizacion', reserva.ultima_sincronizacion if reserva else '') }}"></div>
+    </div>
+
+    <div style="margin-top:14px;display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
+      <button class="btn btn-info" type="submit" name="calcular_precio" value="1">Sugerir precio</button>
+      <a class="btn btn-secondary" href="{{ url_for('recepcion.tarifas') }}">Ver tarifas</a>
+      <a class="btn btn-secondary" href="{{ url_for('recepcion.reglas_precio') }}">Ver reglas</a>
+    </div>
+    {% if precio_sugerido %}
+    <div class="alert alert-info" style="margin-top:14px;">
+      <strong>Precio sugerido:</strong> {{ '%.2f'|format(precio_sugerido.total or 0) }} &euro;
+      <br><small>Base: {{ '%.2f'|format(precio_sugerido.total_base or 0) }} &euro; / Ajustes: {{ '%.2f'|format(precio_sugerido.total_ajustes or 0) }} &euro; / Noches: {{ precio_sugerido.noches }}</small>
+      {% if precio_sugerido.faltan_tarifas %}
+      <br><small>Faltan tarifas para: {{ precio_sugerido.faltan_tarifas|join(', ') }}</small>
+      {% endif %}
+      <input type="hidden" name="precio_sugerido_total" value="{{ precio_sugerido.total }}">
+      <button class="btn btn-success" type="submit" name="usar_precio_sugerido" value="1" style="margin-top:10px;">Guardar usando precio sugerido</button>
+    </div>
+    {% endif %}
+
+    <h3 style="color:#ff6b00;margin:20px 0 15px;">Titular y cobro</h3>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;">
+      <div class="form-group"><label class="form-label">Titular</label><input class="form-control" name="titular_nombre" value="{{ fc.get('titular_nombre', reserva.titular_nombre if reserva else '') }}"></div>
+      <div class="form-group"><label class="form-label">Telefono</label><input class="form-control" name="titular_telefono" value="{{ fc.get('titular_telefono', reserva.titular_telefono if reserva else '') }}"></div>
+      <div class="form-group"><label class="form-label">Email</label><input class="form-control" type="email" name="titular_email" value="{{ fc.get('titular_email', reserva.titular_email if reserva else '') }}"></div>
+      <div class="form-group"><label class="form-label">Total</label><input class="form-control" type="number" step="0.01" name="precio_total" value="{{ fc.get('precio_total', reserva.precio_total if reserva else 0) }}"></div>
+      <div class="form-group"><label class="form-label">Deposito / cobrado</label><input class="form-control" type="number" step="0.01" name="deposito" value="{{ fc.get('deposito', reserva.deposito if reserva else 0) }}"></div>
+    </div>
+
+    <h3 style="color:#ff6b00;margin:20px 0 15px;">Avisos operativos</h3>
+    <div class="form-group"><label class="form-label">Preparacion especial de habitacion</label><textarea class="form-control" name="observaciones_habitacion" rows="2" placeholder="Ej.: colocar supletoria antes de las 14:00, cama separada, habitacion sin alfombras...">{{ fc.get('observaciones_habitacion', reserva.observaciones_habitacion if reserva and 'observaciones_habitacion' in reserva.keys() else '') }}</textarea></div>
+    <div class="form-group"><label class="form-label">Resumen alergias/intolerancias de la reserva</label><textarea class="form-control" name="alergias_resumen" rows="2" placeholder="Ej.: 1 celiaco, 1 intolerante lactosa, piel atopica...">{{ fc.get('alergias_resumen', reserva.alergias_resumen if reserva else '') }}</textarea></div>
+    <div class="form-group"><label class="form-label">Observaciones para recepcion/pisos/cocina</label><textarea class="form-control" name="observaciones_operativas" rows="3">{{ fc.get('observaciones_operativas', reserva.observaciones_operativas if reserva else '') }}</textarea></div>
+    <div class="form-group"><label class="form-label">Observaciones internas</label><textarea class="form-control" name="observaciones" rows="3">{{ fc.get('observaciones', reserva.observaciones if reserva else '') }}</textarea></div>
+
+    <button class="btn btn-success" type="submit">Guardar</button>
+    <a class="btn btn-secondary" href="{{ url_for('recepcion.reservas') }}">Volver</a>
+  </form>
+</div>
+{% endblock %}

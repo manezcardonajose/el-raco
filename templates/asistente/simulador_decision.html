@@ -1,0 +1,644 @@
+{% extends "base.html" %}
+
+{% block title %}Simulador de rentabilidad{% endblock %}
+{% block breadcrumb %}<a href="{{ url_for('asistente.dashboard') }}">Asistente El Raco</a> / <a href="{{ url_for('asistente.centro_decision') }}">Centro de decision</a> / Simulador{% endblock %}
+
+{% block content %}
+<style>
+    .sim-head {
+        margin-bottom: 16px;
+    }
+    .sim-head h1 {
+        margin: 0 0 6px;
+        color: #ff6b00;
+        font-size: 28px;
+    }
+    .sim-head p {
+        margin: 0;
+        max-width: 1000px;
+        color: var(--text-muted, #5f6b7a);
+        line-height: 1.45;
+    }
+    .sim-layout {
+        display: grid;
+        grid-template-columns: minmax(320px, 430px) minmax(0, 1fr);
+        gap: 16px;
+        align-items: start;
+    }
+    .sim-panel, .sim-result, .sim-card {
+        border: 1px solid var(--border-color, #d5dde7);
+        border-radius: 8px;
+        background: var(--card-bg, #fff);
+        box-shadow: 0 1px 2px rgba(0, 0, 0, .04);
+    }
+    .sim-panel {
+        padding: 16px;
+    }
+    .sim-panel h2, .sim-result h2 {
+        margin: 0 0 12px;
+        color: #ff6b00;
+        font-size: 19px;
+    }
+    .sim-form-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+    }
+    .sim-field.full {
+        grid-column: 1 / -1;
+    }
+    .sim-field label {
+        display: block;
+        font-size: 12px;
+        color: var(--text-muted, #5f6b7a);
+        margin-bottom: 4px;
+    }
+    .sim-field input, .sim-field select, .sim-field textarea {
+        width: 100%;
+        min-height: 38px;
+        border: 1px solid var(--border-color, #d5dde7);
+        border-radius: 7px;
+        padding: 8px 10px;
+        background: var(--input-bg, #fff);
+        color: var(--text-color, #16202a);
+    }
+    .sim-field small {
+        display: block;
+        margin-top: 4px;
+        color: var(--text-muted, #5f6b7a);
+        line-height: 1.3;
+    }
+    .sim-field textarea {
+        min-height: 82px;
+        resize: vertical;
+    }
+    .sim-actions {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        margin-top: 14px;
+    }
+    .sim-result {
+        padding: 16px;
+        margin-bottom: 16px;
+    }
+    .sim-kpis {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+        gap: 10px;
+        margin: 12px 0;
+    }
+    .sim-kpi {
+        border: 1px solid var(--border-color, #d5dde7);
+        border-radius: 8px;
+        padding: 11px;
+        background: rgba(148, 163, 184, .06);
+    }
+    .sim-kpi span {
+        display: block;
+        color: var(--text-muted, #5f6b7a);
+        font-size: 12px;
+        margin-bottom: 6px;
+    }
+    .sim-kpi strong {
+        display: block;
+        color: var(--text-color, #16202a);
+        font-size: 22px;
+    }
+    .sim-veredicto {
+        display: inline-flex;
+        border-radius: 999px;
+        padding: 5px 10px;
+        border: 1px solid #d5dde7;
+        color: #16202a;
+        background: rgba(148, 163, 184, .08);
+        font-size: 12px;
+        font-weight: 700;
+        text-transform: uppercase;
+    }
+    .sim-source {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin: 10px 0 12px;
+    }
+    .sim-source span {
+        border: 1px solid var(--border-color, #d5dde7);
+        border-radius: 999px;
+        padding: 5px 9px;
+        font-size: 12px;
+        font-weight: 700;
+        color: var(--text-color, #16202a);
+        background: rgba(148, 163, 184, .08);
+    }
+    .sim-source .source-warning {
+        border-color: #ffb86b;
+        color: #b45309;
+        background: rgba(255, 184, 107, .14);
+    }
+    .sim-list {
+        display: grid;
+        gap: 10px;
+    }
+    .sim-compare {
+        width: 100%;
+        border-collapse: collapse;
+        margin-bottom: 14px;
+    }
+    .sim-compare th, .sim-compare td {
+        border-bottom: 1px solid var(--border-color, #d5dde7);
+        padding: 8px;
+        text-align: left;
+        vertical-align: top;
+    }
+    .sim-compare th {
+        color: var(--text-muted, #5f6b7a);
+        font-size: 12px;
+        font-weight: 700;
+    }
+    .sim-card {
+        padding: 13px;
+    }
+    .sim-card h3 {
+        margin: 0 0 6px;
+        font-size: 17px;
+        color: var(--text-color, #16202a);
+    }
+    .sim-card p {
+        color: var(--text-muted, #5f6b7a);
+        line-height: 1.4;
+        margin: 5px 0;
+    }
+    .sim-mini {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        margin-top: 8px;
+    }
+    .sim-mini span {
+        border: 1px solid var(--border-color, #d5dde7);
+        border-radius: 999px;
+        padding: 4px 8px;
+        font-size: 12px;
+        color: var(--text-muted, #5f6b7a);
+    }
+    .sim-clean {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 10px;
+        margin-bottom: 14px;
+    }
+    .sim-clean form, .sim-filter {
+        border: 1px solid var(--border-color, #d5dde7);
+        border-radius: 8px;
+        padding: 10px;
+        background: rgba(148, 163, 184, .06);
+    }
+    .sim-clean label, .sim-filter label {
+        display: block;
+        font-size: 12px;
+        color: var(--text-muted, #5f6b7a);
+        margin-bottom: 5px;
+    }
+    .sim-clean input, .sim-clean select, .sim-filter select {
+        width: 100%;
+        min-height: 34px;
+        border: 1px solid var(--border-color, #d5dde7);
+        border-radius: 7px;
+        padding: 7px 9px;
+        background: var(--input-bg, #fff);
+        color: var(--text-color, #16202a);
+        margin-bottom: 8px;
+    }
+    .sim-quick-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+        gap: 10px;
+        margin-top: 10px;
+    }
+    .sim-quick-card {
+        border: 1px solid var(--border-color, #d5dde7);
+        border-radius: 8px;
+        padding: 12px;
+        background: rgba(148, 163, 184, .06);
+    }
+    .sim-quick-card h3 {
+        margin: 0 0 6px;
+        color: var(--text-color, #16202a);
+        font-size: 16px;
+    }
+    .sim-quick-card p {
+        margin: 4px 0;
+        color: var(--text-muted, #5f6b7a);
+        line-height: 1.35;
+    }
+    @media (max-width: 980px) {
+        .sim-layout { grid-template-columns: 1fr; }
+    }
+</style>
+
+<div class="sim-head">
+    <h1><i class="fas fa-chart-line"></i> Simulador de rentabilidad del centro</h1>
+    <p>Trabaja sobre el centro activo. Cambia ocupacion, precio, costes, personal, comisiones o inversion y mira si la decision mejora la rentabilidad sin perder satisfaccion ni romper la operativa.</p>
+</div>
+
+<div class="sim-actions" style="margin-bottom:16px;">
+    <a class="btn btn-info" href="{{ url_for('demo.simulador_centros') }}"><i class="fas fa-sliders-h"></i> Simulador por centro</a>
+    {% if mostrar_laboratorio and puede_gestionar_simulador %}
+    <form method="post" action="{{ url_for('asistente.crear_escenarios_demo_decision') }}">
+        <button class="btn btn-warning" type="submit"><i class="fas fa-flask"></i> Crear escenarios de prueba</button>
+    </form>
+    <form method="post" action="{{ url_for('asistente.crear_escenarios_inversion_pirineo') }}">
+        <button class="btn btn-success" type="submit"><i class="fas fa-mountain"></i> Hipotesis inversor Pirineo</button>
+    </form>
+    {% endif %}
+    <a class="btn btn-primary" href="{{ url_for('asistente.chat_estrategico', pregunta='Analiza los escenarios guardados por modelo de negocio y dime cuales ayudan a tomar mejores decisiones') }}"><i class="fas fa-comments"></i> Preguntar por escenarios</a>
+    <a class="btn btn-secondary" href="{{ url_for('asistente.centro_decision') }}"><i class="fas fa-compass"></i> Centro decision</a>
+</div>
+
+<div class="sim-result" style="border-color:#38bdf8;background:rgba(56,189,248,.08);">
+    <h2><i class="fas fa-hotel"></i> Base activa: {{ centro_activo.nombre if centro_activo else 'Centro activo' }}</h2>
+    <div class="sim-kpis">
+        <div class="sim-kpi"><span>Habitaciones / unidades</span><strong>{{ base_centro.habitaciones }}</strong></div>
+        <div class="sim-kpi"><span>Capacidad estimada</span><strong>{{ base_centro.capacidad or '-' }}</strong></div>
+        <div class="sim-kpi"><span>Ocupacion base</span><strong>{{ base_centro.ocupacion_pct }}%</strong></div>
+        <div class="sim-kpi"><span>Ingreso medio base</span><strong>{{ base_centro.adr|euros }}</strong></div>
+        <div class="sim-kpi"><span>Costes fijos mes</span><strong>{{ base_centro.coste_fijo_mes|euros }}</strong></div>
+        <div class="sim-kpi"><span>Personal mes</span><strong>{{ base_centro.coste_personal_mes|euros }}</strong></div>
+    </div>
+    <p>
+        Fuente base:
+        {% if base_centro.presupuesto.id %}presupuesto {{ base_centro.presupuesto.anio }}{% else %}datos parciales del centro{% endif %};
+        reservas leidas: {{ base_centro.reservas_total }}; noches/habitacion estimadas: {{ base_centro.room_nights }}.
+        Las fuentes externas solo sirven para contrastar, no para sustituir tus datos internos.
+    </p>
+</div>
+
+{% if escenarios_rapidos %}
+<section class="sim-result">
+    <h2><i class="fas fa-bolt"></i> Pruebas rápidas del centro</h2>
+    <p>Escenarios calculados con los datos del centro activo. Sirven para ver en segundos si rompe por precio, ocupacion, costes o equipo.</p>
+    <div class="sim-quick-grid">
+        {% for esc in escenarios_rapidos %}
+        {% set res = esc.resultado %}
+        <article class="sim-quick-card">
+            <h3>{{ esc.titulo }}</h3>
+            <p>{{ esc.lectura }}</p>
+            <div class="sim-mini">
+                <span>{{ res.veredicto }}</span>
+                <span>Margen {{ res.margen|euros }}</span>
+                <span>Riesgo {{ res.riesgo_pct }}%</span>
+                <span>Precio eq. {% if res.precio_equilibrio is not none %}{{ res.precio_equilibrio|euros }}{% else %}-{% endif %}</span>
+            </div>
+            <form method="post" class="sim-actions">
+                {% for clave, valor in esc.datos.items() %}
+                <input type="hidden" name="{{ clave }}" value="{{ valor }}">
+                {% endfor %}
+                <button class="btn btn-primary btn-sm" name="accion" value="calcular" type="submit"><i class="fas fa-calculator"></i> Abrir</button>
+                {% if puede_gestionar_simulador %}
+                <button class="btn btn-success btn-sm" name="accion" value="guardar" type="submit"><i class="fas fa-save"></i> Guardar</button>
+                {% endif %}
+            </form>
+        </article>
+        {% endfor %}
+    </div>
+</section>
+{% endif %}
+
+<div class="sim-layout">
+    <section class="sim-panel">
+        <h2>Palancas de decision</h2>
+        <form method="post">
+            <div class="sim-form-grid">
+                <div class="sim-field full">
+                    <label>Nombre</label>
+                    <input name="nombre" value="{{ form_data.nombre }}" required>
+                </div>
+                <div class="sim-field">
+                    <label>Modelo de negocio</label>
+                    <select name="tipo">
+                        {% for valor, texto in modelos_negocio %}
+                        <option value="{{ valor }}" {% if form_data.tipo == valor %}selected{% endif %}>{{ texto }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="sim-field">
+                    <label>Decision</label>
+                    <select name="decision_tipo">
+                        {% for valor, texto in [('oferta','Oferta'),('tour_operador','Tour operador'),('inversion','Inversion'),('reforma','Reforma'),('menu','Cambio de menu'),('rrhh','Reorganizacion RRHH')] %}
+                        <option value="{{ valor }}" {% if form_data.decision_tipo == valor %}selected{% endif %}>{{ texto }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="sim-field full">
+                    <label>Fuente de datos</label>
+                    <select name="fuente_datos">
+                        {% for valor, texto in fuentes_datos %}
+                        <option value="{{ valor }}" {% if form_data.fuente_datos == valor %}selected{% endif %}>{{ texto }}</option>
+                        {% endfor %}
+                    </select>
+                    <small>Mixto: datos del centro + ajustes de simulacion. Real solo cuando reservas, presupuesto, costes y plantilla esten cerrados.</small>
+                </div>
+                <div class="sim-field">
+                    <label>Fase del negocio</label>
+                    <select name="fase_negocio">
+                        {% for valor, texto in fases_negocio %}
+                        <option value="{{ valor }}" {% if form_data.fase_negocio == valor %}selected{% endif %}>{{ texto }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="sim-field">
+                    <label>Zona / mercado</label>
+                    <select name="zona_mercado">
+                        {% for valor, texto in zonas_mercado %}
+                        <option value="{{ valor }}" {% if form_data.zona_mercado == valor %}selected{% endif %}>{{ texto }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="sim-field">
+                    <label>Categoria</label>
+                    <select name="categoria_establecimiento">
+                        {% for valor, texto in categorias_establecimiento %}
+                        <option value="{{ valor }}" {% if form_data.categoria_establecimiento == valor %}selected{% endif %}>{{ texto }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="sim-field">
+                    <label>Calidad de datos %</label>
+                    <input type="number" step="1" name="calidad_datos_pct" value="{{ form_data.calidad_datos_pct or 35 }}" min="0" max="100">
+                    <small>Inversion sin datos: bajo. Hotel rodando con PMS/ERP: alto.</small>
+                </div>
+                <div class="sim-field">
+                    <label>Unidades base</label>
+                    <input type="number" name="habitaciones" value="{{ form_data.habitaciones }}" min="0">
+                    <small>Hotel: habitaciones. Restaurante: plazas, mesas o servicios/dia base.</small>
+                </div>
+                <div class="sim-field"><label>Ocupacion / uso %</label><input type="number" step="0.1" name="ocupacion_pct" value="{{ form_data.ocupacion_pct }}" min="0" max="100"></div>
+                <div class="sim-field">
+                    <label>Ingreso medio</label>
+                    <input type="text" inputmode="decimal" name="adr" value="{{ form_data.adr }}" data-money-input>
+                    <small>Hotel: ADR por habitacion. Resto: ticket medio por cliente/servicio.</small>
+                </div>
+                <div class="sim-field"><label>Dias</label><input type="number" name="dias" value="{{ form_data.dias }}" min="1"></div>
+                <div class="sim-field">
+                    <label>Multiplicador pax/servicio</label>
+                    <input type="number" step="0.1" name="pax_medio" value="{{ form_data.pax_medio }}" min="0.1">
+                    <small>Hotel: pax por habitacion. Resto: clientes por unidad base.</small>
+                </div>
+                <div class="sim-field"><label>Coste variable por pax/servicio</label><input type="text" inputmode="decimal" name="coste_variable_pax_dia" value="{{ form_data.coste_variable_pax_dia }}" data-money-input></div>
+                <div class="sim-field"><label>Costes fijos mensuales imputables</label><input type="text" inputmode="decimal" name="coste_fijo_mes" value="{{ form_data.coste_fijo_mes }}" data-money-input></div>
+                <div class="sim-field">
+                    <label>Coste laboral mensual imputable</label>
+                    <input type="text" inputmode="decimal" name="coste_personal_mes" value="{{ form_data.coste_personal_mes }}" data-money-input>
+                    <input type="hidden" name="coste_personal_origen" value="{{ form_data.coste_personal_origen or 'manual' }}">
+                    <small>Arrastrado de OPS/RRHH: {{ form_data.coste_personal_origen or 'sin_datos' }}. Puedes ajustarlo para simular.</small>
+                </div>
+                <div class="sim-field">
+                    <label>Costes imputados %</label>
+                    <input type="number" step="0.1" name="alcance_costes_pct" value="{{ form_data.alcance_costes_pct or 100 }}" min="0" max="100">
+                    <small>100% si simulas el negocio completo. Baja el porcentaje para una prueba, menu u oferta limitada.</small>
+                </div>
+                <div class="sim-field"><label>Comision %</label><input type="number" step="0.1" name="comision_pct" value="{{ form_data.comision_pct }}" min="0" max="100"></div>
+                <div class="sim-field"><label>Inversion</label><input type="text" inputmode="decimal" name="inversion" value="{{ form_data.inversion }}" data-money-input></div>
+                <div class="sim-field"><label>Satisfaccion objetivo %</label><input type="number" step="0.1" name="satisfaccion_objetivo" value="{{ form_data.satisfaccion_objetivo }}" min="0" max="100"></div>
+                <div class="sim-field"><label>Riesgo rotacion %</label><input type="number" step="0.1" name="rotacion_riesgo_pct" value="{{ form_data.rotacion_riesgo_pct }}" min="0" max="100"></div>
+                <div class="sim-field"><label>No se presentan</label><input type="number" name="empleados_no_presentan" value="{{ form_data.empleados_no_presentan }}" min="0"></div>
+                <div class="sim-field"><label>Retrasos fichaje %</label><input type="number" step="0.1" name="retrasos_pct" value="{{ form_data.retrasos_pct }}" min="0" max="100"></div>
+                <div class="sim-field"><label>Cambios de equipo</label><input type="number" name="cambios_equipo" value="{{ form_data.cambios_equipo }}" min="0"></div>
+                <div class="sim-field"><label>Aceptacion sistema %</label><input type="number" step="0.1" name="aceptacion_sistema_pct" value="{{ form_data.aceptacion_sistema_pct }}" min="0" max="100"></div>
+                <div class="sim-field full">
+                    <label>Cobertura cooperativa OPS %</label>
+                    <input type="number" step="0.1" name="cobertura_ops_pct" value="{{ form_data.cobertura_ops_pct }}" min="0" max="100">
+                    <small>Capacidad de OPS/cooperativa para cubrir faltas, cambios y rechazo operativo sin romper el servicio.</small>
+                </div>
+                <div class="sim-field full">
+                    <label>Notas</label>
+                    <textarea name="notas">{{ form_data.notas }}</textarea>
+                </div>
+            </div>
+            <div class="sim-actions">
+                <button class="btn btn-primary" name="accion" value="calcular" type="submit"><i class="fas fa-calculator"></i> Calcular</button>
+                {% if puede_gestionar_simulador %}
+                <button class="btn btn-success" name="accion" value="guardar" type="submit"><i class="fas fa-save"></i> Guardar escenario</button>
+                {% endif %}
+                <a class="btn btn-secondary" href="{{ url_for('asistente.centro_decision') }}"><i class="fas fa-compass"></i> Centro decision</a>
+            </div>
+        </form>
+    </section>
+
+    <div>
+        {% if resultado_actual %}
+        <section class="sim-result">
+            <span class="sim-veredicto">{{ resultado_actual.veredicto }}</span>
+            <h2 style="margin-top:10px;">Resultado calculado</h2>
+            <p>{{ resultado_actual.accion }}</p>
+            {% set proc = resultado_actual.procedencia or {} %}
+            <div class="sim-source">
+                <span class="source-warning">Fuente: {{ (resultado_actual.fuente_datos or 'simulado')|upper }}</span>
+                <span>Confianza {{ resultado_actual.confianza_pct }}%</span>
+                <span>Calculo {{ resultado_actual.modo_calculo }}</span>
+                <span>Costes imputados {{ resultado_actual.alcance_costes_pct }}%</span>
+                <span>Fase {{ resultado_actual.fase_negocio }}</span>
+                <span>Zona {{ resultado_actual.zona_mercado }}</span>
+                <span>Categoria {{ resultado_actual.categoria_establecimiento }}</span>
+                {% for clave, valor in (proc.composicion or {}).items() %}
+                    {% if valor %}<span>{{ valor }}% {{ clave }}</span>{% endif %}
+                {% endfor %}
+            </div>
+            {% if proc.aviso %}<p><strong>Trazabilidad:</strong> {{ proc.aviso }}</p>{% endif %}
+            {% if resultado_actual.explicacion_formula %}
+            <p><strong>Formula:</strong> {{ resultado_actual.explicacion_formula }}</p>
+            {% endif %}
+            <p><strong>Lectura de mercado:</strong> {{ resultado_actual.lectura_zona }}. {{ resultado_actual.lectura_categoria }}.</p>
+            <div class="sim-kpis">
+                <div class="sim-kpi"><span>Ingresos netos</span><strong>{{ resultado_actual.ingresos_netos|euros }}</strong></div>
+                <div class="sim-kpi"><span>Coste total</span><strong>{{ resultado_actual.coste_total|euros }}</strong></div>
+                <div class="sim-kpi"><span>Margen</span><strong>{{ resultado_actual.margen|euros }}</strong></div>
+                <div class="sim-kpi"><span>Margen %</span><strong>{{ resultado_actual.margen_pct }}%</strong></div>
+                <div class="sim-kpi"><span>Volumen</span><strong>{{ resultado_actual.volumen_servicio }}</strong></div>
+                <div class="sim-kpi"><span>Costes fijos imputados</span><strong>{{ resultado_actual.costes_fijos_imputados|euros }}</strong></div>
+                <div class="sim-kpi"><span>Equilibrio volumen</span><strong>{% if resultado_actual.punto_equilibrio_volumen is not none %}{{ resultado_actual.punto_equilibrio_volumen }}{% else %}-{% endif %}</strong></div>
+                <div class="sim-kpi"><span>Equilibrio uso</span><strong>{% if resultado_actual.punto_equilibrio_ocupacion_pct is not none %}{{ resultado_actual.punto_equilibrio_ocupacion_pct }}%{% else %}-{% endif %}</strong></div>
+                <div class="sim-kpi"><span>Precio equilibrio</span><strong>{% if resultado_actual.precio_equilibrio is not none %}{{ resultado_actual.precio_equilibrio|euros }}{% else %}-{% endif %}</strong></div>
+                <div class="sim-kpi"><span>Precio margen 18%</span><strong>{% if resultado_actual.precio_objetivo_18 is not none %}{{ resultado_actual.precio_objetivo_18|euros }}{% else %}-{% endif %}</strong></div>
+                <div class="sim-kpi"><span>Colchon sobre equilibrio</span><strong>{% if resultado_actual.margen_seguridad_pct is not none %}{{ resultado_actual.margen_seguridad_pct }}%{% else %}-{% endif %}</strong></div>
+                <div class="sim-kpi"><span>Contribucion unidad</span><strong>{{ resultado_actual.contribucion_unitaria|euros }}</strong></div>
+                <div class="sim-kpi"><span>Riesgo</span><strong>{{ resultado_actual.riesgo_pct }}%</strong></div>
+                <div class="sim-kpi"><span>Satisfaccion estimada</span><strong>{{ resultado_actual.satisfaccion_estimada }}%</strong></div>
+                <div class="sim-kpi"><span>Sobrecoste OPS</span><strong>{{ resultado_actual.coste_ops_extra|euros }}</strong></div>
+                <div class="sim-kpi"><span>Payback</span><strong>{% if resultado_actual.payback_anios %}{{ resultado_actual.payback_anios }} anos{% else %}-{% endif %}</strong></div>
+            </div>
+            {% if resultado_actual.palancas %}
+            <p><strong>Palancas con mas impacto:</strong>
+                {% for palanca in resultado_actual.palancas[:3] %}
+                    {{ palanca.nombre }}: {{ palanca.impacto|euros }}{% if not loop.last %}; {% endif %}
+                {% endfor %}.
+            </p>
+            {% endif %}
+            {% if resultado_actual.datos_a_contrastar %}
+            <p><strong>Datos a contrastar antes de invertir:</strong> {{ resultado_actual.datos_a_contrastar|join('; ') }}.</p>
+            {% endif %}
+            {% if resultado_actual.decision_tiempo_real %}
+            <p><strong>Cuando empiece a rodar:</strong> {{ resultado_actual.decision_tiempo_real|join('; ') }}.</p>
+            {% endif %}
+            <p><strong>OPS:</strong> {{ resultado_actual.empleados_no_presentan }} no presentados, {{ resultado_actual.retrasos_pct }}% retrasos, {{ resultado_actual.cambios_equipo }} cambios, {{ resultado_actual.aceptacion_sistema_pct }}% aceptacion, {{ resultado_actual.cobertura_ops_pct }}% cobertura cooperativa.</p>
+            {% if resultado_actual.motivos %}
+            <p><strong>Motivos de riesgo:</strong> {{ resultado_actual.motivos|join(', ') }}.</p>
+            {% endif %}
+        </section>
+        {% endif %}
+
+        <section class="sim-result">
+            <h2>Escenarios guardados</h2>
+            <p>Usa esta zona como biblioteca de decisiones limpias. Si son pruebas antiguas, borralas para que la IA compare hotel con hotel, restaurante con restaurante y no mezcle ruido con decisiones reales.</p>
+            <div class="sim-source">
+                <span>Total {{ resumen_escenarios.total or 0 }}</span>
+                <span>Simulados {{ resumen_escenarios.simulados or 0 }}</span>
+                {% for item in resumen_escenarios.por_modelo %}
+                <span>{{ item.tipo or 'sin_tipo' }}: {{ item.total }}</span>
+                {% endfor %}
+            </div>
+            {% if puede_gestionar_simulador %}
+            <div class="sim-clean">
+                <form class="sim-filter" method="get">
+                    <label>Ver solo modelo</label>
+                    <select name="tipo" onchange="this.form.submit()">
+                        <option value="">Todos los modelos</option>
+                        {% for valor, texto in modelos_negocio %}
+                        <option value="{{ valor }}" {% if filtro_tipo == valor %}selected{% endif %}>{{ texto }}</option>
+                        {% endfor %}
+                    </select>
+                    <a class="btn btn-secondary" href="{{ url_for('asistente.simulador_decision') }}">Quitar filtro</a>
+                </form>
+                <form method="post" action="{{ url_for('asistente.limpiar_escenarios_decision') }}">
+                    <input type="hidden" name="accion_limpieza" value="simulados">
+                    <label>Limpiar simulados/pruebas</label>
+                    <input name="confirmacion" placeholder="Escribe LIMPIAR">
+                    <button class="btn btn-warning" type="submit"><i class="fas fa-broom"></i> Limpiar simulados</button>
+                </form>
+                <form method="post" action="{{ url_for('asistente.limpiar_escenarios_decision') }}">
+                    <input type="hidden" name="accion_limpieza" value="modelo">
+                    <label>Limpiar por modelo</label>
+                    <select name="modelo">
+                        {% for valor, texto in modelos_negocio %}
+                        <option value="{{ valor }}">{{ texto }}</option>
+                        {% endfor %}
+                    </select>
+                    <input name="confirmacion" placeholder="Escribe LIMPIAR">
+                    <button class="btn btn-warning" type="submit"><i class="fas fa-filter-circle-xmark"></i> Limpiar modelo</button>
+                </form>
+                <form method="post" action="{{ url_for('asistente.limpiar_escenarios_decision') }}">
+                    <input type="hidden" name="accion_limpieza" value="todos">
+                    <label>Limpiar todos</label>
+                    <input name="confirmacion" placeholder="Escribe LIMPIAR">
+                    <button class="btn btn-danger" type="submit"><i class="fas fa-trash"></i> Limpiar todo</button>
+                </form>
+            </div>
+            {% endif %}
+            {% if lectura_cartera and lectura_cartera.total %}
+            <div class="sim-result" style="margin-bottom:14px;">
+                <h2>Lectura IA de escenarios</h2>
+                {% for rec in lectura_cartera.recomendaciones %}
+                <p>{{ rec }}</p>
+                {% endfor %}
+                <div class="sim-kpis">
+                    {% for modelo in lectura_cartera.por_modelo[:4] %}
+                    <div class="sim-kpi">
+                        <span>{{ modelo.tipo }} - {{ modelo.total }} escenarios</span>
+                        <strong>{{ modelo.positivos }} positivos</strong>
+                        <small>Riesgo medio {{ modelo.riesgo_medio }}%. Mejor: {{ modelo.mejor.nombre if modelo.mejor else '-' }}</small>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% if lectura_cartera.top %}
+                <p><strong>Top decisiones:</strong>
+                    {% for item in lectura_cartera.top[:3] %}
+                    {{ item.nombre }} ({{ item.veredicto }}, margen {{ item.margen|euros }}, riesgo {{ item.riesgo_pct }}%){% if not loop.last %}; {% endif %}
+                    {% endfor %}.
+                </p>
+                {% endif %}
+            </div>
+            {% endif %}
+            {% if escenarios %}
+            <table class="sim-compare">
+                <thead>
+                    <tr>
+                        <th>Escenario</th>
+                        <th>Fuente</th>
+                        <th>Margen</th>
+                        <th>Riesgo</th>
+                        <th>Satisfaccion</th>
+                        <th>OPS</th>
+                        <th>Modelo</th>
+                        <th>Veredicto</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for esc in escenarios|sort(attribute='resultado.riesgo_pct') %}
+                    <tr>
+                        <td>{{ esc.nombre }}</td>
+                        <td>{{ (esc.resultado.get('fuente_datos') or esc.fuente_datos or 'simulado')|upper }}<br><small>{{ esc.resultado.get('confianza_pct') or esc.confianza_pct or 35 }}% confianza</small></td>
+                        <td>{{ (esc.resultado.get('margen', 0))|euros }}<br><small>{{ esc.resultado.get('margen_pct', 0) }}%</small></td>
+                        <td>{{ esc.resultado.get('riesgo_pct', 0) }}%</td>
+                        <td>{{ esc.resultado.get('satisfaccion_estimada', '-') }}%</td>
+                        <td>{{ (esc.resultado.get('coste_ops_extra', 0))|euros }}</td>
+                        <td>{{ esc.tipo }}</td>
+                        <td>{{ esc.resultado.get('veredicto', '-') }}</td>
+                        <td>
+                            {% if puede_gestionar_simulador %}
+                            <form method="post" action="{{ url_for('asistente.limpiar_escenarios_decision') }}">
+                                <input type="hidden" name="accion_limpieza" value="escenario">
+                                <input type="hidden" name="escenario_id" value="{{ esc.id }}">
+                                <input type="hidden" name="confirmacion" value="LIMPIAR">
+                                <button class="btn btn-danger btn-sm" type="submit"><i class="fas fa-trash"></i></button>
+                            </form>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            <div class="sim-list">
+                {% for esc in escenarios %}
+                <article class="sim-card">
+                    <h3>{{ esc.nombre }}</h3>
+                    <p>{{ esc.decision_tipo }} - {{ esc.tipo }} - {{ esc.fecha_creacion }}</p>
+                    <div class="sim-mini">
+                        <span>Fuente {{ (esc.resultado.get('fuente_datos') or esc.fuente_datos or 'simulado')|upper }}</span>
+                        <span>Conf. {{ esc.resultado.get('confianza_pct') or esc.confianza_pct or 35 }}%</span>
+                        <span>{{ esc.fase_negocio or esc.resultado.get('fase_negocio', 'idea_inversion') }}</span>
+                        <span>{{ esc.zona_mercado or esc.resultado.get('zona_mercado', 'sin_zona') }}</span>
+                        <span>{{ esc.categoria_establecimiento or esc.resultado.get('categoria_establecimiento', 'sin_categoria') }}</span>
+                        <span>{{ esc.habitaciones }} unidades base</span>
+                        <span>{{ esc.ocupacion_pct }}% ocup.</span>
+                        <span>{{ esc.adr|euros }} ingreso medio</span>
+                        <span>{{ esc.resultado.get('alcance_costes_pct', esc.alcance_costes_pct or 100) }}% costes</span>
+                        <span>Margen {{ (esc.resultado.get('margen', 0))|euros }}</span>
+                        <span>Riesgo {{ esc.resultado.get('riesgo_pct', 0) }}%</span>
+                        <span>Sat. {{ esc.resultado.get('satisfaccion_estimada', '-') }}%</span>
+                        <span>OPS {{ (esc.resultado.get('coste_ops_extra', 0))|euros }}</span>
+                        <span>{{ esc.resultado.get('veredicto', '-') }}</span>
+                    </div>
+                    <div class="sim-actions">
+                        <a class="btn btn-primary" href="{{ url_for('asistente.chat_estrategico', pregunta='Analiza este escenario de ' ~ esc.tipo ~ ' en fase ' ~ (esc.fase_negocio or esc.resultado.get('fase_negocio', 'idea_inversion')) ~ ', zona ' ~ (esc.zona_mercado or esc.resultado.get('zona_mercado', 'sin_zona')) ~ ', categoria ' ~ (esc.categoria_establecimiento or esc.resultado.get('categoria_establecimiento', 'sin_categoria')) ~ ': ' ~ esc.nombre ~ '. Veredicto ' ~ esc.resultado.get('veredicto', '-') ~ ', margen ' ~ esc.resultado.get('margen', 0)|string ~ ', riesgo ' ~ esc.resultado.get('riesgo_pct', 0)|string ~ '. Dime si ayuda a tomar una decision rentable y que datos faltan para convertir supuestos en datos reales.') }}"><i class="fas fa-comments"></i> Analizar decision</a>
+                        {% if puede_gestionar_simulador %}
+                        <form method="post" action="{{ url_for('asistente.limpiar_escenarios_decision') }}">
+                            <input type="hidden" name="accion_limpieza" value="escenario">
+                            <input type="hidden" name="escenario_id" value="{{ esc.id }}">
+                            <input type="hidden" name="confirmacion" value="LIMPIAR">
+                            <button class="btn btn-danger" type="submit"><i class="fas fa-trash"></i> Borrar</button>
+                        </form>
+                        {% endif %}
+                    </div>
+                    {% if esc.notas %}<p>{{ esc.notas }}</p>{% endif %}
+                </article>
+                {% endfor %}
+            </div>
+            {% else %}
+            <p>Todavia no hay escenarios guardados. Calcula uno y guardalo para empezar a comparar decisiones.</p>
+            {% endif %}
+        </section>
+    </div>
+</div>
+{% endblock %}

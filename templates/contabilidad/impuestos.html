@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+{% block breadcrumb %}Contabilidad / Impuestos{% endblock %}
+{% block content %}
+
+<div class="card">
+    <div class="card-header">
+        <div>
+            <h2><i class="fas fa-percent"></i> Impuestos configurables</h2>
+            <div style="font-size:13px;opacity:.8;">IVA, IGIC, exentos y reglas vigentes por territorio.</div>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <a href="{{ url_for('contabilidad.dashboard') }}" class="btn btn-secondary">Panel</a>
+            <a href="{{ url_for('contabilidad.nuevo_documento') }}" class="btn btn-primary">Nuevo documento</a>
+        </div>
+    </div>
+
+    <form method="POST" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;align-items:end;margin-bottom:18px;">
+        <div>
+            <label class="form-label">Nombre</label>
+            <input name="nombre" class="form-control" placeholder="IVA hosteleria" required>
+        </div>
+        <div>
+            <label class="form-label">Tipo</label>
+            <select name="tipo" class="form-control">
+                <option value="IVA">IVA</option>
+                <option value="IGIC">IGIC</option>
+                <option value="EXENTO">Exento</option>
+                <option value="OTRO">Otro</option>
+            </select>
+        </div>
+        <div>
+            <label class="form-label">Porcentaje</label>
+            <input type="number" step="0.01" name="porcentaje" class="form-control" value="0">
+        </div>
+        <div>
+            <label class="form-label">Territorio</label>
+            <input name="territorio" class="form-control" value="ES">
+        </div>
+        <div>
+            <label class="form-label">Inicio</label>
+            <input type="date" name="fecha_inicio" class="form-control">
+        </div>
+        <div>
+            <label class="form-label">Fin</label>
+            <input type="date" name="fecha_fin" class="form-control">
+        </div>
+        <label style="display:flex;gap:8px;align-items:center;">
+            <input type="checkbox" name="activo" checked> Activo
+        </label>
+        <button class="btn btn-success"><i class="fas fa-plus"></i> Crear</button>
+    </form>
+
+    <div class="table-container">
+        <table class="table table-hover">
+            <thead>
+                <tr>
+                    <th>Nombre</th>
+                    <th>Tipo</th>
+                    <th>Territorio</th>
+                    <th style="text-align:right;">%</th>
+                    <th>Vigencia</th>
+                    <th>Estado</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for i in impuestos %}
+                <tr>
+                    <td>{{ i.nombre }}</td>
+                    <td>{{ i.tipo }}</td>
+                    <td>{{ i.territorio }}</td>
+                    <td style="text-align:right;">{{ "%.2f"|format(i.porcentaje or 0) }}</td>
+                    <td>{{ i.fecha_inicio or '-' }} / {{ i.fecha_fin or '-' }}</td>
+                    <td><span class="badge {% if i.activo %}badge-success{% else %}badge-secondary{% endif %}">{{ 'Activo' if i.activo else 'Inactivo' }}</span></td>
+                </tr>
+                {% else %}
+                <tr><td colspan="6" style="text-align:center;padding:24px;">Sin impuestos configurados.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{% endblock %}

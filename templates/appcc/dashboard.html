@@ -1,0 +1,388 @@
+{% extends "base.html" %}
+
+{% block title %}APPCC - El Raco ERP{% endblock %}
+
+{% block content %}
+<style>
+    .appcc-head {
+        display: flex;
+        justify-content: space-between;
+        gap: 16px;
+        align-items: flex-start;
+        margin-bottom: 18px;
+    }
+    .appcc-head h2 {
+        margin: 0 0 6px;
+        color: #ff6b00;
+    }
+    .appcc-head p,
+    .muted {
+        color: #9fb0c0;
+        font-size: 13px;
+    }
+    .appcc-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        justify-content: flex-end;
+    }
+    .appcc-date {
+        background: #1e252b;
+        border: 1px solid #2c3e50;
+        border-radius: 8px;
+        padding: 12px;
+        margin-bottom: 18px;
+    }
+    .appcc-date form {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        align-items: end;
+    }
+    .kpi-grid,
+    .ops-grid,
+    .alert-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+        gap: 12px;
+        margin-bottom: 18px;
+    }
+    .kpi,
+    .op-card,
+    .alert-card,
+    .panel {
+        background: #1e252b;
+        border: 1px solid #2c3e50;
+        border-radius: 8px;
+        padding: 14px;
+    }
+    .kpi span,
+    .op-card span {
+        display: block;
+        color: #9fb0c0;
+        font-size: 12px;
+        margin-bottom: 5px;
+    }
+    .kpi strong {
+        color: #fff;
+        font-size: 26px;
+    }
+    .danger strong,
+    .danger h4 {
+        color: #ff8d8d;
+    }
+    .warning strong,
+    .warning h4 {
+        color: #ffd166;
+    }
+    .ok strong,
+    .ok h4 {
+        color: #7be08a;
+    }
+    .op-card strong {
+        display: block;
+        color: #fff;
+        font-size: 16px;
+        margin-bottom: 5px;
+    }
+    .op-card small {
+        color: #9fb0c0;
+    }
+    .panel {
+        margin-bottom: 18px;
+    }
+    .panel h3 {
+        margin: 0 0 12px;
+        color: #ff6b00;
+        font-size: 18px;
+    }
+    .quick-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+        gap: 10px;
+    }
+    .quick-link {
+        display: block;
+        background: #202832;
+        border: 1px solid #2c3e50;
+        border-radius: 8px;
+        padding: 12px;
+        color: #fff;
+        text-decoration: none;
+    }
+    .quick-link:hover {
+        border-color: #ff6b00;
+        color: #fff;
+    }
+    .quick-link span {
+        display: block;
+        color: #9fb0c0;
+        font-size: 12px;
+        margin-top: 4px;
+    }
+    .status-ok {
+        color: #7be08a;
+        font-weight: 700;
+    }
+    .status-ko {
+        color: #ff8d8d;
+        font-weight: 700;
+    }
+    .status-pending {
+        color: #ffd166;
+        font-weight: 700;
+    }
+    .table-container td {
+        vertical-align: top;
+    }
+    @media (max-width: 760px) {
+        .appcc-head {
+            display: block;
+        }
+        .appcc-actions {
+            justify-content: flex-start;
+            margin-top: 10px;
+        }
+    }
+</style>
+
+<div class="card">
+    <div class="appcc-head">
+        <div>
+            <h2><i class="fas fa-shield-alt"></i> APPCC diario</h2>
+            <p>Panel operativo: lo importante primero, registros trazados despues.</p>
+        </div>
+        <div class="appcc-actions">
+            <a href="{{ url_for('appcc.cierre_diario_appcc', fecha=fecha) }}" class="btn btn-success">
+                <i class="fas fa-check-circle"></i> Cierre diario
+            </a>
+            <a href="{{ url_for('appcc.operativa_appcc', desde=fecha, hasta=fecha) }}" class="btn btn-primary">
+                <i class="fas fa-list"></i> Registros
+            </a>
+            <a href="{{ url_for('appcc.plan_appcc') }}" class="btn btn-secondary">
+                <i class="fas fa-clipboard-check"></i> Plan
+            </a>
+        </div>
+    </div>
+
+    <div class="appcc-date">
+        <form method="GET">
+            <div>
+                <label class="form-label">Dia de trabajo</label>
+                <input type="date" name="fecha" value="{{ fecha }}" class="form-control">
+            </div>
+            <button type="submit" class="btn btn-primary">Ver dia</button>
+            {% if cierre %}
+                <span class="status-ok">Cerrado por {{ cierre.responsable or '-' }}</span>
+            {% else %}
+                <span class="status-pending">Pendiente de cierre</span>
+            {% endif %}
+        </form>
+    </div>
+
+    <div class="kpi-grid">
+        <div class="kpi"><span>Registros hoy</span><strong>{{ kpis.registros_hoy }}</strong></div>
+        <div class="kpi {% if kpis.no_ok_hoy %}danger{% else %}ok{% endif %}">
+            <span>No OK hoy</span><strong>{{ kpis.no_ok_hoy }}</strong>
+        </div>
+        <div class="kpi {% if kpis.incidencias_abiertas %}warning{% else %}ok{% endif %}">
+            <span>No conformidades abiertas</span><strong>{{ kpis.incidencias_abiertas }}</strong>
+        </div>
+        <div class="kpi {% if kpis.sin_verificar %}warning{% else %}ok{% endif %}">
+            <span>Sin verificar hoy</span><strong>{{ kpis.sin_verificar }}</strong>
+        </div>
+        <div class="kpi {% if kpis.equipos_sin_registro %}warning{% else %}ok{% endif %}">
+            <span>Equipos sin lectura</span><strong>{{ kpis.equipos_sin_registro }}</strong>
+        </div>
+        <div class="kpi {% if kpis.alertas_descongelado %}warning{% else %}ok{% endif %}">
+            <span>Alertas descongelado</span><strong>{{ kpis.alertas_descongelado }}</strong>
+        </div>
+    </div>
+
+    <div class="panel">
+        <h3>Trabajo directo</h3>
+        <div class="quick-grid">
+            <a class="quick-link" href="{{ url_for('appcc.lista_equipos') }}">
+                Temperaturas y equipos
+                <span>Camaras, armarios, equipos criticos</span>
+            </a>
+            {% if tiene_permiso('produccion_ver') or tiene_permiso('produccion_editar') %}
+            <a class="quick-link" href="{{ url_for('lotes.panel_carnes_pescados') }}">
+                Congelados produccion
+                <span>Sacar de congelador, controlar y etiquetar</span>
+            </a>
+            {% endif %}
+            <a class="quick-link" href="{{ url_for('appcc.plan_limpieza') }}">
+                Limpieza y desinfeccion
+                <span>Zonas, equipos, utensilios y verificaciones</span>
+            </a>
+            <a class="quick-link" href="{{ url_for('appcc.control_caducidades') }}">
+                Caducidades y lotes
+                <span>Producto proximo, caducado o bloqueado</span>
+            </a>
+            {% if tiene_permiso('produccion_ver') or tiene_permiso('produccion_editar') %}
+            <a class="quick-link" href="{{ url_for('produccion.trazabilidad_produccion', fecha_desde=fecha, fecha_hasta=fecha) }}">
+                Produccion APPCC
+                <span>Elaboracion, abatimiento, regeneracion y servicio</span>
+            </a>
+            {% endif %}
+            <a class="quick-link" href="{{ url_for('appcc.buscar_trazabilidad') }}">
+                Buscar trazabilidad
+                <span>Lote, proveedor, elaboracion y uso final</span>
+            </a>
+        </div>
+    </div>
+
+    <div class="ops-grid">
+        {% for op in operativas %}
+        <div class="op-card">
+            <span>{{ op.codigo }}</span>
+            <strong>{{ op.nombre }}</strong>
+            <div>{{ op.conteo }} registros hoy</div>
+            <small>{{ op.detalle }}</small>
+        </div>
+        {% endfor %}
+    </div>
+
+    <div class="panel">
+        <h3>Checklist para no dejarnos nada</h3>
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Control</th>
+                        <th>Area / etapa</th>
+                        <th>Frecuencia</th>
+                        <th>Hoy</th>
+                        <th>Ultimo registro</th>
+                        <th>Accion</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for c in controles %}
+                    <tr>
+                        <td>
+                            <strong>{{ c.codigo or ('CTRL-' ~ c.id) }}</strong><br>
+                            <span class="muted">{{ c.tipo_control or '-' }}</span>
+                        </td>
+                        <td>
+                            {{ c.area or '-' }}<br>
+                            <span class="muted">{{ c.etapa or '-' }}</span>
+                        </td>
+                        <td>{{ c.frecuencia or '-' }}</td>
+                        <td>
+                            {% if c.no_ok_hoy %}
+                                <span class="status-ko">{{ c.no_ok_hoy }} no OK</span>
+                            {% elif c.registros_hoy %}
+                                <span class="status-ok">{{ c.registros_hoy }} registro(s)</span>
+                            {% else %}
+                                <span class="status-pending">Sin registro hoy</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ c.ultimo_registro[:16] if c.ultimo_registro else '-' }}</td>
+                        <td>
+                            <a class="btn btn-primary btn-sm" href="{{ url_for('appcc.registrar_control_appcc', control_id=c.id) }}">
+                                Registrar
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="alert-grid">
+        <div class="alert-card {% if alertas_temperatura %}danger{% else %}ok{% endif %}">
+            <h4>Temperaturas fuera de rango</h4>
+            {% for a in alertas_temperatura %}
+                <div>{{ a.equipo_nombre }}: {{ a.temperatura }} C <span class="muted">{{ a.fecha[:16] if a.fecha else '' }}</span></div>
+            {% else %}
+                <div class="muted">Sin alertas de temperatura.</div>
+            {% endfor %}
+        </div>
+        <div class="alert-card {% if alertas_descongelado %}warning{% else %}ok{% endif %}">
+            <h4>Descongelados pendientes</h4>
+            {% for a in alertas_descongelado %}
+                <div>{{ a.producto_nombre }} <span class="muted">{{ a.codigo_lote }} - {{ a.fecha_alerta[:16] if a.fecha_alerta else '' }}</span></div>
+            {% else %}
+                <div class="muted">Sin salidas urgentes.</div>
+            {% endfor %}
+        </div>
+        <div class="alert-card {% if alertas_caducidad %}warning{% else %}ok{% endif %}">
+            <h4>Caducidad / vida util</h4>
+            {% for l in alertas_caducidad %}
+                <div>{{ l.producto_nombre }} <span class="muted">{{ l.fecha_caducidad or '-' }}</span></div>
+            {% else %}
+                <div class="muted">Sin lotes criticos.</div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <div class="panel">
+        <h3>No conformidades abiertas</h3>
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Fecha</th>
+                        <th>Tipo</th>
+                        <th>Descripcion</th>
+                        <th>Gravedad</th>
+                        <th>Accion</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for i in incidencias %}
+                    <tr>
+                        <td>{{ i.fecha[:16] if i.fecha else '-' }}</td>
+                        <td>{{ i.tipo or '-' }}</td>
+                        <td>{{ i.descripcion or '-' }}</td>
+                        <td>{{ i.gravedad or '-' }}</td>
+                        <td><a class="btn btn-secondary btn-sm" href="{{ url_for('incidencias.ver', incidencia_id=i.id) }}">Ver</a></td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="5">No hay no conformidades APPCC abiertas.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="panel">
+        <h3>Ultimos registros APPCC</h3>
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Fecha</th>
+                        <th>Control</th>
+                        <th>Resultado</th>
+                        <th>Valor</th>
+                        <th>Origen</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for r in recientes %}
+                    <tr>
+                        <td>{{ r.fecha[:16] if r.fecha else '-' }}</td>
+                        <td><strong>{{ r.codigo }}</strong><br><span class="muted">{{ r.area or '-' }}</span></td>
+                        <td>
+                            {% if r.resultado == 'ok' %}
+                                <span class="status-ok">OK</span>
+                            {% else %}
+                                <span class="status-ko">{{ r.resultado or '-' }}</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ r.valor or '-' }}</td>
+                        <td>{{ origen_label(r.origen_tabla) }}{% if r.origen_id %} #{{ r.origen_id }}{% endif %}</td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="5">Todavia no hay registros APPCC.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

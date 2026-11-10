@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="card">
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+        <h2 style="color: #ff6b00;"> REPUESTOS Y PIEZAS</h2>
+        <a href="/mantenimiento/repuestos/nuevo" class="btn btn-success"> Nuevo repuesto</a>
+    </div>
+    
+    <table style="width: 100%; margin-top: 20px;">
+        <thead>
+            <tr>
+                <th>Cdigo</th>
+                <th>Nombre</th>
+                <th>Proveedor</th>
+                <th>Stock</th>
+                <th>Mnimo</th>
+                <th>Precio</th>
+                <th>Ubicacin</th>
+                <th>Acciones</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for r in repuestos %}
+            <tr>
+                <td><strong>{{ r.codigo }}</strong></td>
+                <td>{{ r.nombre }}</td>
+                <td>{{ r.proveedor_nombre or '---' }}</td>
+                <td class="{% if r.stock_actual <= r.stock_minimo %}stock-bajo{% endif %}">
+                    {{ r.stock_actual }} {{ r.unidad }}
+                </td>
+                <td>{{ r.stock_minimo }} {{ r.unidad }}</td>
+                <td>{{ "%.2f"|format(r.precio_compra) }} </td>
+                <td>{{ r.ubicacion_almacen or '---' }}</td>
+                <td>
+                    <a href="/mantenimiento/repuestos/{{ r.id }}" class="btn-small btn-info">️</a>
+                    <a href="/mantenimiento/repuestos/{{ r.id }}/editar" class="btn-small btn-primary">️</a>
+                </td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="8" style="text-align: center; padding: 40px;">No hay repuestos</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<style>
+    .btn-small {
+        padding: 3px 8px;
+        border-radius: 3px;
+        text-decoration: none;
+        font-size: 12px;
+        margin: 0 2px;
+    }
+    .btn-info { background: #17a2b8; color: white; }
+    .btn-primary { background: #007bff; color: white; }
+    .stock-bajo { color: #dc3545; font-weight: bold; }
+</style>
+{% endblock %}
+
+
+

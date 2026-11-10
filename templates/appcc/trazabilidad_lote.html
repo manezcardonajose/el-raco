@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="card">
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+        <h2> Trazabilidad del lote</h2>
+        <a href="/appcc/trazabilidad" class="btn btn-red">Nueva bsqueda</a>
+    </div>
+    
+    <!-- Datos del lote -->
+    <div style="background: #3a3f44; padding: 20px; border-radius: 4px; margin: 20px 0;">
+        <h3 style="margin-top: 0;">{{ lote.producto_nombre }}</h3>
+        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;">
+            <div><strong>Cdigo lote:</strong> {{ lote.codigo_lote }}</div>
+            <div><strong>Proveedor:</strong> {{ lote.proveedor_nombre or '---' }}</div>
+            <div><strong>Almacn:</strong> {{ lote.almacen_nombre or '---' }}</div>
+            <div><strong>Fecha recepcin:</strong> {{ lote.fecha_recepcion }}</div>
+            <div><strong>Caducidad:</strong> {{ lote.fecha_caducidad or '---' }}</div>
+            <div><strong>Estado:</strong> 
+                {% if lote.estado == 'activo' %}
+                    <span style="color: #28a745;">Activo</span>
+                {% elif lote.estado == 'consumido' %}
+                    <span style="color: #ffc107;">Consumido</span>
+                {% elif lote.estado == 'caducado' %}
+                    <span style="color: #dc3545;">Caducado</span>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <!-- Movimientos -->
+    <h3> Movimientos</h3>
+    <table style="width: 100%; margin-bottom: 20px;">
+        <thead>
+            <tr>
+                <th>Fecha</th>
+                <th>Tipo</th>
+                <th>Cantidad</th>
+                <th>Destino</th>
+                <th>Usuario</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for m in movimientos %}
+            <tr>
+                <td>{{ m.fecha }}</td>
+                <td>{{ m.tipo }}</td>
+                <td>{{ m.cantidad }}</td>
+                <td>{{ m.destino_tipo }} {{ m.destino_id }}</td>
+                <td>{{ m.usuario or '---' }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    
+    <!-- Usado en producciones -->
+    {% if usado_en %}
+    <h3> Utilizado en</h3>
+    <table style="width: 100%;">
+        <thead>
+            <tr>
+                <th>Producto elaborado</th>
+                <th>Lote</th>
+                <th>Cantidad usada</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for u in usado_en %}
+            <tr>
+                <td>{{ u.producto_final }}</td>
+                <td><a href="/appcc/trazabilidad/lote/{{ u.lote_producto }}">{{ u.lote_producto }}</a></td>
+                <td>{{ u.cantidad_usada }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% endif %}
+</div>
+{% endblock %}
+
+
+

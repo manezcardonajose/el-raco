@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Leche">
+  <circle cx="32" cy="32" r="30" fill="#8c8c8c"/>
+  <g fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M24 15h16l-3 10v25H27V25z"/>
+    <path d="M27 25h10M27 37h10"/>
+    <path d="M24 15l4-5h8l4 5"/>
+  </g>
+</svg>

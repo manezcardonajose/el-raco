@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="card">
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+        <div>
+            <h2 style="color: #ff6b00;">Importación de recetas</h2>
+            <p style="color: #999;">Sube un archivo Excel con fichas técnicas</p>
+        </div>
+        <div>
+            <a href="/recetas" class="btn btn-red">⬅ Volver a recetas</a>
+        </div>
+    </div>
+    
+    <div style="margin-top: 20px; display: flex; gap: 10px;">
+        <a href="/importar/masivo" class="btn btn-primary">Importar desde carpeta (masivo)</a>
+    </div>
+    
+    <div style="background: #3a3f44; padding: 20px; border-radius: 4px; margin: 20px 0;">
+        <h3>Subir archivo</h3>
+        <form method="POST" action="/importar/ia" enctype="multipart/form-data">
+            <div style="margin-bottom: 15px;">
+                <label>Selecciona archivo Excel (.xlsx, .xls):</label>
+                <input type="file" name="archivo" accept=".xlsx,.xls" required style="width: 100%; padding: 8px;">
+            </div>
+            <button type="submit" class="btn btn-success">Importar</button>
+        </form>
+    </div>
+    
+    <div style="background: #2b2f33; padding: 20px; border-radius: 4px;">
+        <h4 style="margin-top: 0;">Importar desde carpeta</h4>
+        <p>Si tienes muchos archivos en una carpeta, puedes importarlos todos a la vez.</p>
+        <a href="/importar/masivo" class="btn btn-primary">Seleccionar carpeta</a>
+    </div>
+</div>
+{% endblock %}

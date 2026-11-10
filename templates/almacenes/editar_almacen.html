@@ -1,0 +1,140 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+
+    <!-- CABECERA -->
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+        <h1>Editar almacén</h1>
+
+        <div style="display:flex; gap:10px;">
+            <a href="{{ url_for('almacenes.almacenes') }}" class="btn btn-secondary">
+                ← Volver
+            </a>
+
+            <form method="POST"
+                  action="{{ url_for('almacenes.eliminar_almacen', almacen_id=almacen.id) }}"
+                  onsubmit="return confirm('¿Eliminar este almacén?')">
+                <button type="submit" class="btn btn-danger">
+                    🗑 Eliminar
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- FORMULARIO -->
+    <div class="card">
+        <form method="POST">
+
+            <div class="form-group">
+                <label>Nombre</label>
+                <input type="text" name="nombre" value="{{ almacen.nombre }}" required>
+            </div>
+
+            <div class="form-group">
+                <label>Tipo</label>
+                <select name="tipo">
+                    <option value="seco" {% if almacen.tipo == 'seco' %}selected{% endif %}>Seco</option>
+                    <option value="refrigerado" {% if almacen.tipo == 'refrigerado' %}selected{% endif %}>Refrigerado</option>
+                    <option value="congelado" {% if almacen.tipo == 'congelado' %}selected{% endif %}>Congelado</option>
+                    <option value="botellero" {% if almacen.tipo == 'botellero' %}selected{% endif %}>Botellero</option>
+                    <option value="camara" {% if almacen.tipo == 'camara' %}selected{% endif %}>Camara</option>
+                    <option value="vitrina" {% if almacen.tipo == 'vitrina' %}selected{% endif %}>Vitrina refrigerada</option>
+                </select>
+            </div>
+
+            <div class="form-group" style="display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:12px;">
+                <label style="background:#1d2530;border:1px solid #34465c;border-radius:6px;padding:10px;">
+                    <input type="checkbox" name="crear_equipo" {% if almacen.equipo_mantenimiento_id %}checked{% endif %}>
+                    Crear / mantener equipo de mantenimiento
+                </label>
+                <label style="background:#1d2530;border:1px solid #34465c;border-radius:6px;padding:10px;">
+                    <input type="checkbox" name="requiere_control_temperatura" {% if almacen.requiere_control_temperatura %}checked{% endif %}>
+                    Control de temperatura / APPCC
+                </label>
+            </div>
+
+            <div class="form-group">
+                <label>Criticidad</label>
+                <select name="criticidad">
+                    <option value="media" {% if (almacen.equipo_mantenimiento_criticidad or 'media') == 'media' %}selected{% endif %}>Media</option>
+                    <option value="alta" {% if almacen.equipo_mantenimiento_criticidad == 'alta' %}selected{% endif %}>Alta</option>
+                    <option value="baja" {% if almacen.equipo_mantenimiento_criticidad == 'baja' %}selected{% endif %}>Baja</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label>Ubicación</label>
+                <input type="text" name="ubicacion" value="{{ almacen.ubicacion or '' }}">
+            </div>
+
+            <div class="form-group">
+                <label>Responsable</label>
+                <input type="text" name="responsable" value="{{ almacen.responsable or '' }}">
+            </div>
+
+            <div class="form-group">
+                <label>Rango minimo si controla temperatura</label>
+                <input type="number" step="0.1" name="rango_min" value="{{ almacen.rango_min if almacen.rango_min is not none else '' }}">
+            </div>
+
+            <div class="form-group">
+                <label>Rango maximo si controla temperatura</label>
+                <input type="number" step="0.1" name="rango_max" value="{{ almacen.rango_max if almacen.rango_max is not none else '' }}">
+            </div>
+
+            <div class="form-group">
+                <label>Departamento</label>
+<select name="departamento_id" id="departamento_id">
+    <option value="">-- Ninguno --</option>
+    {% for d in departamentos %}
+    <option value="{{ d.id }}"
+            {% if almacen.departamento_id == d.id %}selected{% endif %}>
+        {{ d.nombre }}
+    </option>
+    {% endfor %}
+</select>
+            </div>
+
+            <div class="form-group">
+                <label>Subdepartamento</label>
+<select name="subdepartamento_id" id="subdepartamento_id">
+    <option value="">-- Ninguno --</option>
+    {% for s in subdepartamentos %}
+    <option value="{{ s.id }}"
+            data-departamento="{{ s.departamento_id }}"
+            {% if almacen.subdepartamento_id == s.id %}selected{% endif %}>
+        {{ s.nombre }}
+    </option>
+    {% endfor %}
+</select>
+            </div>
+
+            <div class="form-group">
+                <label>
+                    <input type="checkbox" name="activo"
+                        {% if almacen.activo %}checked{% endif %}>
+                    Activo
+                </label>
+            </div>
+
+            <!-- BOTONES -->
+            <div style="margin-top:20px; display:flex; gap:10px;">
+    <button type="submit" class="btn btn-success">
+        💾 Guardar cambios
+    </button>
+
+    <a href="{{ url_for('almacenes.almacenes') }}" class="btn btn-secondary">
+        Cancelar
+    </a>
+
+    <a href="{{ url_for('almacenes.ver_almacen', almacen_id=almacen.id) }}" class="btn btn-info">
+        Ver stock
+    </a>
+</div>
+
+        </form>
+    </div>
+
+</div>
+{% endblock %}

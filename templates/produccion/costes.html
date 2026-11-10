@@ -1,0 +1,210 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="card">
+    <div class="card-header" style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;">
+        <div>
+            <h2 style="margin-bottom:4px;"><i class="fas fa-euro-sign"></i> Coste de produccion</h2>
+            <div style="font-size:13px;opacity:.8;">Resumen por jornada, servicio y centro de elaboracion.</div>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <a href="{{ url_for('produccion.produccion_index', fecha=fecha_desde) }}" class="btn btn-secondary">Partes</a>
+            <a href="{{ url_for('produccion.necesidades_planificacion') }}" class="btn btn-info">Necesidades</a>
+        </div>
+    </div>
+
+    <form method="GET" style="padding:15px;display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;align-items:end;">
+        <div>
+            <label style="display:block;font-size:12px;opacity:.75;">Desde</label>
+            <input type="date" name="fecha_desde" value="{{ fecha_desde }}" class="form-control">
+        </div>
+        <div>
+            <label style="display:block;font-size:12px;opacity:.75;">Hasta</label>
+            <input type="date" name="fecha_hasta" value="{{ fecha_hasta }}" class="form-control">
+        </div>
+        <div>
+            <label style="display:block;font-size:12px;opacity:.75;">Servicio</label>
+            <select name="servicio" class="form-control">
+                <option value="">Todos</option>
+                {% for s in servicios %}
+                <option value="{{ s.servicio }}" {% if servicio == s.servicio %}selected{% endif %}>{{ s.servicio }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <button type="submit" class="btn btn-primary">Filtrar</button>
+            <a href="{{ url_for('produccion.costes_produccion') }}" class="btn btn-secondary">Limpiar</a>
+        </div>
+    </form>
+
+    <div style="padding:0 15px 15px;">
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;margin-bottom:14px;">
+            <div style="background:#20252a;border:1px solid #344150;border-radius:8px;padding:12px;">
+                <div style="font-size:12px;opacity:.75;">Partes</div>
+                <div style="font-size:24px;font-weight:700;">{{ totales.partes or 0 }}</div>
+            </div>
+            <div style="background:#20252a;border:1px solid #344150;border-radius:8px;padding:12px;">
+                <div style="font-size:12px;opacity:.75;">Raciones</div>
+                <div style="font-size:24px;font-weight:700;">{{ "%.0f"|format(totales.raciones or 0) }}</div>
+            </div>
+            <div style="background:#20252a;border:1px solid #344150;border-radius:8px;padding:12px;">
+                <div style="font-size:12px;opacity:.75;">Coste estimado</div>
+                <div style="font-size:24px;font-weight:700;">{{ "%.2f"|format(totales.coste_estimado or 0) }} EUR</div>
+            </div>
+            <div style="background:#20252a;border:1px solid #344150;border-radius:8px;padding:12px;">
+                <div style="font-size:12px;opacity:.75;">Coste real</div>
+                <div style="font-size:24px;font-weight:700;">{{ "%.2f"|format(totales.coste_total_real or 0) }} EUR</div>
+            </div>
+            <div style="background:#20252a;border:1px solid #344150;border-radius:8px;padding:12px;">
+                <div style="font-size:12px;opacity:.75;">Imputado al servicio</div>
+                <div style="font-size:24px;font-weight:700;">{{ "%.2f"|format(totales.coste_imputado_servicio or 0) }} EUR</div>
+            </div>
+            <div style="background:#20252a;border:1px solid #344150;border-radius:8px;padding:12px;">
+                <div style="font-size:12px;opacity:.75;">Merma real</div>
+                <div style="font-size:24px;font-weight:700;color:#ff6b6b;">{{ "%.2f"|format(totales.valor_merma or 0) }} EUR</div>
+            </div>
+            <div style="background:#20252a;border:1px solid #344150;border-radius:8px;padding:12px;">
+                <div style="font-size:12px;opacity:.75;">Reaprovechado</div>
+                <div style="font-size:24px;font-weight:700;color:#51cf66;">{{ "%.2f"|format(totales.valor_reaprovechado or 0) }} EUR</div>
+            </div>
+            <div style="background:#20252a;border:1px solid #344150;border-radius:8px;padding:12px;">
+                <div style="font-size:12px;opacity:.75;">Desviacion</div>
+                <div style="font-size:24px;font-weight:700;color:{% if totales.desviacion > 0 %}#ff6b6b{% else %}#51cf66{% endif %};">{{ "%.2f"|format(totales.desviacion or 0) }} EUR</div>
+            </div>
+        </div>
+
+        <h3 style="color:#ff6b00;">Por jornada y servicio</h3>
+        <div class="table-container">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Fecha</th>
+                        <th>Servicio</th>
+                        <th style="text-align:right;">Partes</th>
+                        <th style="text-align:right;">Recetas</th>
+                        <th style="text-align:right;">Raciones</th>
+                        <th style="text-align:right;">Estimado</th>
+                        <th style="text-align:right;">Real recetas</th>
+                        <th style="text-align:right;">Extras</th>
+                        <th style="text-align:right;">Real total</th>
+                        <th style="text-align:right;">Guardado</th>
+                        <th style="text-align:right;">Merma</th>
+                        <th style="text-align:right;">Imputado</th>
+                        <th style="text-align:right;">Desv.</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for r in resumen_servicios %}
+                    <tr>
+                        <td>{{ r.fecha }}</td>
+                        <td>{{ r.servicio }}</td>
+                        <td style="text-align:right;">{{ r.partes or 0 }}</td>
+                        <td style="text-align:right;">{{ r.recetas or 0 }}</td>
+                        <td style="text-align:right;">{{ "%.0f"|format(r.raciones or 0) }}</td>
+                        <td style="text-align:right;">{{ "%.2f"|format(r.coste_estimado or 0) }}</td>
+                        <td style="text-align:right;">{{ "%.2f"|format(r.coste_real or 0) }}</td>
+                        <td style="text-align:right;">{{ "%.2f"|format(r.coste_extra or 0) }}</td>
+                        <td style="text-align:right;">{{ "%.2f"|format(r.coste_total_real or 0) }}</td>
+                        <td style="text-align:right;color:#51cf66;">{{ "%.2f"|format(r.valor_reaprovechado or 0) }}</td>
+                        <td style="text-align:right;color:#ff6b6b;">{{ "%.2f"|format(r.valor_merma or 0) }}</td>
+                        <td style="text-align:right;"><strong>{{ "%.2f"|format(r.coste_imputado_servicio or 0) }}</strong></td>
+                        <td style="text-align:right;color:{% if r.desviacion > 0 %}#ff6b6b{% else %}#51cf66{% endif %};">{{ "%.2f"|format(r.desviacion or 0) }}</td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="13" style="text-align:center;padding:22px;">No hay produccion en el filtro seleccionado.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <h3 style="color:#ff6b00;margin-top:22px;">Coste real por plato</h3>
+        <div class="table-container">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Fecha</th>
+                        <th>Servicio</th>
+                        <th>Plato</th>
+                        <th>Centro</th>
+                        <th style="text-align:right;">Raciones</th>
+                        <th style="text-align:right;">Real</th>
+                        <th style="text-align:right;">Coste/racion</th>
+                        <th style="text-align:right;">Merma</th>
+                        <th style="text-align:right;">Guardado</th>
+                        <th style="text-align:right;">Imputado</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for r in detalle_platos %}
+                    <tr>
+                        <td>{{ r.fecha }}</td>
+                        <td>{{ r.servicio }}</td>
+                        <td><strong>{{ r.plato }}</strong></td>
+                        <td>{{ r.centro }}</td>
+                        <td style="text-align:right;">{{ "%.1f"|format(r.raciones or 0) }}</td>
+                        <td style="text-align:right;">{{ "%.2f"|format(r.coste_real or 0) }}</td>
+                        <td style="text-align:right;">{{ "%.2f"|format(r.coste_racion or 0) }}</td>
+                        <td style="text-align:right;color:#ff6b6b;">
+                            {{ "%.2f"|format(r.valor_merma or 0) }}
+                            <br><small>{{ "%.1f"|format(r.merma_cantidad or 0) }}</small>
+                        </td>
+                        <td style="text-align:right;color:#51cf66;">
+                            {{ "%.2f"|format(r.valor_reaprovechado or 0) }}
+                            <br><small>{{ "%.1f"|format(r.reaprovechamiento_cantidad or 0) }}</small>
+                        </td>
+                        <td style="text-align:right;"><strong>{{ "%.2f"|format(r.coste_imputado_servicio or 0) }}</strong></td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="10" style="text-align:center;padding:22px;">No hay detalle por plato en el filtro seleccionado.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <h3 style="color:#ff6b00;margin-top:22px;">Detalle por centro</h3>
+        <div class="table-container">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Fecha</th>
+                        <th>Servicio</th>
+                        <th>Centro</th>
+                        <th style="text-align:right;">Recetas</th>
+                        <th style="text-align:right;">Raciones</th>
+                        <th style="text-align:right;">Estimado</th>
+                        <th style="text-align:right;">Real total</th>
+                        <th style="text-align:right;">Merma</th>
+                        <th style="text-align:right;">Guardado</th>
+                        <th style="text-align:right;">Imputado</th>
+                        <th style="text-align:right;">Desv.</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for r in detalle_centros %}
+                    <tr>
+                        <td>{{ r.fecha }}</td>
+                        <td>{{ r.servicio }}</td>
+                        <td>{{ r.centro }}</td>
+                        <td style="text-align:right;">{{ r.recetas or 0 }}</td>
+                        <td style="text-align:right;">{{ "%.0f"|format(r.raciones or 0) }}</td>
+                        <td style="text-align:right;">{{ "%.2f"|format(r.coste_estimado or 0) }}</td>
+                        <td style="text-align:right;">{{ "%.2f"|format(r.coste_total_real or 0) }}</td>
+                        <td style="text-align:right;color:#ff6b6b;">{{ "%.2f"|format(r.valor_merma or 0) }}</td>
+                        <td style="text-align:right;color:#51cf66;">{{ "%.2f"|format(r.valor_reaprovechado or 0) }}</td>
+                        <td style="text-align:right;">{{ "%.2f"|format(r.coste_imputado_servicio or 0) }}</td>
+                        <td style="text-align:right;color:{% if r.desviacion > 0 %}#ff6b6b{% else %}#51cf66{% endif %};">{{ "%.2f"|format(r.desviacion or 0) }}</td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="11" style="text-align:center;padding:22px;">No hay detalle por centro.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <div style="font-size:12px;opacity:.75;margin-top:12px;">
+            El coste estimado usa la receta y el precio del producto. El coste real usa las cantidades registradas por produccion cuando existen; si no existen, calcula con la receta ajustada. La merma solo cuenta sobrantes marcados como merma/desecho. El reaprovechamiento queda como producto guardado con trazabilidad y no se imputa como perdida del servicio.
+        </div>
+    </div>
+</div>
+
+{% endblock %}

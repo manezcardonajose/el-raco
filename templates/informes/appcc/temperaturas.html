@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header">
+        <h2><i class="fas fa-thermometer-half"></i> INFORME DE TEMPERATURAS</h2>
+        <div>
+            <a href="{{ url_for('appcc.exportar_informe_appcc', tipo='temperaturas', desde=fecha_desde, hasta=fecha_hasta) }}"
+               class="btn btn-success">
+                <i class="fas fa-file-excel"></i> Exportar Excel
+            </a>
+            <a href="{{ url_for('appcc.appcc_dashboard') }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Volver
+            </a>
+        </div>
+    </div>
+
+    <!-- Filtros -->
+    <div style="background: #1e252b; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+        <form method="GET" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; align-items: end;">
+            <div>
+                <label class="form-label">Desde:</label>
+                <input type="date" name="desde" value="{{ fecha_desde }}" class="form-control">
+            </div>
+            <div>
+                <label class="form-label">Hasta:</label>
+                <input type="date" name="hasta" value="{{ fecha_hasta }}" class="form-control">
+            </div>
+            <div>
+                <label class="form-label">Equipo:</label>
+                <select name="equipo" class="form-control">
+                    <option value="">Todos</option>
+                    {% for e in equipos %}
+                    <option value="{{ e.id }}" {% if e.id|string == equipo_seleccionado %}selected{% endif %}>
+                        {{ e.nombre }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <button type="submit" class="btn btn-primary">Filtrar</button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Tabla de registros -->
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>Fecha</th>
+                    <th>Equipo</th>
+                    <th>Temperatura</th>
+                    <th>Rango</th>
+                    <th>Estado</th>
+                    <th>Usuario</th>
+                    <th>Observaciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for r in registros %}
+                <tr>
+                    <td>{{ r.fecha[:16] if r.fecha else '---' }}</td>
+                    <td><strong>{{ r.equipo_nombre }}</strong></td>
+                    <td>{{ r.temperatura }}°C</td>
+                    <td>{{ r.rango_min or '---' }} - {{ r.rango_max or '---' }} °C</td>
+                    <td>
+                        {% if r.fuera_rango %}
+                        <span style="color: #dc3545; font-weight: bold;">️ FUERA</span>
+                        {% else %}
+                        <span style="color: #28a745;"> OK</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ r.usuario or '---' }}</td>
+                    <td>{{ r.observaciones or '---' }}</td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="7" style="text-align: center;">No hay registros</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
+
+
+
+

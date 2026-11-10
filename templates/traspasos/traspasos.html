@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="card">
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+        <h2> Traspasos entre Almacenes</h2>
+        <a href="/traspasos/nuevo" class="btn btn-success"> Nuevo Traspaso</a>
+        <a href="/exportar/productos" class="btn btn-secondary" target="_blank">
+            <i class="fas fa-file-excel"></i> Exportar Excel
+        </a>
+    </div>
+    
+    <table>
+        <thead>
+            <tr>
+                <th>Fecha</th>
+                <th>Producto</th>
+                <th>Origen</th>
+                <th>Destino</th>
+                <th>Cantidad</th>
+                <th>Usuario</th>
+                <th>Observaciones</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for t in traspasos %}
+            <tr>
+                <td>{{ t.fecha }}</td>
+                <td>{{ t.producto }}</td>
+                <td>{{ t.origen }}</td>
+                <td>{{ t.destino }}</td>
+                <td>{{ t.cantidad }}</td>
+                <td>{{ t.usuario or '---' }}</td>
+                <td>{{ t.observaciones or '---' }}</td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="7" style="text-align: center;">No hay traspasos registrados</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}
+
+
